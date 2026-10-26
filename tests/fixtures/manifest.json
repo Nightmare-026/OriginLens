@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "updatedAtUtc": "2026-10-27T00:00:00.000Z",
+  "verificationEnvironment": "Windows; Node v24.22.1; ExifReader 4.52.0",
+  "notes": [
+    "Synthetic fixtures are generated deterministically by test code, not downloaded content.",
+    "No binary C2PA fixture has been acquired or verified yet. No file is described as valid or trusted without a recorded SDK result.",
+    "A filename is never evidence for an expected result."
+  ],
+  "fixtures": [
+    {
+      "id": "synthetic-exif-jpeg",
+      "generation": "tests/unit/helpers/exif-jpeg.ts#buildExifJpeg()",
+      "source": "Project-generated test data",
+      "license": "Project-generated; no third-party content",
+      "byteLength": 356,
+      "sha256": "2058e08e46eb3c779356f68127c5801a64a2304174c0cd341587a1e606a2e0e6",
+      "expected": {
+        "metadataStatus": "extracted",
+        "fields": {
+          "cameraMake": "Canon",
+          "cameraModel": "EOS R5",
+          "software": "OriginTest",
+          "captureTime": "2026:10:27 12:00:00",
+          "orientation": 6
+        },
+        "gpsPresence": "present",
+        "coordinatesExtracted": false
+      },
+      "expectationEstablishedBy": "ExifReader 4.52.0 parse probe on 2026-10-27; asserted by tests/unit/metadata.test.ts"
+    },
+    {
+      "id": "synthetic-plain-jpeg",
+      "generation": "tests/unit/helpers/exif-jpeg.ts#buildPlainJpeg()",
+      "source": "Project-generated minimal 1x1 JPEG",
+      "license": "Project-generated; no third-party content",
+      "byteLength": 160,
+      "sha256": "bdff0e0944f020878bfc277e5977ae6a598422812b68cbe67620c6de85e45045",
+      "expected": {
+        "metadataStatus": "extracted",
+        "allowlistedFields": 0,
+        "gpsPresence": "not_present"
+      },
+      "expectationEstablishedBy": "ExifReader 4.52.0 parse probe on 2026-10-27; asserted by tests/unit/metadata.test.ts"
+    }
+  ],
+  "pendingCategories": [
+    "Valid supported C2PA credential fixture with recorded validator output",
+    "Valid credential with recorded signer-trust state under the test trust policy",
+    "Invalid or mutated credential with pre-confirmed expected output",
+    "Binary metadata-only image with selected fields and a GPS privacy fixture",
+    "Duplicate bytes, alternate encoding, preview-difference, dimension/orientation, truncated, mislabeled, oversize, and high-pixel fixtures"
+  ]
+}

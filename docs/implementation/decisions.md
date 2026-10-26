@@ -4,6 +4,66 @@ Material decisions with source, date, and consequence. Newest first.
 
 ---
 
+## ADR-003 — GPS presence is reported, coordinates are never extracted
+
+**Date:** 2026-10-27
+**Status:** ACCEPTED
+**Deciders:** project owner (participant) + implementation agent
+
+### Context
+
+PRD FR-004 requires GPS to be hidden by default, with an optional reveal path. ExifReader can parse GPS rational values. Keeping coordinates out of the domain model is stricter than "hidden by default" and removes an entire class of accidental disclosure paths (UI, logs, exports, model payloads).
+
+### Decision
+
+`src/lib/metadata/inspect.ts` reports only `gpsPresence: 'present' | 'not_present' | 'unknown'`. It never copies GPS coordinate values into `MetadataInspection`, evidence items, logs, or reports. The report schema fixes `includedPreciseGps` to `false`.
+
+### Consequences
+
+- Users cannot view coordinates in this build; this is a documented limitation, not a missing feature that silently degrades.
+- Any future reveal path requires an explicit product decision, consent design, redaction tests, and report/schema changes before implementation.
+- `tests/unit/metadata.test.ts` asserts that serialized output contains no GPS coordinate keys or values.
+
+### Rollback
+
+Restore an explicit, consent-gated coordinate field in a future schema version; do not add it to the current `2.0` contract.
+
+---
+
+## ADR-002 — Phase 4 parser and toolchain pins
+
+**Date:** 2026-10-27
+**Status:** ACCEPTED
+**Deciders:** project owner (participant) + implementation agent
+
+### Context
+
+Phase 4 needs a browser-compatible metadata parser, an exact-pinned toolchain, and ESLint compatible with the Next.js config. The PRD requires exact pins for critical SDKs and a lean dependency tree. Versions were read from npm registry metadata (`npm view`) on 2026-10-27, not from memory.
+
+### Findings
+
+- `exifreader@4.52.0` is maintained, ships browser ESM and TypeScript declarations (`exif-reader.d.ts`), and is MPL-2.0. `exifr` was last published in 2022 and is not maintained for this use.
+- `eslint-config-next@16.4.3` bundles `eslint-plugin-import@2.32.0`, `eslint-plugin-jsx-a11y@6.10.2`, and an `eslint-plugin-react` whose peer ranges stop at ESLint 9. ESLint 10 therefore produces invalid peer resolutions. `eslint@9.39.5` is the newest compatible release; npm flags it as no longer supported, and `npm audit` reports 0 vulnerabilities.
+- `typescript-eslint` (via the Next config) declares a TypeScript peer `<6.1`; `typescript@5.9.3` is used instead of the newer 7.x line.
+- `exifreader`'s postinstall (`node bin/build.js --only-with-config`) is a no-op without a dependent config; the shipped `dist/exif-reader.js` is used. No custom build is requested.
+- Vitest 5.0.5 + Vite 8.3.5 run the unit suite in a Node environment; the config is `.mts` so Vite does not warn about ESM syntax in a CommonJS-loaded file.
+
+### Decision
+
+Pin `exifreader@4.52.0`, `typescript@5.9.3`, `eslint@9.39.5`, `vitest@5.0.5`, `vite@8.3.5`, and the Next/React versions recorded in `package.json`. Commit `package-lock.json`. Assert the installed ExifReader version in a unit test.
+
+### Consequences
+
+- ESLint 9 is EOL-flagged; re-evaluate when `eslint-config-next` raises its bundled plugin peer ranges. Do not suppress the deprecation warning.
+- No broad upgrades alongside unrelated features; re-audit before submission.
+- The synthetic EXIF fixture's expected values are tied to ExifReader 4.52.0 and must be re-verified on upgrade.
+
+### Rollback
+
+Replace the parser behind `inspectMetadata` without changing its output contract; re-run the metadata tests and update the fixture manifest if bytes or expectations change.
+
+---
+
 ## ADR-001 — P1-001 Meta-model explanation: server-side Meta Model API, Standard tier, evidence-only payload
 
 **Date:** 2026-10-27
