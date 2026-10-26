@@ -4,6 +4,70 @@ Material decisions with source, date, and consequence. Newest first.
 
 ---
 
+## ADR-005 — Signer trust and revocation are `not_evaluated` unless the SDK establishes them
+
+**Date:** 2026-10-27
+**Status:** ACCEPTED
+**Deciders:** project owner (participant) + implementation agent
+
+### Context
+
+`c2pa-web@0.15.4` evaluates signer trust only against trust anchors supplied to it. This build supplies none and performs no network trust or revocation lookup, so the pinned SDK reports `signingCredential.untrusted` for *every* credential — including the public Adobe test fixture whose signature, timestamp, and content binding are all valid. The recorded output confirms this: total unique codes are 8, of which `signingCredential.untrusted` is the sole failure-group entry, alongside `signingCredential.ocsp.skipped`.
+
+Mapping that SDK code to `not_trusted` would assert a negative trust finding the build cannot establish. The absence of configured anchors says nothing about whether the signer is trustworthy. PRD FR-006 and `AGENTS.md` §5 forbid collapsing these states, and forbid presenting a missing resource as a negative conclusion.
+
+### Decision
+
+`src/lib/c2pa/check.ts` derives signer trust as follows:
+
+- `trusted` **only** when `validation_state === 'Trusted'` or a **success-group** `signingCredential.trusted` code is present.
+- `not_evaluated` otherwise. This build never emits `not_trusted`, because it has no anchor material with which to reach that conclusion.
+- Revocation is `revoked` only on an explicit revoked code, `not_revoked` only on an explicit `signingCredential.ocsp.good`, and `not_evaluated` otherwise.
+- Every finding records `trustPolicyId: originlens-embedded-only-no-trust-anchors-v1`, and when `signingCredential.untrusted` is present the check carries a warning stating that the SDK reports every credential as untrusted because no anchors are configured.
+- Positive states (`valid`, `trusted`, `not_revoked`) require the SDK's own success group; a failure code may only produce a negative state.
+
+### Consequences
+
+- The UI may never show a "trusted signer" badge for the shipped fixtures, and the demo script must say "signature valid; signer trust not evaluated".
+- The trust policy is visible in the report, so a reader can tell what was and was not checked.
+- Tests pin the behavior: recorded fixture → `not_evaluated`; synthetic `Trusted` state and success code → `trusted`; untrusted-only → `not_evaluated`.
+
+### Rollback
+
+Configuring real trust anchors (or a trust-list fetch) requires: anchor/licensing provenance, a disclosure and consent decision for any network lookup, updated `C2PA_LIMITATIONS`, new trust-policy ID, and rewritten tests. Until then the no-anchor policy stays.
+
+---
+
+## ADR-004 — Pinned C2PA WebAssembly is served same-origin and verified at build time
+
+**Date:** 2026-10-27
+**Status:** ACCEPTED
+**Deciders:** project owner (participant) + implementation agent
+
+### Context
+
+`@contentauth/c2pa-web@0.15.4` compiles a 9.0 MB WebAssembly module inside a worker. `createC2pa({ wasmSrc })` requires an explicit URL, and its `workerSrc` option requires an `https:` URL; the SDK's default worker is an inline blob worker that needs no external worker file. PRD §8 and `AGENTS.md` §10 forbid unpinned CDN/runtime assets, and a third-party script origin would complicate CSP and supply-chain review.
+
+### Decision
+
+1. `scripts/sync-c2pa-assets.mjs` copies `node_modules/@contentauth/c2pa-web/dist/resources/c2pa_bg.wasm` to `public/c2pa/0.15.4/c2pa_bg.wasm`, refusing to write unless the installed package version, the WASM SHA-256 (`01b8e25f…9858df`), and the SHA-512 SRI the SDK itself verifies all match the constants in `src/lib/c2pa/asset.ts`.
+2. The script runs as `predev`, `prebuild`, and `pretest`, so a version bump or partial install fails loudly instead of validating with different bytes.
+3. The runtime is created with only `wasmSrc` (same-origin path); no `workerSrc` is supplied, so the inline blob worker is used.
+4. `tests/unit/c2pa-assets.test.ts` re-verifies the pin from disk and asserts the SRI string is present inside the installed SDK bundle, so the declared integrity value cannot drift from the shipped code.
+
+### Consequences
+
+- The browser fetches the WASM from this origin only; no CDN, no third-party script origin, and CSP work later has fewer exceptions to justify.
+- The 9.0 MB binary is committed under `public/`. This is an accepted repository-size cost for a reproducible, same-origin runtime.
+- Upgrading `c2pa-web` is a coordinated change: pin, `asset.ts` constants, sync script constants, fixtures, recorded SDK output, and trust-policy review.
+- CSP is still not configured; it remains a Phase 7/9 item (see `plan.md`).
+
+### Rollback
+
+Point `wasmSrc` at a self-hosted path served by infrastructure, or bundle the asset through the framework's asset pipeline; either way the version, SHA-256, and SRI checks must remain in place.
+
+---
+
 ## ADR-003 — GPS presence is reported, coordinates are never extracted
 
 **Date:** 2026-10-27

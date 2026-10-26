@@ -12,17 +12,17 @@
 | FR-002 | Preflight checks byte limit, format policy, signature/MIME consistency, decode result, pixel limit before expensive work | §3.1, §7 Stage 1 | `src/lib/intake` | V11–V16 | PARTIAL — `preflightFile` enforces size → extension/MIME → signature → dimensions with 26 unit tests; browser decode result not wired |
 | FR-003 | SHA-256 of original uploaded bytes, not preview/transform | §3.1, §7 Stage 2 | `src/lib/fingerprint` | V21 | PARTIAL — `sha256Hex` matches published vectors and hashes only the exact view; not yet bound to an uploaded `File` |
 | FR-004 | Metadata allowlist shown as unverified clues; GPS hidden by default | §3.1, §7 Stage 3 | `src/lib/metadata` | V07, V08, V16, V22 (GPS export) | PARTIAL — ExifReader allowlist, GPS presence-only, and text sanitization unit-tested; no UI or report export |
-| FR-005 | Real pinned C2PA SDK inspection; actual validator states/warnings preserved | §3.1, §7 Stage 4 | `src/lib/c2pa` | V03, V04, V22–V24, V27, V50 | NOT STARTED — no C2PA SDK dependency or code |
-| FR-006 | Manifest/signature/content-binding validity and signer trust remain separate | §3.1, §6.2 | `src/lib/c2pa`, `src/lib/results` | V05, V06, V27 | PARTIAL — runtime schema models each state separately and rejects dependent findings without a present manifest; no SDK mapping |
+| FR-005 | Real pinned C2PA SDK inspection; actual validator states/warnings preserved | §3.1, §7 Stage 4 | `src/lib/c2pa` | V03, V04, V22–V24, V27, V50 | PARTIAL — pinned `@contentauth/c2pa-web@0.15.4` adapter (session/map/check) verified by unit tests and six real-Chromium E2E specs against a production build; product Evidence Ledger UI not built |
+| FR-006 | Manifest/signature/content-binding validity and signer trust remain separate | §3.1, §6.2 | `src/lib/c2pa`, `src/lib/results` | V05, V06, V27 | PARTIAL — runtime schema models each state separately and rejects dependent findings without a manifest; SDK mapping tested against recorded output, where signature/content binding are `valid` while signer trust is `not_evaluated` under the no-anchor policy (ADR-005) |
 | FR-007 | Evidence Ledger: every displayed finding references a real check + structured evidence | §3.1, §2.1, §5.4 | `src/components/evidence-ledger`, `src/lib/results` | V03, V33 | PARTIAL — `CheckResult`/`EvidenceItem` contracts and report cross-reference validation tested; ledger UI not built |
 | FR-008 | Provenance Delta: compare two files by hash, dimensions, properties, selected metadata, supported preview | §3.1, §5.5, §7 Stage 6 | `src/lib/compare`, `src/components/provenance-delta` | V17–V20, V48, V49 | NOT STARTED |
 | FR-009 | Typed execution states distinct from result outcomes | §3.1, §9.1, §12 | `src/lib/results` | V26, V27, V33 | PARTIAL — execution state is separate from outcome; completed/outcome and failed/errorCode invariants unit-tested; no execution engine |
 | FR-010 | Versioned JSON report download; print view optional only if tested | §3.1, §9.6, §7 Stage 8 | `src/lib/report` | V33–V35, V43 | PARTIAL — versioned `2.0` report schema validates, and byte/GPS export literals are fixed `false`; serializer/download not built |
 | FR-011 | Privacy defaults: no login, no persistent media history, no server image upload | §3.1, §11.2 | `src/app`, `src/lib/security` | V08, V43, V44 | PARTIAL — no server upload, telemetry, auth, or persistence code; start page states browser-first; no file workflow to verify |
-| FR-012 | Clear session releases object URLs, SDK objects, preview resources | §3.1, §5.4, §7 Stage 8 | `src/lib/security`, UI | V36 | NOT STARTED — no session resources acquired yet |
-| FR-013 | Recoverable errors: a failing non-critical check preserves independent results | §3.1, §12.2 | `src/lib/results`, UI | V15, V22, V25, V26 | PARTIAL — metadata parser failures become typed non-critical results; pipeline/UI recovery not built |
+| FR-012 | Clear session releases object URLs, SDK objects, preview resources | §3.1, §5.4, §7 Stage 8 | `src/lib/security`, UI | V36 | PARTIAL — `C2paSession.dispose()` and per-reader `free()` in `finally` are unit-proven (success, exception, timeout, cancel, double-dispose); no object URLs or previews are created yet |
+| FR-013 | Recoverable errors: a failing non-critical check preserves independent results | §3.1, §12.2 | `src/lib/results`, UI | V15, V22, V25, V26 | PARTIAL — metadata parser and C2PA failures become typed non-critical results with stable codes; real-browser run recovers after a malformed file and after a missing WASM asset; pipeline/UI recovery not built |
 | FR-014 | Accessible responsive UI: keyboard + narrow viewport | §3.1, §5.6 | UI components | V37, V38 | PARTIAL — static shell has semantic landmarks, visible focus, reduced-motion CSS, and fluid width; primary flow and keyboard E2E absent |
-| FR-015 | Test-backed demo: all release-critical tests pass, fixture provenance recorded | §3.1, §14 | `tests/fixtures/manifest.json`, `tests/**` | V01–V50 | PARTIAL — 102 unit tests pass and synthetic fixtures are hash-recorded; C2PA fixtures and E2E absent |
+| FR-015 | Test-backed demo: all release-critical tests pass, fixture provenance recorded | §3.1, §14 | `tests/fixtures/manifest.json`, `tests/**` | V01–V50 | PARTIAL — 167 unit tests and 6 real-Chromium E2E tests pass; fixture manifest v1.1 records C2PA fixture hashes, recorded SDK output, and the trust policy; product-flow E2E absent |
 
 ## P1 — Conditional (after P0 stable)
 
@@ -59,16 +59,16 @@ Watermark provider API; remote URL/crawling/reverse-image search; video/audio/an
 
 ## V01–V50 acceptance matrix (PRD §14.4)
 
-Statuses reflect the 2026-10-27 module increment. `PARTIAL` means module-level tests exist while the end-to-end scenario remains unverified; no row is `PASS` without recorded evidence.
+Statuses reflect the 2026-10-27 Phase 3 C2PA increment. `PARTIAL` means module-level or harness-level tests exist while the end-to-end product scenario remains unverified; no row is `PASS` without recorded evidence.
 
 | ID | Scenario | Status / note |
 |---|---|---|
 | V01 | Valid JPEG within limits | NOT RUN |
 | V02 | Valid PNG, no embedded manifest | NOT RUN |
-| V03 | Known supported C2PA fixture | NOT RUN — fixture not yet acquired/verified |
-| V04 | Invalid credential fixture | NOT RUN |
-| V05 | Valid signature, unknown signer trust | NOT RUN |
-| V06 | Trust resources unavailable | NOT RUN |
+| V03 | Known supported C2PA fixture | PARTIAL — `adobe-20220124-C.jpg` (SHA-256 `75a8da33…ce864`) yields `present`/`Valid` in a real Chromium production build with recorded SDK output; verified through the dev harness, not the product Evidence Ledger |
+| V04 | Invalid credential fixture | NOT RUN — no invalid/mutated credential fixture acquired |
+| V05 | Valid signature, unknown signer trust | PARTIAL — same fixture: signature/content-binding `valid`, signer trust `not_evaluated`, with an explicit no-trust-anchor warning (unit + E2E); product UI not built |
+| V06 | Trust resources unavailable | PARTIAL — the build configures no trust anchors and performs no trust fetch, so trust/revocation stay `not_evaluated` rather than absent-success (unit + E2E). No configured-anchor path exists to make unavailable |
 | V07 | Missing metadata | PARTIAL — plain JPEG/PNG return no allowlisted fields without failing; app scenario not built |
 | V08 | GPS metadata hidden/excluded | PARTIAL — unit test proves coordinates are never extracted or serialized; report schema fixes precise-GPS export to `false`; no UI/export |
 | V09 | No provider configured | NOT RUN |
@@ -84,12 +84,12 @@ Statuses reflect the 2026-10-27 module increment. `PARTIAL` means module-level t
 | V19 | Different dimensions/aspect ratios | NOT RUN |
 | V20 | EXIF orientation/color handling differs | NOT RUN |
 | V21 | SHA-256 from original bytes (not preview) | PARTIAL — hashes only the exact supplied byte view; published SHA-256 vectors pass; not yet bound to upload |
-| V22 | SDK WASM resource missing | NOT RUN |
-| V23 | Reader cleanup after success | NOT RUN |
-| V24 | Reader cleanup after exception | NOT RUN |
-| V25 | Browser offline | NOT RUN |
-| V26 | User cancels during work | NOT RUN |
-| V27 | Unknown SDK code stays unknown | NOT RUN |
+| V22 | SDK WASM resource missing | PARTIAL — real-browser test points the session at a non-existent WASM path: check fails with `C2PA_RUNTIME_UNAVAILABLE`, no finding is produced, and a later run succeeds after a new session |
+| V23 | Reader cleanup after success | PARTIAL — unit lifecycle test proves exactly one `free()` per reader across repeated and overlapping runs; browser test proves three consecutive runs stay independent. No heap/worker instrumentation |
+| V24 | Reader cleanup after exception | PARTIAL — unit tests free the reader when `manifestStore()` rejects, when `fromBlob` rejects (no reader created), and when `free()` itself throws (outcome kept) |
+| V25 | Browser offline | NOT RUN — local inspection is offline-capable by design, but no offline browser test exists |
+| V26 | User cancels during work | PARTIAL — external abort and session disposal return `cancelled` with no outcome or error code, and a late reader is still freed (unit); no product cancel control |
+| V27 | Unknown SDK code stays unknown | PARTIAL — an unrecognized code is preserved in `sdkCodes`, flagged as needing interpretation, and cannot set a state (unit, synthetic code). No real fixture produces one yet |
 | V28 | Provider 429 bounded retry | N/A — no third-party provider integrated (P2 deferred) |
 | V29 | Provider 401/403 no retry, no secret exposure | N/A — same as V28 |
 | V30 | Provider 5xx/timeout preserves local results | N/A — same as V28 |
@@ -112,7 +112,7 @@ Statuses reflect the 2026-10-27 module increment. `PARTIAL` means module-level t
 | V47 | Timezones stored UTC, display labelled | PARTIAL — report/evidence timestamps require exact ISO UTC; display labelling not built |
 | V48 | Same filename, different files separated | NOT RUN |
 | V49 | User original/edited labels marked user-supplied | NOT RUN |
-| V50 | Unsupported C2PA variant doesn't break other checks | NOT RUN |
+| V50 | Unsupported C2PA variant doesn't break other checks | PARTIAL — a format outside the C2PA set returns `unsupported` without starting the SDK, and the check contract keeps it distinct from validity (unit); no multi-check pipeline to prove independence yet |
 
 ## Non-functional requirements carried into every task
 

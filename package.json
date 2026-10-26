@@ -4,17 +4,21 @@
   "private": true,
   "packageManager": "npm@12.2.1",
   "scripts": {
+    "predev": "node scripts/sync-c2pa-assets.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/sync-c2pa-assets.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "pretest": "node scripts/sync-c2pa-assets.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "node -e \"console.error('Playwright is not configured yet (Phase 5).'); process.exit(1)\"",
+    "test:e2e": "playwright test",
     "audit": "npm audit --audit-level=high"
   },
   "dependencies": {
+    "@contentauth/c2pa-web": "0.15.4",
     "exifreader": "4.52.0",
     "next": "16.4.3",
     "react": "19.3.1",
@@ -22,6 +26,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

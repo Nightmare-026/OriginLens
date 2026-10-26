@@ -1,11 +1,12 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "updatedAtUtc": "2026-10-27T00:00:00.000Z",
-  "verificationEnvironment": "Windows; Node v24.22.1; ExifReader 4.52.0",
+  "verificationEnvironment": "Windows; Node v24.22.1; ExifReader 4.52.0; @contentauth/c2pa-web 0.15.4; Chromium 1248 via Playwright 1.64.1",
   "notes": [
     "Synthetic fixtures are generated deterministically by test code, not downloaded content.",
-    "No binary C2PA fixture has been acquired or verified yet. No file is described as valid or trusted without a recorded SDK result.",
-    "A filename is never evidence for an expected result."
+    "C2PA expectations come from recorded output of the pinned SDK in a real Chromium run. No file is described as valid or trusted because of its name, its source page, or a website description.",
+    "A filename is never evidence for an expected result.",
+    "The reference manifest store is a reduced hand-normalized extract used to cross-check claim fields only. It carries no validation status and proves nothing about validity or trust."
   ],
   "fixtures": [
     {
@@ -42,13 +43,107 @@
         "gpsPresence": "not_present"
       },
       "expectationEstablishedBy": "ExifReader 4.52.0 parse probe on 2026-10-27; asserted by tests/unit/metadata.test.ts"
+    },
+    {
+      "id": "c2pa-credential-adobe-c",
+      "file": "tests/fixtures/c2pa/adobe-20220124-C.jpg",
+      "source": "https://raw.githubusercontent.com/c2pa-org/public-testfiles/main/legacy/1.4/image/jpeg/adobe-20220124-C.jpg (retrieved 2026-10-27)",
+      "license": "CC BY-SA 4.0 (c2pa-org/public-testfiles); license text in tests/fixtures/c2pa/LICENSE-public-testfiles.txt",
+      "byteLength": 140297,
+      "sha256": "75a8da33f6eaf1e16bf3b42cd78913b22b2e6a671fda217a508b1ba4230ce864",
+      "expected": {
+        "inspectionStatus": "present",
+        "executionState": "completed",
+        "outcome": "present",
+        "sdkValidationState": "Valid",
+        "manifestPresence": "present",
+        "manifestValidation": "valid",
+        "signatureValidation": "valid",
+        "contentBindingValidation": "valid",
+        "timestampValidation": "valid",
+        "signerTrust": "not_evaluated",
+        "revocationStatus": "not_evaluated",
+        "trustPolicyId": "originlens-embedded-only-no-trust-anchors-v1",
+        "sdkCodes": [
+          "timeStamp.validated",
+          "timeStamp.trusted",
+          "claimSignature.insideValidity",
+          "claimSignature.validated",
+          "assertion.hashedURI.match",
+          "assertion.dataHash.match",
+          "signingCredential.ocsp.skipped",
+          "signingCredential.untrusted"
+        ],
+        "recordedActions": ["c2pa.created", "c2pa.drawing"],
+        "recordedIngredients": 0
+      },
+      "expectationEstablishedBy": "Recorded c2pa-web 0.15.4 Reader.fromBlob output from Chromium 1248 on 2026-10-27, committed as adobe-20220124-C.sdk-0.15.4-manifest-store.json; asserted by tests/unit/c2pa-map.test.ts, tests/unit/c2pa-check.test.ts and tests/e2e/c2pa-smoke.spec.ts"
+    },
+    {
+      "id": "c2pa-no-manifest-jpeg",
+      "file": "tests/fixtures/c2pa/plain-1x1.jpg",
+      "source": "Project-generated minimal 1x1 JPEG, byte-identical to synthetic-plain-jpeg",
+      "license": "Project-generated; no third-party content",
+      "byteLength": 160,
+      "sha256": "bdff0e0944f020878bfc277e5977ae6a598422812b68cbe67620c6de85e45045",
+      "expected": {
+        "inspectionStatus": "not_present",
+        "executionState": "completed",
+        "outcome": "not_present",
+        "manifestPresence": "not_present",
+        "manifestValidation": "not_evaluated",
+        "signatureValidation": "not_evaluated",
+        "contentBindingValidation": "not_evaluated",
+        "timestampValidation": "not_evaluated",
+        "signerTrust": "not_evaluated",
+        "revocationStatus": "not_evaluated",
+        "sdkCodes": [],
+        "findingIsNotEvidenceOfAbsence": true
+      },
+      "expectationEstablishedBy": "c2pa-web 0.15.4 returned null from Reader.fromBlob in Chromium 1248 on 2026-10-27; asserted by tests/e2e/c2pa-smoke.spec.ts"
+    },
+    {
+      "id": "c2pa-truncated-jpeg",
+      "file": "tests/fixtures/c2pa/truncated.jpg",
+      "source": "Project-generated 11-byte JPEG SOI plus truncated JFIF APP0 segment",
+      "license": "Project-generated; no third-party content",
+      "byteLength": 11,
+      "sha256": "23e5c96c789570b1a740a7463526bb846d97506642e12a6a5e6b9b3b7a90cd5f",
+      "expected": {
+        "inspectionStatus": "failed",
+        "executionState": "failed",
+        "errorCode": "C2PA_READ_FAILED",
+        "outcome": null,
+        "finding": null,
+        "recoverable": true
+      },
+      "expectationEstablishedBy": "c2pa-web 0.15.4 rejected the asset in Chromium 1248 on 2026-10-27; the failure is an execution state, never a content finding. Asserted by tests/e2e/c2pa-smoke.spec.ts"
+    }
+  ],
+  "referenceOutputs": [
+    {
+      "id": "c2pa-sdk-recorded-output",
+      "file": "tests/fixtures/c2pa/adobe-20220124-C.sdk-0.15.4-manifest-store.json",
+      "sourceFixture": "c2pa-credential-adobe-c",
+      "producedBy": "@contentauth/c2pa-web 0.15.4 Reader.fromBlob + manifestStore() in Chromium 1248 (Playwright 1.64.1) on 2026-10-27",
+      "byteLength": 5005,
+      "sha256": "9c7a1cf3bddc357579732f8e07f2a274f7c37dcd44015a41e861e3881fc72f6a",
+      "notes": "Verbatim SDK output with the byte-order mark removed by JSON re-serialization; no field was edited."
+    },
+    {
+      "id": "c2pa-manifest-claim-reference",
+      "file": "tests/fixtures/c2pa/adobe-20220124-C.reference-manifest-store.json",
+      "sourceFixture": "c2pa-credential-adobe-c",
+      "producedBy": "Reduced extract of the fixture's own embedded manifest, normalized by hand for claim-field cross-checks",
+      "byteLength": 1574,
+      "sha256": "112ce19fde3e088d3c01694c1c8551902ca1976d9839fe53d9ab03aff2889ef2",
+      "notes": "Contains no validation status, signature result, or trust state. It is not evidence of validity."
     }
   ],
   "pendingCategories": [
-    "Valid supported C2PA credential fixture with recorded validator output",
-    "Valid credential with recorded signer-trust state under the test trust policy",
     "Invalid or mutated credential with pre-confirmed expected output",
+    "Credential signed under a configured trust policy, to exercise a real trusted signer state",
     "Binary metadata-only image with selected fields and a GPS privacy fixture",
-    "Duplicate bytes, alternate encoding, preview-difference, dimension/orientation, truncated, mislabeled, oversize, and high-pixel fixtures"
+    "Duplicate bytes, alternate encoding, preview-difference, dimension/orientation, mislabeled, oversize, and high-pixel fixtures"
   ]
 }

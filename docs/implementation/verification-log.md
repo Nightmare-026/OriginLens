@@ -49,9 +49,40 @@ Honest record of commands/checks actually executed. `NOT RUN` and `PARTIAL` rows
 
 Final rerun immediately before commit (2026-10-27): `npm test` 102/102 PASS, `npm run typecheck` PASS, `npm run lint` PASS (0 warnings), `npm run build` PASS.
 
+## 2026-10-27 — Phase 3 C2PA spike and adapter
+
+**Environment:** Windows PowerShell; working dir `D:\Projects\OriginLens`; Node v24.22.1; npm 12.2.1; `@contentauth/c2pa-web@0.15.4`; Chromium 1248 via Playwright 1.64.1.
+
+| # | Command / action | Result | Evidence |
+|---|---|---|---|
+| 28 | Review of installed `c2pa-web@0.15.4` package metadata, exports, and `dist/lib/*.d.ts` | PASS — `createC2pa({ wasmSrc })` returns a handle with `dispose()`; `Reader.fromBlob(c2pa, format, blob)` returns `null` only when no manifest is found and throws otherwise; `free()` releases a reader. Package exports `./package.json` and `./resources/c2pa.wasm`; dependencies are `highgain`, `c2pa-types 0.7.6`, `c2pa-utilities 0.3.2`, `c2pa-wasm 0.13.3` | package metadata + type declarations |
+| 29 | `node scripts/sync-c2pa-assets.mjs` (wired to `predev`/`prebuild`/`pretest`) | PASS — copied `dist/resources/c2pa_bg.wasm` to `public/c2pa/0.15.4/c2pa_bg.wasm`: 9,049,453 bytes, SHA-256 `01b8e25f637aaa3fe197bc5646ce114810db4789db19af7e1f6bfebe9e9858df`, SHA-512 SRI matches the value embedded in the SDK bundle. The script refuses to write on any version/digest mismatch | script output; `tests/unit/c2pa-assets.test.ts` |
+| 30 | Real-browser probe of the pinned SDK against `adobe-20220124-C.jpg` (temporary dev route, since deleted) | PASS — `validation_state: "Valid"`; success codes `timeStamp.validated`, `timeStamp.trusted`, `claimSignature.insideValidity`, `claimSignature.validated`, `assertion.hashedURI.match`, `assertion.dataHash.match`; informational `signingCredential.ocsp.skipped`; failure `signingCredential.untrusted` (no trust anchors configured); actions `c2pa.created`, `c2pa.drawing`; no ingredients. Output committed verbatim as `tests/fixtures/c2pa/adobe-20220124-C.sdk-0.15.4-manifest-store.json` (5,005 bytes, SHA-256 `9c7a1cf3…72f6a`, BOM removed only) | probe output; fixture manifest `referenceOutputs` |
+| 31 | Real-browser probe with `plain-1x1.jpg` and `truncated.jpg` | PASS — plain JPEG returns `null` (`NO_MANIFEST`); truncated JPEG throws `C2pa(InvalidAsset("Could not parse input JPEG"))`, which the adapter records as `C2PA_READ_FAILED`, not as a content finding | probe output; `tests/e2e/c2pa-smoke.spec.ts` |
+| 32 | `npm run typecheck` | PASS — `tsc --noEmit`, no diagnostics | exit 0 |
+| 33 | `npm run lint` | PASS — `eslint .`, 0 errors and 0 warnings | exit 0 |
+| 34 | `npm test` | PASS — 9 files, 167 tests (adds `c2pa-map` 16, `c2pa-check` 22, `c2pa-session` 16, `c2pa-assets` 7, and grows the fixture-manifest suite from 4 to 8); Vitest 5.0.5 | Vitest output |
+| 35 | `npm run test:e2e` | PASS — 6/6 Chromium specs against a production build started on port 3100 (`npm run build && npm start`): credential fixture, missing manifest, malformed-file recovery, missing-WASM recovery, three independent repeated runs, session clear | Playwright output, 17.4 s |
+| 36 | `npm run build` | PASS — Next.js 16.4.3 (Turbopack) production build; `/`, `/_not-found`, `/dev/c2pa-smoke` prerendered as static content | build output |
+| 37 | `npm run audit` | PASS — `found 0 vulnerabilities` | command output |
+| 38 | Fixture manifest v1.1 | PASS — C2PA fixture bytes, recorded SDK output, and reference extract are hash- and length-verified by `tests/unit/fixtures.test.ts`; no fixture claims `signerTrust: trusted`, and every manifest-present fixture names `originlens-embedded-only-no-trust-anchors-v1` | test output |
+| 39 | Playwright artifact handling | PASS — `test-results/`, `playwright-report/`, `blob-report/` added to `.gitignore`; first-run failure artifacts deleted after diagnosis | `.gitignore`; `git status` |
+| 40 | CSP integration | **NOT RUN** — no Content-Security-Policy is configured. The current app is static and same-origin; nonce-based CSP conflicts with static prerendering. Recorded as a Phase 7/9 item; CSP is **not** claimed | `next.config.ts` |
+| 41 | Product Evidence Ledger UI for C2PA findings | **NOT RUN** — the adapter is exercised only through the developer harness `/dev/c2pa-smoke`. No user-facing C2PA result exists yet | route list |
+
+**Corrections made during this increment (recorded so they are not mistaken for passing first time):**
+
+1. The first `test:e2e` run failed before running any test: Playwright loaded the TypeScript spec as CommonJS, so `import.meta.url` threw `SyntaxError: Cannot use 'import.meta' outside a module`. Fixed by resolving fixture paths from the resolved Playwright config file.
+2. The next run failed 6/6 on fixture lookup because `config.rootDir` is the test directory, not the project root; fixed to derive the project root from `configFile`.
+3. The following run passed 3/6: the "wait for a new report" poll treated an empty report (`checkId: ''`) as a different check. Fixed so a missing report keeps polling; 6/6 then passed.
+4. `typecheck` initially failed in `tests/unit/fixtures.test.ts` because a Node `Buffer` is typed over `ArrayBufferLike`, not `ArrayBuffer`; fixed by copying file bytes into a fresh `Uint8Array`.
+
+**Status:** Phase 3 gate **PASS** for the C2PA integration (tested proof-of-concept in the real production build, ADR-004/ADR-005). CSP and the product Evidence Ledger flow remain open and are not claimed. Phase 1 remains **BLOCKED**; no Meta API call was made and no model integration is claimed.
+
 ## Pending verification (must be filled with actual outputs)
 
 - Dependency audit before submission (V42): initial audit is clean; rerun on the final dependency tree.
 - Secret scans after any server route or API-key integration is added (V43).
-- C2PA WASM/worker smoke test in the real Next.js production build (V22–V24).
+- Content-Security-Policy for the production build (Phase 7/9).
+- Offline behavior, product cancel control, and Evidence Ledger/Provenance Delta E2E (V25, V26, FR-007/FR-008).
 - All V01–V50 rows with expected vs. actual, tool/version, environment, date.

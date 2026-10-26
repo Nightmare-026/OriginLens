@@ -21,6 +21,13 @@ export const HEADER_BYTES = 16;
 /** Target timeout for one local pipeline stage. */
 export const LOCAL_STAGE_TIMEOUT_MS = 15_000;
 
+/**
+ * Time budget for one C2PA inspection. It covers first-run WebAssembly fetch
+ * and compilation plus the read itself, so it is larger than a plain parse
+ * stage. It is a ceiling, not a progress estimate.
+ */
+export const C2PA_STAGE_TIMEOUT_MS = 30_000;
+
 /** Maximum stored filename length before display. */
 export const MAX_DISPLAY_NAME_LENGTH = 200;
 

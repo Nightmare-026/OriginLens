@@ -1,4 +1,5 @@
 import { errors, load, type Tags } from 'exifreader';
+import { sanitizeUntrustedText } from '@/lib/security/text';
 
 /**
  * A narrow allowlist of embedded metadata. Every value is an unverified clue:
@@ -99,26 +100,16 @@ const GPS_PRESENCE_KEYS = [
   'GPS Info IFD Pointer',
 ] as const;
 
-const CONTROL_AND_BIDI_CHARACTERS =
-  /[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069]/g;
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** Bounds and cleans an untrusted metadata string for display. */
-export function sanitizeMetadataText(raw: string, maxLength = 200): string | null {
-  const cleaned = raw
-    .replace(CONTROL_AND_BIDI_CHARACTERS, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  if (cleaned.length === 0) {
-    return null;
-  }
-
-  return cleaned.slice(0, maxLength);
-}
+/**
+ * Bounds and cleans an untrusted metadata string for display. The shared
+ * implementation lives in `security/text`; this alias keeps the metadata
+ * vocabulary local to this module.
+ */
+export const sanitizeMetadataText = sanitizeUntrustedText;
 
 function tagToText(tag: unknown): string | null {
   if (!isRecord(tag)) {
