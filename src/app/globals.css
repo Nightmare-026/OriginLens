@@ -114,15 +114,22 @@ body {
   line-height: 1.5;
 }
 
-/* Page Containers */
+/* Page Containers (90% of Navigation Bar Width) */
 .page {
-  width: min(100% - 2rem, var(--container-max));
+  width: calc(min(100% - 2rem, var(--container-max)) * 0.9);
   margin: 0 auto;
   padding: 2.5rem 0 4.5rem;
 }
 
 .page-compare {
-  width: min(100% - 2rem, var(--container-max));
+  width: calc(min(100% - 2rem, var(--container-max)) * 0.9);
+}
+
+@media (max-width: 480px) {
+  .page,
+  .page-compare {
+    width: min(100% - 1.5rem, calc(var(--container-max) * 0.9));
+  }
 }
 
 /* ==========================================================================
@@ -1098,9 +1105,15 @@ button:disabled {
    ========================================================================== */
 
 .page-doc {
-  width: min(100% - 2rem, var(--container-max));
+  width: calc(min(100% - 2rem, var(--container-max)) * 0.9);
   margin: 0 auto;
   padding: 2.5rem 0 4.5rem;
+}
+
+@media (max-width: 480px) {
+  .page-doc {
+    width: min(100% - 1.5rem, calc(var(--container-max) * 0.9));
+  }
 }
 
 .doc-section {
