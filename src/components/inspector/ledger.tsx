@@ -1,4 +1,5 @@
 import type { CheckResult, EvidenceItem } from '@/lib/results/schemas';
+import type { Ref } from 'react';
 import type { FileAnalysis } from '@/lib/pipeline/types';
 import { buildCoverage, SUMMARY_DESCRIPTIONS, SUMMARY_HEADLINES } from '@/lib/pipeline/summary';
 import { C2PA_SDK_VERSION, C2PA_TRUST_POLICY_ID } from '@/lib/c2pa/asset';
@@ -36,6 +37,11 @@ export type LedgerProps = Readonly<{
   onDownload: () => void;
   onClear: () => void;
   onInspectAnother: () => void;
+  /**
+   * Receives the result heading so the workflow can move focus to the new
+   * content once a run completes (PRD 5.6: status changes are announced).
+   */
+  headingRef?: Ref<HTMLHeadingElement>;
 }>;
 
 export type FileSectionsProps = Readonly<{
@@ -601,12 +607,15 @@ export function EvidenceLedger({
   onDownload,
   onClear,
   onInspectAnother,
+  headingRef,
 }: LedgerProps) {
   return (
     <div data-testid="ledger">
       <header className="hero">
         <p className="eyebrow">Evidence Ledger</p>
-        <h1>{analysis.file.displayName}</h1>
+        <h1 id="ledger-heading" ref={headingRef} tabIndex={-1} data-testid="ledger-heading">
+          {analysis.file.displayName}
+        </h1>
         <p className="lede" data-testid="file-facts">
           {formatByteSize(analysis.file.byteSize)} · {analysis.file.detectedMimeType} ·{' '}
           {formatDimensions(analysis.file.width, analysis.file.height)}

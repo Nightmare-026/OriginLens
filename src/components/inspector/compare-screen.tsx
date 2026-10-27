@@ -1,4 +1,5 @@
 import type { CommonOutcome, Comparison, CheckResult, EvidenceItem } from '@/lib/results/schemas';
+import type { Ref } from 'react';
 import type { FileAnalysis } from '@/lib/pipeline/types';
 import { PREVIEW_NORMALIZATION_NOTE } from '@/lib/compare/preview';
 import { CheckRow, FileEvidenceSections, ReportActions } from './ledger';
@@ -35,6 +36,8 @@ export type CompareScreenProps = Readonly<{
   onInspectAnother: () => void;
   onLabelFirst: (label: 'original' | 'edited' | null) => void;
   onLabelSecond: (label: 'original' | 'edited' | null) => void;
+  /** Receives the result heading so focus can move to the new content. */
+  headingRef?: Ref<HTMLHeadingElement>;
 }>;
 
 type ComparisonOutcome = 'equal' | 'different' | 'inconclusive';
@@ -126,6 +129,7 @@ export function CompareScreen({
   onInspectAnother,
   onLabelFirst,
   onLabelSecond,
+  headingRef,
 }: CompareScreenProps) {
   const evidence = check.evidence;
   const fingerprintsEqual = readBoolean(evidence, 'comparison.fingerprints_equal');
@@ -141,7 +145,9 @@ export function CompareScreen({
     <div data-testid="compare-ledger">
       <header className="hero">
         <p className="eyebrow">Provenance Delta</p>
-        <h1>Two files, checked independently</h1>
+        <h1 id="compare-heading" ref={headingRef} tabIndex={-1} data-testid="compare-heading">
+          Two files, checked independently
+        </h1>
         <p className="lede">
           File A and File B were each analysed on their own. Anything that differs is reported as a
           difference in the recorded properties, not as a finding about origin or intent.

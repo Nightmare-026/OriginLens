@@ -152,12 +152,45 @@ Final rerun immediately before commit (2026-10-27): `npm test` 102/102 PASS, `np
 
 **Status:** Phase 6 gate **PASS** for the Provenance Delta, two-file report, and recovery paths (PRD §5.5, §7 Stage 6, §9.6). V20 is **PARTIAL** and V04 remains **NOT RUN**; both are recorded as open, not as passing. Phase 1 and P1-001 remain **BLOCKED**; no Meta API call was made, no model integration exists, and no model use is claimed.
 
+## 2026-10-27 — Phase 7 accessibility, responsive behaviour, and security headers
+
+**Environment:** Windows PowerShell; working dir `D:\Projects\OriginLens`; Node v24.22.1; npm 12.2.1; Next.js 16.4.3; `@contentauth/c2pa-web@0.15.4`; Chromium 1248 via Playwright 1.64.1; `@axe-core/playwright@4.14.0` (axe-core 4.14.0).
+
+| # | Command / action | Result | Evidence |
+|---|---|---|---|
+| 82 | `npm run typecheck` | PASS — `tsc --noEmit`, no diagnostics after the heading, live-region, focus, and header additions | exit 0 |
+| 83 | `npm run lint` | PASS — `eslint .`, 0 errors and 0 warnings | exit 0 |
+| 84 | `npm test` | PASS — 15 files, 259 tests, unchanged (no domain semantics changed) | Vitest output |
+| 85 | `npm run test:e2e` | PASS — 36/36 Chromium specs against a production build on port 3100: 10 accessibility/security + 6 C2PA smoke + 9 comparison + 11 product-flow | Playwright output, 53.0 s |
+| 86 | `npm run build` | PASS — Next.js 16.4.3 (Turbopack); `/`, `/_not-found`, `/dev/c2pa-smoke` still prerendered as static content | build output |
+| 87 | `npm run audit` (`npm audit --audit-level=high`) | PASS — `found 0 vulnerabilities` after adding the axe devDependency | command output |
+| 88 | Automated WCAG scan — start screen | PASS — axe-core 4.14.0 with tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` reports 0 violations in the production build | `tests/e2e/accessibility.spec.ts` |
+| 89 | Automated WCAG scan — Evidence Ledger | PASS — 0 violations on the ledger after a real credential inspection | `tests/e2e/accessibility.spec.ts` |
+| 90 | Automated WCAG scan — Provenance Delta | PASS — 0 violations on the comparison screen | `tests/e2e/accessibility.spec.ts` |
+| 91 | One page heading per screen (V38) | PASS — start screen, single-file run, ledger, comparison run and comparison result each expose exactly one `h1`; the single run owns it, the comparison run adds a page `h1` and keeps per-file `h2`s | `tests/e2e/accessibility.spec.ts` |
+| 92 | Announced transitions and focus movement | PASS — a completed run sets `session-announcement` to "Analysis complete. The Evidence Ledger is ready." and moves focus to `ledger-heading`; the comparison sets its own message and focuses `compare-heading`; clearing announces the discard without moving focus into removed content | `tests/e2e/accessibility.spec.ts` |
+| 93 | Busy state while work is in flight | PASS — holding the same-origin WASM request makes the progress panel report `aria-busy="true"`, the announcement read "Analysis started.", and exactly one `h1` containing "Checking"; the comparable assertion holds for `a-progress-panel` in a comparison | `tests/e2e/accessibility.spec.ts` |
+| 94 | Keyboard-only start screen (V38) | PASS — every Tab stop has a non-empty accessible name and a visible `:focus-visible` indicator; `inspect-file`, `compare-file-a`, and `compare-file-b` are reachable; the disabled compare button is correctly skipped and becomes reachable once both files are chosen | `tests/e2e/accessibility.spec.ts` |
+| 95 | Narrow width with headers preserved (V37) | PASS — the comparison screen fits 360 px with no horizontal overflow, and the stacked table still exposes `columnheader` "File A" and `rowheader` "Byte size" through `getByRole`, proving `<thead>` is clipped rather than removed | `tests/e2e/accessibility.spec.ts` |
+| 96 | Content-Security-Policy (ADR-009) | PASS — shipped headers include `default-src 'self'`, `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'`, `worker-src 'self' blob:`, `connect-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`, never `'unsafe-eval'`; plus `nosniff`, `DENY`, `no-referrer`, `Permissions-Policy`, COOP and CORP. The same test completes a real credential inspection under the policy with no `pageerror` and no CSP refusal | `tests/e2e/accessibility.spec.ts`; ADR-009 |
+| 97 | axe dependency review | PASS — `@axe-core/playwright@4.14.0` pinned exactly, MPL-2.0, devDependency only (not in the app bundle), peer `playwright-core >= 1.0.0` satisfied by 1.64.1; `npm audit` clean | `package.json`; audit output |
+| 98 | Reduced motion | PASS (CSS) — `prefers-reduced-motion: reduce` collapses animation and transition durations; no result depends on an animation. Not exercised by an automated test because no animation is used in the flow | `src/app/globals.css` |
+| 99 | Screen-reader walkthrough | **NOT RUN** — no manual assistive-technology session has been performed; only automated and structural checks are claimed | — |
+| 100 | CSP in development mode | **NOT APPLICABLE by design** — headers are production-only so hot reloading keeps working; the dev server therefore has no CSP, and that limitation is recorded rather than claimed | `next.config.ts` |
+
+**Corrections made during this increment (recorded so they are not mistaken for passing first time):**
+
+1. The first keyboard spec failed because it expected the compare button among Tab stops while it was still disabled. Disabled controls are correctly skipped, so the test now asserts the skip first and re-tabs after selecting both files.
+2. That pass then reported the stop as `button` instead of `compare-start`: the compare control carries `data-testid` but no `id`. The focus recorder now falls back to `data-testid` before the tag name.
+3. `typecheck` rejected a hand-written violation shape against axe's `Result[]` — `UnlabelledFrameSelector` entries may be shadow-DOM objects. The helper now uses `AxeResults['violations'][number]` and formats non-string selectors safely.
+
+**Status:** Phase 7 gate **PASS** for the primary flow: keyboard-only operation, visible focus, narrow viewport without overflow, announced session transitions, one page heading per screen, and a production CSP that is verified by a real WebAssembly credential check. Automated axe passes on all three screens; a manual screen-reader walkthrough remains open and is not claimed. V20 stays **PARTIAL** and V04 **NOT RUN**. Phase 1 and P1-001 remain **BLOCKED**; no Meta API call was made, no model integration exists, and no model use is claimed.
+
 ## Pending verification (must be filled with actual outputs)
 
 - Dependency audit before submission (V42): clean on 2026-10-27; rerun on the final dependency tree.
 - Secret scans after any server route or API-key integration is added (V43).
-- Content-Security-Policy for the production build (Phase 7/9).
+- A manual screen-reader walkthrough of the start, running, ledger, and comparison screens.
 - Invalid/mutated credential fixture (V04) and a decodable non-upright-orientation fixture (V20), or a recorded decision to accept both as limitations.
 - A second reference validator for the credential fixtures where practical.
-- Accessibility audit (automated axe pass and screen-reader review) for the single-file and comparison screens (Phase 7/9).
 - All V01–V50 rows with expected vs. actual, tool/version, environment, date.

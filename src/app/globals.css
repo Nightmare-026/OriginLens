@@ -80,6 +80,22 @@ li {
   max-width: 70ch;
 }
 
+/**
+ * Content that must stay in the accessibility tree but not on screen: session
+ * announcements and, at narrow widths, the table column headers.
+ */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 .lede {
   margin: 0;
   color: var(--muted);
@@ -481,7 +497,17 @@ select {
   }
 
   .delta-table thead {
-    display: none;
+    /* Hidden visually but kept in the accessibility tree, so every cell keeps
+       its column header association even when the table stacks. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
 
   .delta-table tr {

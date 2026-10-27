@@ -39,6 +39,12 @@ export type ProgressPanelProps = Readonly<{
   onCancel: () => void;
   showCancel?: boolean;
   idPrefix?: string;
+  /**
+   * Heading level for the panel title. A single-file run owns the page
+   * heading, so it uses `1`; a comparison renders a page heading of its own and
+   * each file panel stays at `2`.
+   */
+  headingLevel?: 1 | 2;
 }>;
 
 function currentStatus(stages: readonly StageView[]): string {
@@ -68,11 +74,21 @@ export function ProgressPanel({
   onCancel,
   showCancel = true,
   idPrefix = '',
+  headingLevel = 2,
 }: ProgressPanelProps) {
+  const Heading = headingLevel === 1 ? 'h1' : 'h2';
+  // Work is still in flight while any stage is queued or running. `aria-busy`
+  // tells assistive technology that the panel is being updated, without
+  // announcing every intermediate render.
+  const busy = stages.some(
+    (stage) => stage.executionState === 'queued' || stage.executionState === 'running',
+  );
+
   return (
     <section
       className="panel"
       aria-labelledby={`${idPrefix}progress-heading`}
+      aria-busy={busy}
       data-testid={`${idPrefix}progress-panel`}
     >
       {title === undefined ? null : (
@@ -80,10 +96,10 @@ export function ProgressPanel({
           {title}
         </p>
       )}
-      <h2 id={`${idPrefix}progress-heading`}>
+      <Heading id={`${idPrefix}progress-heading`}>
         {heading ??
           (displayName === null ? 'Validating the selected file' : `Checking ${displayName}`)}
-      </h2>
+      </Heading>
       {note !== undefined ? (
         <p className="note">{note}</p>
       ) : byteSize === null ? (

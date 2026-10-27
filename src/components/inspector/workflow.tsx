@@ -151,11 +151,52 @@ function saveReport(report: OriginLensReport, json: string): void {
 const DOWNLOAD_FAILURE =
   'The report could not be prepared for download. The on-screen result is unchanged, and you can retry.';
 
+/**
+ * One announcement per session transition. Stage-by-stage progress is
+ * announced by the progress panel itself, so this region only covers the
+ * changes that replace a whole screen. Keeping it short avoids flooding a
+ * screen reader with duplicate messages (PRD 5.6).
+ */
+function sessionAnnouncement(state: SessionState): string {
+  switch (state.kind) {
+    case 'running':
+      return state.mode === 'compare'
+        ? 'Comparison started. Each file is checked independently.'
+        : 'Analysis started.';
+    case 'ready':
+      return 'Analysis complete. The Evidence Ledger is ready.';
+    case 'readyCompare':
+      return 'Comparison complete. The Provenance Delta is ready.';
+    case 'idle':
+      return state.notice ?? '';
+  }
+}
+
 export function InspectorWorkflow() {
   const [state, setState] = useState<SessionState>({ kind: 'idle', error: null });
   const runTokenRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const sessionRef = useRef<C2paSession | null>(null);
+  const resultsHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const previousKindRef = useRef<SessionState['kind'] | null>(null);
+
+  // PRD 5.6: a status change must reach assistive technology, and a completed
+  // run must not leave focus on a control that no longer exists. Focus moves to
+  // the result heading only on a real run-to-result transition, so switching a
+  // user label later never steals focus.
+  useEffect(() => {
+    const previous = previousKindRef.current;
+
+    previousKindRef.current = state.kind;
+
+    if (previous !== 'running') {
+      return;
+    }
+
+    if (state.kind === 'ready' || state.kind === 'readyCompare') {
+      resultsHeadingRef.current?.focus();
+    }
+  }, [state.kind]);
 
   const disposeSession = useCallback(async (): Promise<void> => {
     const session = sessionRef.current;
@@ -560,6 +601,17 @@ export function InspectorWorkflow() {
           : 'page'
       }
     >
+      {/* Persistent live region: it is empty on first render and changes on a
+          real session transition, which is what assistive technology announces. */}
+      <p
+        className="visually-hidden"
+        role="status"
+        aria-live="polite"
+        data-testid="session-announcement"
+      >
+        {sessionAnnouncement(state)}
+      </p>
+
       {state.kind === 'idle' ? (
         <StartScreen
           onFile={(file) => void inspect(file)}
@@ -571,12 +623,15 @@ export function InspectorWorkflow() {
 
       {state.kind === 'running' ? (
         <>
-          <p className="eyebrow">OriginLens</p>
           {state.mode === 'compare' ? (
-            <p className="lede">
-              Each file is analysed on its own. A result for File A survives a failure or
-              cancellation on File B.
-            </p>
+            <header className="hero">
+              <p className="eyebrow">OriginLens</p>
+              <h1>Comparing two files</h1>
+              <p className="lede">
+                Each file is analysed on its own. A result for File A survives a failure or
+                cancellation on File B.
+              </p>
+            </header>
           ) : null}
           {state.panels.map((panel) => (
             <ProgressPanel
@@ -591,6 +646,7 @@ export function InspectorWorkflow() {
               onCancel={cancel}
               showCancel={panel.cancelable}
               idPrefix={panel.key === 'single' ? '' : `${panel.key}-`}
+              headingLevel={state.mode === 'compare' ? 2 : 1}
             />
           ))}
         </>
@@ -602,6 +658,7 @@ export function InspectorWorkflow() {
           notice={state.notice}
           downloadError={state.downloadError}
           onDownload={download}
+          headingRef={resultsHeadingRef}
           onClear={() =>
             reset('Session cleared. The analysis and the credential runtime were released.')
           }
@@ -619,6 +676,7 @@ export function InspectorWorkflow() {
           check={state.comparison.check}
           downloadError={state.downloadError}
           onDownload={download}
+          headingRef={resultsHeadingRef}
           onClear={() =>
             reset('Session cleared. Both analyses and the credential runtime were released.')
           }

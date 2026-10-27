@@ -55,6 +55,7 @@ export function StartScreen({
         <section
           className="panel panel-error"
           aria-labelledby="error-heading"
+          role="alert"
           data-testid="error-panel"
         >
           <h2 id="error-heading">This file was not processed</h2>

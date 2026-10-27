@@ -4,6 +4,53 @@ Material decisions with source, date, and consequence. Newest first.
 
 ---
 
+## ADR-009 — Production-only CSP with a Blob worker, and an explicit focus/announcement model
+
+**Date:** 2026-10-27
+**Status:** ACCEPTED
+**Deciders:** project owner (participant) + implementation agent
+
+### Context
+
+PRD §8 requires security headers to be tested rather than asserted, and PRD §5.6 requires that colour is never the only result signal, that every control has an accessible name with visible focus, that status changes are announced "without flooding announcements", and that narrow widths work without horizontal overflow.
+
+Two constraints made the obvious implementations wrong:
+
+1. **CSP versus static prerendering.** The app is fully prerendered (`/`, `/_not-found`, `/dev/c2pa-smoke` are static). A nonce-based `script-src` requires a per-request nonce, which a static page cannot have. Next.js also inlines its hydration bootstrap.
+2. **The pinned C2PA runtime.** `@contentauth/c2pa-web@0.15.4` builds its worker from a `Blob` URL and compiles WebAssembly. A policy without `blob:` worker sources or without a WebAssembly permission would break the only real credential check, and a policy relaxed until it passes proves nothing.
+
+For accessibility, the running screen had no `h1` at all, a completed run replaced the progress panel without telling assistive technology, and the narrow-width delta tables removed `<thead>` with `display: none`, discarding the column-header association exactly when the table stacks.
+
+### Decision
+
+1. **CSP is production-only.** `next.config.ts` returns security headers only when `NODE_ENV === 'production'`. The development server relies on inline/eval-based hot reloading; relaxing the shipped policy to accommodate dev tooling would stop it describing the app. This is a documented limitation, not a claim that dev is covered.
+2. **Directives, with reasons.**
+   - `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'` — `'unsafe-inline'` is the accepted cost of the inlined bootstrap; `'wasm-unsafe-eval'` permits WebAssembly compilation; **`'unsafe-eval'` is deliberately not granted.**
+   - `worker-src 'self' blob:` / `child-src 'self' blob:` — the C2PA worker is created from a Blob URL.
+   - `connect-src 'self'` — the app contacts no other origin. This is the browser-level enforcement of "no external image transmission", so a future provider adapter must add its own reviewed origin rather than inheriting one.
+   - `object-src 'none'`, `frame-ancestors 'none'`, `frame-src 'none'`, `base-uri 'self'`, `form-action 'none'`, `media-src 'none'`.
+   - Plus `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, a restrictive `Permissions-Policy`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`.
+3. **The policy is verified, not described.** The E2E suite asserts the shipped header values *and* runs a real credential inspection against `adobe-20220124-C.jpg` in the same test, failing on any `pageerror` or CSP refusal. A directive that breaks the runtime fails a test.
+4. **One page heading per screen.** A single-file run uses the progress panel's title as the `h1`; a comparison renders its own page `h1` ("Comparing two files") and each file panel stays at `h2`. Every result screen has exactly one `h1`, asserted end-to-end.
+5. **Announce transitions, not every render.** A persistent polite live region inside `<main>` carries one message per session transition ("Analysis started.", "Analysis complete…", "Comparison complete…", or the idle notice). Stage-by-stage progress keeps its own `aria-live` region in the progress panel, which also gains `aria-busy` while any stage is queued or running.
+6. **Focus follows new content.** On a `running → ready`/`readyCompare` transition, focus moves to the result heading, which carries `tabIndex={-1}`. Changing a user original/edited label afterwards never moves focus. Error panels use `role="alert"`.
+7. **Stacked tables keep their headers.** At narrow widths the delta tables switch to a stacked layout, but `<thead>` is clipped rather than `display: none`, so `scope`-based column and row header associations survive, with `data-column` supplying the visual label.
+8. **Automated audit is real, and bounded.** `@axe-core/playwright@4.14.0` (axe-core 4.14.0, MPL-2.0, devDependency only) runs the WCAG 2.0/2.1 A+AA tag sets against the start screen, the evidence ledger, and the comparison screen in the production build.
+
+### Consequences
+
+- The shipped app has a tested CSP; the dev server does not have one, and that is stated rather than implied.
+- Any new asset host, worker source, or third-party script requires a CSP change plus a re-run of the security-policy spec.
+- `'unsafe-inline'` in `script-src` means the policy is not a strict CSP. It is reported as such; switching to nonces would require giving up fully static prerendering.
+- axe covers only automatically detectable rules. Passing it is evidence, not a certification, and manual review remains Phase 9 work.
+- The accessibility model is asserted structurally (heading counts, focus target, live-region text, tab stops with visible focus), so a regression fails a test instead of depending on review.
+
+### Rollback
+
+Remove `headers()` from `next.config.ts` to drop the policy (and the security-policy spec with it). The accessibility changes are independent of the CSP and can be kept on their own.
+
+---
+
 ## ADR-008 — Provenance Delta is recorded as one `comparison` check plus an additive report block
 
 **Date:** 2026-10-27

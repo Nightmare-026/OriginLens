@@ -21,8 +21,8 @@
 | FR-011 | Privacy defaults: no login, no persistent media history, no server image upload | §3.1, §11.2 | `src/app`, `src/lib/security` | V08, V43, V44 | PASS — static browser-only build with no API route, auth, telemetry, storage or remote fetch; media lives in component state and is discarded on reset/refresh. Secret scan and production build inspected. |
 | FR-012 | Clear session releases object URLs, SDK objects, preview resources | §3.1, §5.4, §7 Stage 8 | `src/components/inspector`, `src/lib/c2pa` | V36 | PASS — `clear-session` and `inspect-another` abort the run, bump the run token, and dispose the C2PA runtime (E2E: start screen returns, ledger removed); the decoder revokes its object URL in `finally`; reader lifecycle unit-tested (success/exception/timeout/cancel). |
 | FR-013 | Recoverable errors: a failing non-critical check preserves independent results | §3.1, §12.2 | `src/lib/pipeline`, `src/components/inspector` | V15, V22, V25, V26 | PASS — unit matrix keeps completed metadata when C2PA fails, keeps a completed credential check when metadata fails, turns thrown SDK exceptions into `C2PA_INTERNAL_ERROR`; E2E covers malformed file, offline runtime, download failure, cancellation during File A, and File B failing while File A's ledger survives and exports as a single-file report. |
-| FR-014 | Accessible responsive UI: keyboard + narrow viewport | §3.1, §5.6 | UI components, `src/app/globals.css` | V37, V38 | PASS (primary flow) — E2E: file input reachable by Tab, report download reachable and focused, activated with Enter; 360 px viewport has no horizontal overflow before or after analysis, and the comparison screen is checked at 360 px with its tables stacking; status is text + badge, never colour-only; `prefers-reduced-motion` honoured. Automated axe and screen-reader passes remain Phase 7/9. |
-| FR-015 | Test-backed demo: all release-critical tests pass, fixture provenance recorded | §3.1, §14 | `tests/fixtures/manifest.json`, `tests/**` | V01–V50 | PASS — 259 unit tests (15 files) and 26 Chromium E2E specs pass against a production build; fixture manifest v1.3 records byte length + SHA-256 for every stored fixture, the recorded SDK output, and the no-anchor trust policy. |
+| FR-014 | Accessible responsive UI: keyboard + narrow viewport | §3.1, §5.6 | UI components, `src/app/globals.css`, `next.config.ts` | V37, V38 | PASS (primary flow) — exactly one `h1` per screen; a persistent polite live region announces each session transition and focus moves to the result heading on completion without stealing focus on a label change; progress panels carry `aria-busy`; error panels use `role="alert"`; every start-screen Tab stop has an accessible name and a visible `:focus-visible` indicator; the disabled compare action is correctly skipped until both files exist; 360 px shows no horizontal overflow and the stacked delta tables keep `columnheader`/`rowheader` associations (ADR-009). axe-core 4.14.0 reports 0 WCAG 2.0/2.1 A+AA violations on the start, ledger, and comparison screens. Manual screen-reader walkthrough remains open. |
+| FR-015 | Test-backed demo: all release-critical tests pass, fixture provenance recorded | §3.1, §14 | `tests/fixtures/manifest.json`, `tests/**` | V01–V50 | PASS — 259 unit tests (15 files) and 36 Chromium E2E specs pass against a production build; fixture manifest v1.3 records byte length + SHA-256 for every stored fixture, the recorded SDK output, and the no-anchor trust policy. |
 
 ## P1 — Conditional (after P0 stable)
 
@@ -59,7 +59,7 @@ Watermark provider API; remote URL/crawling/reverse-image search; video/audio/an
 
 ## V01–V50 acceptance matrix (PRD §14.4)
 
-Statuses reflect the 2026-10-27 Phase 6 increment. `PARTIAL` means module-level or harness-level tests exist while the end-to-end product scenario remains unverified; no row is `PASS` without recorded evidence in `verification-log.md`.
+Statuses reflect the 2026-10-27 Phase 7 increment. `PARTIAL` means module-level or harness-level tests exist while the end-to-end product scenario remains unverified; no row is `PASS` without recorded evidence in `verification-log.md`.
 
 | ID | Scenario | Status / note |
 |---|---|---|
@@ -99,8 +99,8 @@ Statuses reflect the 2026-10-27 Phase 6 increment. `PARTIAL` means module-level 
 | V34 | Report with bad status/reference blocked | PASS — `buildReport` fails closed (`PIPELINE_CONTRACT_VIOLATION`) on duplicate IDs, out-of-range file counts, or schema violations, and the download handler renders that as `download-error` without discarding the ledger (same rendering path as the V35 E2E) |
 | V35 | Report download failure handled | PASS — E2E forces `URL.createObjectURL` to throw for the JSON blob: `download-error` appears, the ledger and fingerprint stay intact, and the button remains enabled |
 | V36 | Clear session releases resources | PASS — E2E: `clear-session` returns to the start screen, removes the ledger, shows the notice, and disposes the runtime; the decoder revokes its object URL in `finally`; reader disposal unit-tested |
-| V37 | Mobile viewport without overflow | PASS — E2E at 360 × 800 px: no horizontal overflow before or after analysis |
-| V38 | Keyboard-only flow | PASS — E2E: file input reached with Tab, report download focusable with visible focus and activated by Enter |
+| V37 | Mobile viewport without overflow | PASS — E2E at 360 × 800 px: no horizontal overflow on the start screen, the running screen, the single-file ledger, or the comparison screen. The stacked delta tables keep their `<thead>` in the accessibility tree, verified through `getByRole('columnheader'/'rowheader')` |
+| V38 | Keyboard-only flow | PASS — E2E: every start-screen Tab stop has a non-empty accessible name and a visible focus indicator, the disabled compare action is skipped until both files are chosen, and the completed result takes focus at its heading; the report download is focusable and activated by Enter |
 | V39 | Model invents unsupported claim → rejected | N/A — P1 blocked; no model output path exists |
 | V40 | Model emits unknown evidence ID → rejected | N/A — P1 blocked |
 | V41 | Model malformed JSON/timeout → template | N/A — P1 blocked |
@@ -117,3 +117,10 @@ Statuses reflect the 2026-10-27 Phase 6 increment. `PARTIAL` means module-level 
 ## Non-functional requirements carried into every task
 
 Security/privacy/accessibility/consent requirements from PRD §11–§13 and `AGENTS.md` §8 are release-critical constraints, not optional polish. Any change touching intake, C2PA mapping, report export, or the model route must update the corresponding V01–V50 rows with actual evidence before being called complete.
+
+### Security headers (PRD §8, not a V01–V50 row)
+
+| Item | Status / evidence |
+|---|---|
+| Content-Security-Policy | PASS — production responses carry `default-src 'self'`, `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'`, `worker-src 'self' blob:`, `connect-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`, and never `'unsafe-eval'`. The same E2E test completes a real WebAssembly credential inspection under the policy with no CSP refusal (ADR-009). `'unsafe-inline'` in `script-src` is a documented limitation, not a strict policy. Dev mode is exempt by design and does not have a CSP |
+| Supporting headers | PASS — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Permissions-Policy` denying camera/microphone/geolocation/topics, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`, all asserted from the live production response |
