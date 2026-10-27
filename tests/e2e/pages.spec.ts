@@ -88,3 +88,33 @@ test('privacy page renders zero-knowledge invariants and passes accessibility', 
   await page.goto('/privacy');
   await expectNoHorizontalOverflow(page);
 });
+
+test('header breadboard menu button toggles dropdown list with navigation links', async ({
+  page,
+}) => {
+  await page.goto('/');
+
+  const menuButton = page.getByTestId('nav-menu-button');
+  await expect(menuButton).toBeVisible();
+  await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+
+  // Click menu button to open dropdown
+  await menuButton.click();
+  await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByTestId('nav-how-to-use')).toBeVisible();
+  await expect(page.getByTestId('nav-privacy')).toBeVisible();
+
+  // Clicking "How to Use" navigates to /how-to-use and closes dropdown
+  await page.getByTestId('nav-how-to-use').click();
+  await expect(page).toHaveURL('/how-to-use');
+  await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+
+  // Open again on /how-to-use
+  await menuButton.click();
+  await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByTestId('nav-how-to-use')).toHaveClass(/nav-link-active/);
+
+  // Pressing Escape closes the dropdown
+  await page.keyboard.press('Escape');
+  await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+});
