@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -56,25 +57,19 @@ export function SiteHeader() {
       <div className="site-header-inner">
         <Link id="nav-brand" href="/" className="brand-link">
           <span className="brand-logo-mark" aria-hidden="true">
-            <svg
-              className="brand-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <circle cx="12" cy="12" r="3.5" />
-              <path d="M12 3v3" />
-              <path d="M12 18v3" />
-              <path d="M3 12h3" />
-              <path d="M18 12h3" />
-            </svg>
+            <Image
+              src="/logo.png"
+              alt=""
+              width={38}
+              height={38}
+              priority
+              className="brand-logo-img"
+            />
           </span>
           <span className="brand-text-group">
-            <span className="brand-name">OriginLens</span>
+            <span className="brand-name">
+              Origin<span className="brand-lens-gradient">Lens</span>
+            </span>
             <span className="brand-badge">Evidence-First</span>
           </span>
         </Link>

@@ -38,7 +38,9 @@ export function StartScreen({
     <div data-testid="start-screen">
       <header className="hero">
         <p className="eyebrow">Evidence-first media provenance</p>
-        <h1>OriginLens</h1>
+        <h1>
+          Origin<span className="brand-lens-gradient">Lens</span>
+        </h1>
         <p className="lede">
           Inspect provenance evidence; not a universal AI detector. Every finding is tied to a
           check that actually ran.

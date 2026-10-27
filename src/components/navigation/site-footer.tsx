@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -13,20 +14,17 @@ export function SiteFooter() {
         <div className="footer-brand-col">
           <div className="footer-logo">
             <span className="brand-logo-mark" aria-hidden="true">
-              <svg
-                className="brand-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="9" />
-                <circle cx="12" cy="12" r="3.5" />
-              </svg>
+              <Image
+                src="/logo.png"
+                alt=""
+                width={38}
+                height={38}
+                className="brand-logo-img"
+              />
             </span>
-            <span className="footer-brand-name">OriginLens</span>
+            <span className="footer-brand-name">
+              Origin<span className="brand-lens-gradient">Lens</span>
+            </span>
           </div>
           <p className="footer-mission">
             Evidence-First Media Provenance Explorer. Inspects cryptographic C2PA credentials
