@@ -114,6 +114,22 @@ export function ProgressPanel({
         {cancelling ? 'Cancelling the remaining checks.' : currentStatus(stages)}
       </p>
 
+      <div
+        className="segmented-progress-bar"
+        aria-hidden="true"
+        data-testid={`${idPrefix}segmented-progress`}
+      >
+        {stages.map((stage) => {
+          let segmentClass = 'segment';
+          if (stage.executionState === 'completed') {
+            segmentClass += ' segment-completed';
+          } else if (stage.executionState === 'running') {
+            segmentClass += ' segment-running';
+          }
+          return <div key={stage.stage} className={segmentClass} />;
+        })}
+      </div>
+
       <ol className="stage-list">
         {stages.map((stage) => (
           <li key={stage.stage} data-testid={`${idPrefix}stage-${stage.stage}`}>
