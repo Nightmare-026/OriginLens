@@ -116,7 +116,7 @@ body {
 
 /* Page Containers */
 .page {
-  width: min(100% - 2rem, 56rem);
+  width: min(100% - 2rem, var(--container-max));
   margin: 0 auto;
   padding: 2.5rem 0 4.5rem;
 }
@@ -182,7 +182,7 @@ h4 {
   color: var(--muted);
   font-size: 1.125rem;
   line-height: 1.6;
-  max-width: 65ch;
+  max-width: 85ch;
 }
 
 p,
@@ -350,6 +350,7 @@ code {
   display: grid;
   gap: 0.5rem;
   margin: 1.125rem 0;
+  max-width: 100%;
 }
 
 .field label {
@@ -1097,7 +1098,7 @@ button:disabled {
    ========================================================================== */
 
 .page-doc {
-  width: min(100% - 2rem, 54rem);
+  width: min(100% - 2rem, var(--container-max));
   margin: 0 auto;
   padding: 2.5rem 0 4.5rem;
 }
