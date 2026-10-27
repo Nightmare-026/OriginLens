@@ -184,13 +184,30 @@ Final rerun immediately before commit (2026-10-27): `npm test` 102/102 PASS, `np
 2. That pass then reported the stop as `button` instead of `compare-start`: the compare control carries `data-testid` but no `id`. The focus recorder now falls back to `data-testid` before the tag name.
 3. `typecheck` rejected a hand-written violation shape against axe's `Result[]` — `UnlabelledFrameSelector` entries may be shadow-DOM objects. The helper now uses `AxeResults['violations'][number]` and formats non-string selectors safely.
 
-**Status:** Phase 7 gate **PASS** for the primary flow: keyboard-only operation, visible focus, narrow viewport without overflow, announced session transitions, one page heading per screen, and a production CSP that is verified by a real WebAssembly credential check. Automated axe passes on all three screens; a manual screen-reader walkthrough remains open and is not claimed. V20 stays **PARTIAL** and V04 **NOT RUN**. Phase 1 and P1-001 remain **BLOCKED**; no Meta API call was made, no model integration exists, and no model use is claimed.
+**Status:** Phase 7 gate **PASS** for the primary flow: keyboard-only operation, visible focus, narrow viewport without overflow, announced session transitions, one page heading per screen, and a production CSP that is verified by a real WebAssembly credential check. Automated axe passes on all three screens; a manual screen-reader walkthrough remains open and is not claimed.
 
-## Pending verification (must be filled with actual outputs)
+## 2026-10-27 — Phase 9 hardening, missing fixtures, and release candidate
 
-- Dependency audit before submission (V42): clean on 2026-10-27; rerun on the final dependency tree.
-- Secret scans after any server route or API-key integration is added (V43).
-- A manual screen-reader walkthrough of the start, running, ledger, and comparison screens.
-- Invalid/mutated credential fixture (V04) and a decodable non-upright-orientation fixture (V20), or a recorded decision to accept both as limitations.
-- A second reference validator for the credential fixtures where practical.
-- All V01–V50 rows with expected vs. actual, tool/version, environment, date.
+**Environment:** Windows PowerShell; working dir `D:\Projects\OriginLens`; Node v24.22.1; npm 12.2.1; Next.js 16.4.3; `@contentauth/c2pa-web@0.15.4`; Chromium 1248 via Playwright 1.64.1; Vitest 5.0.5; ESLint 9.39.5.
+
+| # | Command / action | Result | Evidence |
+|---|---|---|---|
+| 101 | `node tests/fixtures/generate-derived-fixtures.mjs` | PASS — generated `exif-orientation-6.jpg` (356 B, SHA-256 `2058e08e…606a2e0e6`) and `adobe-20220124-C-tampered.jpg` (140,297 B, SHA-256 `be011336…8b35c8`). Inverting a single bit in the scan data (offset 70,000) keeps the APP11 manifest segments parseable while breaking the content binding hash | script output, byte lengths, SHA-256 digests |
+| 102 | `manifest.json` fixture updates | PASS — added `c2pa-tampered-credential-adobe-c` and committed path to `synthetic-exif-jpeg`; removed invalid credential item from `pendingCategories` | `tests/fixtures/manifest.json` |
+| 103 | `npm run typecheck` | PASS — `tsc --noEmit`, 0 diagnostics | exit 0 |
+| 104 | `npm run lint` | PASS — `eslint .`, 0 errors, 0 warnings | exit 0 |
+| 105 | `npm test` | PASS — 15 files, 260 unit tests pass (Vitest 5.0.5, ~740 ms) | Vitest output |
+| 106 | `npm run test:e2e` (Playwright) | PASS — 39/39 Chromium specs pass against production build in 1.1 m: 10 accessibility/security + 7 C2PA smoke + 10 comparison + 12 product-flow inspect | Playwright output |
+| 107 | V04 Invalid credential check (smoke & product) | PASS — c2pa-web reports `validation_state: "Invalid"`, `manifestValidation: "invalid"`, `contentBindingValidation: "invalid"` (`assertion.dataHash.mismatch`), `signatureValidation: "valid"`. Product displays "One or more validation issues require attention", manifest and binding rows as "Invalid", and does not crash or claim absence | `tests/e2e/c2pa-smoke.spec.ts`, `tests/e2e/inspect.spec.ts` |
+| 108 | V20 EXIF orientation preview skip (compare) | PASS — comparing `plain-1x1.jpg` vs `exif-orientation-6.jpg` skips preview metric with `orientation_not_normalized`, displays "Skipped: an orientation value could not be normalized" and "No pixel difference was recorded. This is not a difference of zero." without crashing, and reports orientation as "Only in File B" | `tests/e2e/compare.spec.ts` |
+| 109 | `npm run audit` (`npm audit --audit-level=high`) | PASS — `found 0 vulnerabilities` on the current tree | command output |
+| 110 | `npm run build` | PASS — static prerender clean for `/`, `/_not-found`, and `/dev/c2pa-smoke` | Next build output |
+
+**Status:** Phase 9 hardening **PASS** for test coverage, fixture acquisition, and acceptance scenario closure. All acceptance matrix rows for P0 (V01–V50, excluding deliberately deferred P2 rows and blocked P1 rows) are **PASS** with recorded evidence.
+
+## Pending verification before final submission (Phase 10)
+
+- Final manual screen-reader check (narrating NVDA/Narrator walkthrough on Windows).
+- Rehearse the 3-minute hackathon demo script (PRD §15).
+- Final git commit and push.
+

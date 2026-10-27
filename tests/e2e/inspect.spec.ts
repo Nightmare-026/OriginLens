@@ -269,3 +269,21 @@ test('fits a 360 px viewport without horizontal overflow', async ({ page }) => {
   await expect(page.getByTestId('ledger')).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
+
+test('V04: inspects a mutated credential fixture and reports invalid validation truthfully', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await analyze(page, 'adobe-20220124-C-tampered.jpg');
+
+  await expect(page.getByTestId('summary-headline')).toHaveText(
+    'One or more validation issues require attention',
+  );
+  await expect(page.getByTestId('c2pa-presence')).toHaveText('Present');
+  await expect(page.getByTestId('c2pa-manifest')).toHaveText('Invalid');
+  await expect(page.getByTestId('c2pa-signature')).toHaveText('Valid');
+  await expect(page.getByTestId('c2pa-binding')).toHaveText('Invalid');
+  await expect(page.getByTestId('c2pa-trust')).toHaveText('Not evaluated');
+  await expect(page.getByTestId('c2pa-codes')).toContainText('assertion.dataHash.mismatch');
+});
+

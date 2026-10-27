@@ -234,3 +234,27 @@ test('clears the session and can start a new one', async ({ page }) => {
   expect(second.runCount).toBe(1);
   expect(second.check.checkId).not.toBe(first.check.checkId);
 });
+
+test('V04: reports an invalid credential fixture with content binding mismatch', async ({ page }) => {
+  await page.goto('/dev/c2pa-smoke');
+  const report = await runFixture(page, fixturePath('adobe-20220124-C-tampered.jpg'));
+
+  expect(report.inspectionStatus).toBe('present');
+  expect(report.check.executionState).toBe('completed');
+  expect(report.check.outcome).toBe('present');
+  expect(report.check.rawCode).toBe('Invalid');
+
+  expect(report.finding).not.toBeNull();
+  const finding = report.finding as SmokeFinding;
+
+  expect(finding.manifestPresence).toBe('present');
+  expect(finding.manifestValidation).toBe('invalid');
+  expect(finding.signatureValidation).toBe('valid');
+  expect(finding.contentBindingValidation).toBe('invalid');
+  expect(finding.timestampValidation).toBe('valid');
+  expect(finding.signerTrust).toBe('not_evaluated');
+  expect(finding.revocationStatus).toBe('not_evaluated');
+  expect(finding.sdkCodes).toContain('assertion.dataHash.mismatch');
+  expect(finding.sdkCodes).toContain('claimSignature.validated');
+});
+

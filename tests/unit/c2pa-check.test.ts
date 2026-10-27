@@ -449,4 +449,36 @@ describe('C2PA check and finding derivation', () => {
     // Markup is preserved as inert text; it is never interpreted as HTML.
     expect(values).toContain('<img src=x onerror=alert(1)>');
   });
+
+  it('maps invalid validation state and content binding mismatch correctly (V04)', () => {
+    const inspection = buildInspection({
+      validation_state: 'Invalid',
+      validation_results: {
+        activeManifest: {
+          success: [
+            { code: 'claimSignature.validated', success: true },
+            { code: 'timeStamp.validated', success: true },
+          ],
+          failure: [{ code: 'assertion.dataHash.mismatch', success: false }],
+          informational: [{ code: 'signingCredential.untrusted' }],
+        },
+      },
+    });
+
+    const { check, finding } = buildC2paResult(buildInput(inspection));
+
+    expect(check.executionState).toBe('completed');
+    expect(check.outcome).toBe('present');
+    expect(check.rawCode).toBe('Invalid');
+    expect(finding?.manifestPresence).toBe('present');
+    expect(finding?.manifestValidation).toBe('invalid');
+    expect(finding?.contentBindingValidation).toBe('invalid');
+    expect(finding?.signatureValidation).toBe('valid');
+    expect(finding?.timestampValidation).toBe('valid');
+    expect(finding?.signerTrust).toBe('not_evaluated');
+    expect(finding?.sdkCodes).toContain('assertion.dataHash.mismatch');
+    expect(checkResultSchema.safeParse(check).success).toBe(true);
+    expect(c2paFindingSchema.safeParse(finding).success).toBe(true);
+  });
 });
+

@@ -13,7 +13,8 @@
   "fixtures": [
     {
       "id": "synthetic-exif-jpeg",
-      "generation": "tests/unit/helpers/exif-jpeg.ts#buildExifJpeg()",
+      "file": "tests/fixtures/c2pa/exif-orientation-6.jpg",
+      "generation": "tests/fixtures/generate-derived-fixtures.mjs",
       "source": "Project-generated test data",
       "license": "Project-generated; no third-party content",
       "byteLength": 356,
@@ -30,7 +31,7 @@
         "gpsPresence": "present",
         "coordinatesExtracted": false
       },
-      "expectationEstablishedBy": "ExifReader 4.52.0 parse probe on 2026-10-27; asserted by tests/unit/metadata.test.ts"
+      "expectationEstablishedBy": "ExifReader 4.52.0 parse probe on 2026-10-27; asserted by tests/unit/metadata.test.ts and tests/e2e/compare.spec.ts"
     },
     {
       "id": "synthetic-plain-jpeg",
@@ -167,6 +168,40 @@
         "recoverable": true
       },
       "expectationEstablishedBy": "c2pa-web 0.15.4 rejected the asset in Chromium 1248 on 2026-10-27; the failure is an execution state, never a content finding. Asserted by tests/e2e/c2pa-smoke.spec.ts"
+    },
+    {
+      "id": "c2pa-tampered-credential-adobe-c",
+      "file": "tests/fixtures/c2pa/adobe-20220124-C-tampered.jpg",
+      "generation": "tests/fixtures/generate-derived-fixtures.mjs",
+      "source": "Modified from tests/fixtures/c2pa/adobe-20220124-C.jpg by flipping one bit in the entropy-coded scan data at byte offset 70,000",
+      "license": "CC BY-SA 4.0 (derived from c2pa-org/public-testfiles); license in tests/fixtures/c2pa/LICENSE-public-testfiles.txt",
+      "byteLength": 140297,
+      "sha256": "be01133655c5ba6a316c67c240c1ba7ecfe65deadedef891cdd269cf008b35c8",
+      "expected": {
+        "inspectionStatus": "present",
+        "executionState": "completed",
+        "outcome": "present",
+        "sdkValidationState": "Invalid",
+        "manifestPresence": "present",
+        "manifestValidation": "invalid",
+        "signatureValidation": "valid",
+        "contentBindingValidation": "invalid",
+        "timestampValidation": "valid",
+        "signerTrust": "not_evaluated",
+        "revocationStatus": "not_evaluated",
+        "trustPolicyId": "originlens-embedded-only-no-trust-anchors-v1",
+        "sdkCodes": [
+          "timeStamp.validated",
+          "timeStamp.trusted",
+          "claimSignature.insideValidity",
+          "claimSignature.validated",
+          "assertion.hashedURI.match",
+          "signingCredential.ocsp.skipped",
+          "signingCredential.untrusted",
+          "assertion.dataHash.mismatch"
+        ]
+      },
+      "expectationEstablishedBy": "Recorded c2pa-web 0.15.4 Reader.fromBlob output in Chromium 1248 on 2026-10-27; asserted by tests/e2e/c2pa-smoke.spec.ts and tests/e2e/inspect.spec.ts"
     }
   ],
   "referenceOutputs": [
@@ -190,7 +225,6 @@
     }
   ],
   "pendingCategories": [
-    "Invalid or mutated credential with pre-confirmed expected output",
     "Credential signed under a configured trust policy, to exercise a real trusted signer state",
     "Binary metadata-only image with selected fields and a GPS privacy fixture",
     "A same-aspect, visibly different image pair with a pre-confirmed preview metric",

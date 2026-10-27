@@ -388,3 +388,24 @@ test('fits the comparison screen in a 360 px viewport', async ({ page }) => {
   await expect(page.getByTestId('compare-ledger')).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
+
+test('V20: non-upright EXIF orientation skips pixel preview metric with honest explanation', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await compareFixtures(page, 'plain-1x1.jpg', 'exif-orientation-6.jpg');
+
+  await expect(page.getByTestId('compare-ledger')).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByTestId('delta-preview-skipped')).toBeVisible();
+  await expect(page.getByTestId('delta-preview-skipped')).toContainText(
+    'Skipped: an orientation value could not be normalized',
+  );
+  await expect(page.getByTestId('delta-preview-no-pixels')).toHaveText(
+    'No pixel difference was recorded. This is not a difference of zero.',
+  );
+  await expect(page.getByTestId('delta-metadata-orientation')).toContainText(
+    'Only in File B',
+  );
+});
+
+
