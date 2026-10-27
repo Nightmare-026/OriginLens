@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { SiteHeader } from '@/components/navigation/site-header';
+import { SiteFooter } from '@/components/navigation/site-footer';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -16,7 +18,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <div className="site-layout">
+          <SiteHeader />
+          <div className="site-content">{children}</div>
+          <SiteFooter />
+        </div>
+      </body>
     </html>
   );
 }

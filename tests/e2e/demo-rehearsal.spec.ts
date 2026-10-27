@@ -31,7 +31,7 @@ test('complete hackathon judging demo rehearsal', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByTestId('start-screen')).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('OriginLens');
-  await expect(page.getByText('Evidence-first media provenance')).toBeVisible();
+  await expect(page.getByTestId('start-screen').getByText('Evidence-first media provenance')).toBeVisible();
   await expect(page.getByText('not a universal AI detector', { exact: false })).toBeVisible();
 
   // --- Beat 1: Known Provenance Credential ---

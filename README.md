@@ -49,8 +49,13 @@ OriginLens is built on **Next.js (App Router)** with **TypeScript** and runs ent
 
 ```
 src/
-├── app/                  # Next.js app routes and layouts
+├── app/
+│   ├── how-to-use/       # Step-by-step user guide & FAQ
+│   ├── privacy/          # Zero-knowledge privacy policy
+│   ├── globals.css       # Unified design system & responsive styling
+│   └── layout.tsx        # App shell with SiteHeader and SiteFooter
 ├── components/
+│   ├── navigation/       # SiteHeader, SiteFooter, and responsive navigation
 │   └── inspector/        # React UI components (Ledger, CompareScreen, StartScreen)
 ├── domain/               # Domain types, Zod schemas, and report builders
 ├── lib/
