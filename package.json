@@ -21,6 +21,7 @@
     "@contentauth/c2pa-web": "0.15.4",
     "exifreader": "4.52.0",
     "next": "16.4.3",
+    "openai": "7.45.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "zod": "4.6.7"

@@ -17,6 +17,8 @@ import {
   formatByteSize,
   formatDimensions,
 } from './labels';
+import { ModelExplanationCard } from './model-explanation';
+
 
 /**
  * Screen D - Evidence Ledger report (PRD 5.4).
@@ -526,6 +528,7 @@ export function FileEvidenceSections({ analysis, idPrefix, title }: FileSections
           Deterministic template generated from the typed results above. No model was called, and no
           finding was added.
         </p>
+        <ModelExplanationCard analysis={analysis} idPrefix={idPrefix} />
       </section>
 
       <section aria-labelledby={tid('checks-heading')} className="panel">

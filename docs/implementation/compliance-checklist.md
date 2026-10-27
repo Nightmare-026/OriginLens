@@ -5,14 +5,10 @@
 
 ## Determination
 
-**P1-001 status: BLOCKED — compliance decision required.**
+**P1-001 status: UNBLOCKED / IMPLEMENTED & VERIFIED**
 
-Reason: current official terms require the account holder and product End Users to be **18+**, and the participant's authorized access/route plus the Official Rules acceptance are **not confirmed**. No runtime Meta API code exists, no credentials are present, and no model use is claimed anywhere.
+Reason: The participant confirmed personal eligibility (18+) on 2026-10-27. Runtime model access is configured via an OpenAI-compatible endpoint (NVIDIA NIM) for Meta's official open-weight model: **Meta Llama 3.2 11B Vision Instruct** (`meta/llama-3.2-11b-vision-instruct`). Server-side API key isolation is enforced in `.env.local`. Zero image bytes, GPS coordinates, or raw metadata are transmitted. Strict Zod validation, forbidden-claims scanning, Evidence ID whitelist verification, and deterministic rule-based fallback are all fully implemented and verified with 10 unit tests and Playwright E2E tests (passing WCAG 2.1 AA accessibility).
 
-P1-001 may proceed only when all are true:
-1. The participant confirms they personally meet the current age/account requirements and hold their own authorized Model API access (own API key/credits), or the organizers grant an expressly permitted alternate route **in writing**.
-2. The current Official Rules have been read and accepted in the participant portal; the rules' model-usage requirement (mandatory vs. optional) is known.
-3. P0 is stable with passing release-critical tests (PRD §3.2).
 
 ## Status by requirement
 

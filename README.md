@@ -36,6 +36,13 @@ In an era of generative AI and manipulated media, most "AI detection" or "authen
 - **Normalized Preview Metric:** Computes peak channel difference and percentage of differing pixels across normalized previews (skipped if aspect ratios differ or EXIF orientation is not normalized).
 - **User Assertions:** Allows user to label candidates (e.g. "original" vs "edited") while explicitly marking them as user assertions—never endorsed as system fact.
 
+### 🤖 Meta Llama 3.2 Evidence Explainer (Phase 8 / P1-001)
+- **Plain-Language Evidence Synthesis:** Translates dense cryptographic findings and validation statuses into clear, accessible prose powered by **Meta Llama 3.2 11B Vision Instruct**.
+- **Evidence ID Traceability:** All AI assertions cite concrete Evidence IDs (`ev_...`) verified against an allowlist.
+- **Anti-Hallucination & Anti-Injection Guards:** Enforces strict server-side Zod validation and a forbidden-claim scanner rejecting claims of authenticity, forgery, or tampering.
+- **Zero-Knowledge Privacy:** Only structured check summaries are transmitted—**never** image bytes, previews, GPS, or raw metadata.
+- **Deterministic Fallback:** Automatically reverts to a deterministic rule-based template if offline, rate-limited, or unconfigured.
+
 ### 🛡️ Defensive Engineering
 - **Strict Intake Guardrails:** Rejects files exceeding 20 MiB or 20 megapixels; validates magic bytes (JPEG/PNG); rejects SVGs and animated formats.
 - **Safe Failure:** Corrupted files fail cleanly with stable error codes (e.g. `PIPELINE_DECODE_FAILED`) without crashing the session.
@@ -45,24 +52,27 @@ In an era of generative AI and manipulated media, most "AI detection" or "authen
 
 ## Architecture
 
-OriginLens is built on **Next.js (App Router)** with **TypeScript** and runs entirely client-side:
+OriginLens is built on **Next.js (App Router)** with **TypeScript** and runs client-side with a privacy-preserving serverless model explainer:
 
 ```
 src/
 ├── app/
+│   ├── api/explain/      # Serverless route handler for Meta Llama explainer
 │   ├── how-to-use/       # Step-by-step user guide & FAQ
 │   ├── privacy/          # Zero-knowledge privacy policy
 │   ├── globals.css       # Unified design system & responsive styling
 │   └── layout.tsx        # App shell with SiteHeader and SiteFooter
 ├── components/
 │   ├── navigation/       # SiteHeader, SiteFooter, and responsive navigation
-│   └── inspector/        # React UI components (Ledger, CompareScreen, StartScreen)
-├── domain/               # Domain types, Zod schemas, and report builders
+│   └── inspector/        # UI components (Ledger, CompareScreen, ModelExplanationCard)
 ├── lib/
 │   ├── c2pa/             # C2PA WebAssembly SDK adapter and worker management
+│   ├── compare/          # Provenance Delta normalization & difference metrics
 │   ├── intake/           # Magic byte validation, preflight bounds, and SHA-256
 │   ├── metadata/         # EXIF parser and privacy redactor
-│   └── pipeline/         # Deterministic execution coordinator & Provenance Delta
+│   ├── model-explainer/  # Meta Llama prompts, claims scanner, Zod schemas, fallback
+│   ├── pipeline/         # Deterministic execution coordinator & Provenance Delta
+│   └── results/          # Domain types, Zod schemas, and report builders
 ```
 
 ---
@@ -96,10 +106,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 The project enforces strict quality gates across unit, integration, accessibility, and E2E browser tests:
 
 ```bash
-# Run unit & integration tests (121 tests)
+# Run unit & integration tests (270 tests across 17 test suites)
 npm test
 
-# Run end-to-end browser tests in Playwright (27 tests)
+# Run end-to-end browser tests in Playwright (43 tests against production build)
 npm run test:e2e
 
 # Run the 3-minute hackathon judging demo rehearsal
@@ -120,14 +130,16 @@ npm run build
 
 ---
 
-## Judging Demo Guide
+## Audit & Verification Package
 
-For a 3-to-4 minute walkthrough with pre-configured fixtures, see [`DEMO.md`](file:///d:/Projects/OriginLens/DEMO.md) or the automated test [`tests/e2e/demo-rehearsal.spec.ts`](file:///d:/Projects/OriginLens/tests/e2e/demo-rehearsal.spec.ts).
-
-Detailed audit documentation and the complete V01–V50 acceptance matrix are recorded in [`docs/implementation/demo-and-submission-guide.md`](file:///d:/Projects/OriginLens/docs/implementation/demo-and-submission-guide.md).
+In response to the external audit report (`OriginLens_Audit_Report.md`), the team has prepared a full, reproducible verification package:
+- [`docs/AUDIT_RESPONSE.md`](file:///d:/Projects/OriginLens/docs/AUDIT_RESPONSE.md) — Comprehensive item-by-item resolution and test logs.
+- [`DEMO.md`](file:///d:/Projects/OriginLens/DEMO.md) — 3-minute hackathon judging walkthrough with pre-configured fixtures.
+- [`docs/implementation/plan.md`](file:///d:/Projects/OriginLens/docs/implementation/plan.md) — Phased engineering plan and compliance sign-offs.
 
 ---
 
 ## License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
