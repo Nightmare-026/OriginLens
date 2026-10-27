@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { buildComparison, type ComparisonOutput } from '@/lib/compare/build';
 import { runFileAnalysis } from '@/lib/pipeline/analyze';
 import type { FileAnalysis } from '@/lib/pipeline/types';
-import { buildReport, reportFileName, REPORT_DISCLAIMERS } from '@/lib/report/build';
+import {
+  buildReport,
+  reportFileName,
+  REPORT_DISCLAIMERS,
+  COMPARISON_REPORT_DISCLAIMER,
+} from '@/lib/report/build';
 import { reportSchema } from '@/lib/results/schemas';
 import {
   createHarness,
@@ -34,13 +40,33 @@ async function analysisFor(
 
 let reportCounter = 0;
 
-function build(analyses: readonly FileAnalysis[]) {
+function build(
+  analyses: readonly FileAnalysis[],
+  comparison?: ComparisonOutput,
+) {
   reportCounter += 1;
 
   return buildReport({
     analyses,
+    ...(comparison === undefined ? {} : { comparison }),
     now: new Date('2026-10-27T18:30:00.000Z'),
     createId: () => `rpt_${String(reportCounter).padStart(6, '0')}`,
+  });
+}
+
+function comparisonFor(
+  first: FileAnalysis,
+  second: FileAnalysis,
+  startId: number,
+): ComparisonOutput {
+  let ids = startId;
+
+  return buildComparison({
+    first,
+    second,
+    preview: { status: 'skipped', reason: 'identical_fingerprint' },
+    createId: (prefix) => `${prefix}_${String((ids += 1)).padStart(6, '0')}`,
+    now: () => new Date('2026-10-27T18:30:01.000Z'),
   });
 }
 
@@ -125,27 +151,44 @@ describe('buildReport', () => {
     expect(name).not.toContain('sample');
   });
 
-  it('accepts two files but rejects an empty or oversized set', async () => {
+  it('accepts two files with a comparison and rejects an empty or oversized set', async () => {
     const first = await analysisFor();
     const second = await analysisFor({ startId: 100 });
+    const comparison = comparisonFor(first, second, 200);
 
-    const two = build([first, second]);
+    expect(comparison.status).toBe('ok');
+
+    const two = build([first, second], comparison);
     expect(two.status).toBe('ok');
 
     if (two.status === 'ok') {
       expect(two.report.files).toHaveLength(2);
-      expect(two.report.checks).toHaveLength(8);
+      expect(two.report.checks).toHaveLength(9);
+      expect(two.report.comparison?.preview).toEqual({
+        status: 'skipped',
+        reason: 'identical_fingerprint',
+      });
+      expect(two.report.disclaimers).toContain(COMPARISON_REPORT_DISCLAIMER);
+      expect(two.report.summaryCodes).toEqual(['no_supported_embedded_credentials']);
     }
 
     expect(build([]).status).toBe('error');
     expect(build([first, second, first]).status).toBe('error');
   });
 
+  it('rejects a two-file report without a usable comparison', async () => {
+    const first = await analysisFor();
+    const second = await analysisFor({ startId: 100 });
+
+    expect(build([first, second]).status).toBe('error');
+    expect(build([first], comparisonFor(first, second, 300)).status).toBe('error');
+  });
+
   it('rejects a two-file report whose identifiers collide', async () => {
     const first = await analysisFor();
     const second = await analysisFor();
 
-    const result = build([first, second]);
+    const result = build([first, second], comparisonFor(first, second, 400));
 
     expect(result.status).toBe('error');
 

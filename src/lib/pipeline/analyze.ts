@@ -63,6 +63,7 @@ function safeInspectionFailure(): MetadataInspection {
     status: 'failed',
     fields: [],
     gpsPresence: 'unknown',
+    orientationStatus: 'unknown',
     parser: METADATA_PARSER,
     warnings: ['Embedded metadata could not be parsed. Independent checks are unaffected.'],
     limitations: [...METADATA_LIMITATIONS],

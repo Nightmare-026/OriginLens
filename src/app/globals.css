@@ -43,6 +43,11 @@ body {
   padding: 2.5rem 0 4rem;
 }
 
+/* The two-file delta needs room for its side-by-side tables. */
+.page-compare {
+  width: min(100% - 2rem, 64rem);
+}
+
 .hero {
   padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--border);
@@ -394,6 +399,110 @@ details {
 summary {
   cursor: pointer;
   font-weight: 600;
+}
+
+/* Provenance Delta: two-file layout (PRD 5.5). */
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.compare-grid > * {
+  min-width: 0;
+}
+
+.file-header {
+  border-left: 0.25rem solid var(--focus);
+  padding-left: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+select {
+  display: block;
+  max-width: 100%;
+  margin-top: 0.375rem;
+  padding: 0.5rem 0.625rem;
+  border: 0.0625rem solid currentColor;
+  border-radius: 0.375rem;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+}
+
+.field .note {
+  display: block;
+  margin-top: 0.375rem;
+}
+
+.delta-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
+}
+
+.delta-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+}
+
+.delta-table th,
+.delta-table td {
+  border-bottom: 0.0625rem solid var(--border);
+  padding: 0.5rem 0.625rem;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.delta-table thead th {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.delta-table tbody th {
+  font-weight: 600;
+  min-width: 9rem;
+}
+
+@media (max-width: 34rem) {
+  .delta-table,
+  .delta-table thead,
+  .delta-table tbody,
+  .delta-table tr,
+  .delta-table th,
+  .delta-table td {
+    display: block;
+  }
+
+  .delta-table thead {
+    display: none;
+  }
+
+  .delta-table tr {
+    border-bottom: 0.0625rem solid var(--border);
+    padding: 0.5rem 0;
+  }
+
+  .delta-table th,
+  .delta-table td {
+    border-bottom: 0;
+    padding: 0.125rem 0;
+  }
+
+  .delta-table td::before {
+    content: attr(data-column);
+    display: inline-block;
+    min-width: 6rem;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
 }
 
 @media (max-width: 34rem) {

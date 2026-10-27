@@ -1,6 +1,7 @@
 import type {
   CheckKind,
   CommonOutcome,
+  ComparisonDifferenceState,
   ExecutionState,
   ManifestPresence,
   RevocationStatus,
@@ -8,6 +9,8 @@ import type {
   ValidationState,
 } from '@/lib/results/schemas';
 import type { PipelineStage } from '@/lib/pipeline/types';
+import type { MetadataFieldKey } from '@/lib/metadata/inspect';
+import type { PreviewSkipReason } from '@/lib/compare/constants';
 
 /**
  * Presentation vocabulary. Every union member has exactly one label, enforced
@@ -94,6 +97,75 @@ export const REVOCATION_LABELS: Readonly<Record<RevocationStatus, string>> = {
   revoked: 'Revoked',
   unknown: 'Unknown',
   not_evaluated: 'Not evaluated',
+};
+
+/** Display names for the allowlisted metadata fields compared by the delta. */
+export const METADATA_FIELD_LABELS: Readonly<Record<MetadataFieldKey, string>> = {
+  captureTime: 'Capture time',
+  software: 'Software',
+  orientation: 'Orientation',
+  cameraMake: 'Camera make',
+  cameraModel: 'Camera model',
+};
+
+export const COMPARISON_DIFFERENCE_LABELS: Readonly<Record<ComparisonDifferenceState, string>> =
+  {
+    equal: 'Equal',
+    different: 'Different',
+    absent_from_both: 'Not recorded in either file',
+    present_only_in_first: 'Only in File A',
+    present_only_in_second: 'Only in File B',
+    not_evaluated: 'Not evaluated',
+  };
+
+export const PREVIEW_SKIP_REASON_LABELS: Readonly<Record<PreviewSkipReason, string>> = {
+  identical_fingerprint: 'Skipped: both files have the identical SHA-256 fingerprint',
+  aspect_ratio_mismatch: 'Skipped: the aspect ratios differ',
+  orientation_not_normalized: 'Skipped: an orientation value could not be normalized',
+  pixel_budget_exceeded: 'Skipped: the preview could not fit the 1.2 megapixel budget',
+  decode_failed: 'Skipped: a file could not be decoded for the preview',
+  decode_timed_out: 'Skipped: the preview decode exceeded its time limit',
+  pixel_data_unavailable: 'Skipped: the preview pixels could not be read back',
+};
+
+/**
+ * Why a skip happened, in product language. Each reason says what was not
+ * measured; none of them may be read as "no difference was found".
+ */
+export const PREVIEW_SKIP_REASON_EXPLANATIONS: Readonly<Record<PreviewSkipReason, string>> = {
+  identical_fingerprint:
+    'Both files have the same fingerprint, so identical byte versions were supplied. No pixel difference was computed, and nothing is implied about other files.',
+  aspect_ratio_mismatch:
+    'The two images have different aspect ratios beyond the documented tolerance. Stretching or cropping one into the other would invent a difference, so no pixel metric was produced.',
+  orientation_not_normalized:
+    'At least one file records an orientation value that this build does not apply, or its orientation is unknown. Comparing the stored pixel grids without normalization would be misleading, so no pixel metric was produced.',
+  pixel_budget_exceeded:
+    'The normalized preview could not be fitted inside the 1.2 megapixel budget, so no pixel metric was produced.',
+  decode_failed:
+    'The browser could not decode at least one file for the preview. The earlier intake check succeeded, so this is a preview-path limitation, not a statement about the image.',
+  decode_timed_out:
+    'The preview decode exceeded its time limit. No pixel metric was produced, and the completed checks above are unaffected.',
+  pixel_data_unavailable:
+    'The preview canvas could not return pixel data in this browser. No pixel metric was produced.',
+};
+
+export const COMPARISON_OUTCOME_HEADLINES: Readonly<
+  Record<'equal' | 'different' | 'inconclusive', string>
+> = {
+  equal: 'Every compared property is equal',
+  different: 'At least one compared property differs',
+  inconclusive: 'The comparison is inconclusive',
+};
+
+export const COMPARISON_OUTCOME_DESCRIPTIONS: Readonly<
+  Record<'equal' | 'different' | 'inconclusive', string>
+> = {
+  equal:
+    'The recorded fingerprints, properties, metadata clues, and evaluated credential states matched. This does not establish a shared origin, authorship, or that either file is unedited.',
+  different:
+    'At least one recorded property differs between the two files. A difference is not a finding of tampering, fraud, deception, or intent, and it does not identify which file is original.',
+  inconclusive:
+    'No difference was established, but at least one comparison input was not evaluated. The gap is reported instead of implying equality.',
 };
 
 /** Static explanations of what each C2PA family does and does not establish. */

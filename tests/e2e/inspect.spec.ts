@@ -232,10 +232,10 @@ test('clears the session and returns to an honest start screen', async ({ page }
   await expect(page.getByTestId('ledger')).toHaveCount(0);
 });
 
-test('keeps the workflow keyboard reachable and the compare action disabled', async ({ page }) => {
+test('keeps the workflow keyboard reachable', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByTestId('compare-disabled')).toBeDisabled();
+  await expect(page.getByTestId('compare-start')).toBeDisabled();
 
   let reachedFileInput = false;
 

@@ -1,5 +1,4 @@
-import type { CommonOutcome, ExecutionState } from '@/lib/results/schemas';
-import type { PipelineStage } from '@/lib/pipeline/types';
+import type { CheckKind, CommonOutcome, ExecutionState } from '@/lib/results/schemas';
 import {
   CHECK_LABELS,
   EXECUTION_STATE_LABELS,
@@ -15,20 +14,31 @@ import {
  * stage between real states.
  */
 
+/** Stages a session can report, including the two-file comparison step. */
+export type StageName = Exclude<CheckKind, 'meta_explanation'>;
+
 export type StageView = Readonly<{
-  stage: PipelineStage;
+  stage: StageName;
   executionState: ExecutionState;
   outcome?: CommonOutcome;
   errorCode?: string;
 }>;
 
 export type ProgressPanelProps = Readonly<{
+  /** "File A", "File B", or "Provenance Delta" in a comparison session. */
+  title?: string;
+  /** Overrides the heading when the stage is not a single-file analysis. */
+  heading?: string;
+  /** Overrides the size/validation note under the heading. */
+  note?: string;
   /** Null until intake validation succeeded (PRD 5.2). */
   displayName: string | null;
   byteSize: number | null;
   stages: readonly StageView[];
   cancelling: boolean;
   onCancel: () => void;
+  showCancel?: boolean;
+  idPrefix?: string;
 }>;
 
 function currentStatus(stages: readonly StageView[]): string {
@@ -48,18 +58,35 @@ function currentStatus(stages: readonly StageView[]): string {
 }
 
 export function ProgressPanel({
+  title,
+  heading,
+  note,
   displayName,
   byteSize,
   stages,
   cancelling,
   onCancel,
+  showCancel = true,
+  idPrefix = '',
 }: ProgressPanelProps) {
   return (
-    <section className="panel" aria-labelledby="progress-heading" data-testid="progress-panel">
-      <h2 id="progress-heading">
-        {displayName === null ? 'Validating the selected file' : `Checking ${displayName}`}
+    <section
+      className="panel"
+      aria-labelledby={`${idPrefix}progress-heading`}
+      data-testid={`${idPrefix}progress-panel`}
+    >
+      {title === undefined ? null : (
+        <p className="eyebrow" data-testid={`${idPrefix}progress-title`}>
+          {title}
+        </p>
+      )}
+      <h2 id={`${idPrefix}progress-heading`}>
+        {heading ??
+          (displayName === null ? 'Validating the selected file' : `Checking ${displayName}`)}
       </h2>
-      {byteSize === null ? (
+      {note !== undefined ? (
+        <p className="note">{note}</p>
+      ) : byteSize === null ? (
         <p className="note">
           Size, format, signature, and pixel budget are verified before any other check runs.
         </p>
@@ -67,13 +94,13 @@ export function ProgressPanel({
         <p className="note">{formatByteSize(byteSize)}</p>
       )}
 
-      <p role="status" aria-live="polite" data-testid="progress-status">
+      <p role="status" aria-live="polite" data-testid={`${idPrefix}progress-status`}>
         {cancelling ? 'Cancelling the remaining checks.' : currentStatus(stages)}
       </p>
 
       <ol className="stage-list">
         {stages.map((stage) => (
-          <li key={stage.stage} data-testid={`stage-${stage.stage}`}>
+          <li key={stage.stage} data-testid={`${idPrefix}stage-${stage.stage}`}>
             <span className="stage-name">{CHECK_LABELS[stage.stage]}</span>
             <span className="stage-state" data-execution-state={stage.executionState}>
               {EXECUTION_STATE_LABELS[stage.executionState]}
@@ -94,9 +121,11 @@ export function ProgressPanel({
         measurable progress.
       </p>
 
-      <button type="button" onClick={onCancel} disabled={cancelling} data-testid="cancel-button">
-        {cancelling ? 'Cancelling…' : 'Cancel remaining checks'}
-      </button>
+      {showCancel ? (
+        <button type="button" onClick={onCancel} disabled={cancelling} data-testid="cancel-button">
+          {cancelling ? 'Cancelling…' : 'Cancel remaining checks'}
+        </button>
+      ) : null}
     </section>
   );
 }

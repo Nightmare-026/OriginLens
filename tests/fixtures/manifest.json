@@ -1,10 +1,11 @@
 {
-  "schemaVersion": "1.2",
-  "updatedAtUtc": "2026-10-27T19:00:00.000Z",
+  "schemaVersion": "1.3",
+  "updatedAtUtc": "2026-10-27T19:20:00.000Z",
   "verificationEnvironment": "Windows; Node v24.22.1; ExifReader 4.52.0; @contentauth/c2pa-web 0.15.4; Chromium 1248 via Playwright 1.64.1",
   "notes": [
     "Synthetic fixtures are generated deterministically by test code, not downloaded content.",
     "Committed PNG fixtures are reproduced by their generator script and written with stored deflate blocks, so the bytes do not depend on a local zlib build.",
+    "plain-3x2.png and plain-3x2-filtered.png carry the same pixel grid in two PNG encodings, so the V18 case can show a byte difference beside an unchanged preview measurement.",
     "C2PA expectations come from recorded output of the pinned SDK in a real Chromium run. No file is described as valid or trusted because of its name, its source page, or a website description.",
     "A filename is never evidence for an expected result.",
     "The reference manifest store is a reduced hand-normalized extract used to cross-check claim fields only. It carries no validation status and proves nothing about validity or trust."
@@ -131,6 +132,26 @@
       "expectationEstablishedBy": "Metadata keys confirmed by an ExifReader 4.52.0 parse probe (PNG header tags only, no allowlisted field) on 2026-10-27; C2PA null result and browser decode confirmed by tests/e2e/inspect.spec.ts in Chromium 1248"
     },
     {
+      "id": "c2pa-no-manifest-png-filtered-encoding",
+      "file": "tests/fixtures/c2pa/plain-3x2-filtered.png",
+      "generation": "tests/fixtures/generate-plain-png.mjs",
+      "source": "Project-generated 3x2 RGB PNG: the same pixel grid as plain-3x2.png, encoded with PNG filter type 1 (Sub) so the bytes differ while the decoded pixels do not",
+      "license": "Project-generated; no third-party content",
+      "byteLength": 88,
+      "sha256": "7e0ee3192f407fafbe484eed266f7c0348434df2f0ef8c30a7fb4f6eb496d200",
+      "expected": {
+        "inspectionStatus": "not_present",
+        "manifestPresence": "not_present",
+        "metadataStatus": "extracted",
+        "allowlistedMetadataFields": 0,
+        "dimensions": { "width": 3, "height": 2 },
+        "sha256DiffersFrom": "c2pa-no-manifest-png",
+        "decodedPixelsEqual": "c2pa-no-manifest-png",
+        "sdkCodes": []
+      },
+      "expectationEstablishedBy": "Pixel equality established on 2026-10-27 by inflating both IDAT streams in Node and reversing PNG filter type 1 before comparing the scanline bytes (tests/unit/helpers/png-pixels.ts); asserted by tests/unit/fixtures.test.ts, and the browser decode plus C2PA null result by tests/e2e/compare.spec.ts in Chromium 1248"
+    },
+    {
       "id": "c2pa-truncated-jpeg",
       "file": "tests/fixtures/c2pa/truncated.jpg",
       "source": "Project-generated 11-byte JPEG SOI plus truncated JFIF APP0 segment",
@@ -172,6 +193,7 @@
     "Invalid or mutated credential with pre-confirmed expected output",
     "Credential signed under a configured trust policy, to exercise a real trusted signer state",
     "Binary metadata-only image with selected fields and a GPS privacy fixture",
-    "Duplicate bytes, alternate encoding, preview-difference, dimension/orientation, mislabeled, oversize, and high-pixel fixtures"
+    "A same-aspect, visibly different image pair with a pre-confirmed preview metric",
+    "Mislabeled, oversize, and high-pixel fixtures"
   ]
 }

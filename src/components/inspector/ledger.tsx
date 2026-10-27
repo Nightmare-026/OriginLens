@@ -23,14 +23,34 @@ import {
  * Every value shown here comes from a runtime-validated domain object. The
  * ledger separates execution state from findings, names the checker and trust
  * policy, and lists the structured evidence behind the recorded checks.
+ *
+ * The same sections render for one file and for each side of a comparison.
+ * A prefix keeps element and test identifiers unique when two ledgers share a
+ * page; the single-file case keeps the unprefixed identifiers.
  */
 
 export type LedgerProps = Readonly<{
   analysis: FileAnalysis;
+  notice?: string;
   downloadError: string | null;
   onDownload: () => void;
   onClear: () => void;
   onInspectAnother: () => void;
+}>;
+
+export type FileSectionsProps = Readonly<{
+  analysis: FileAnalysis;
+  idPrefix: string;
+  /** Comparison heading such as "File A". Omitted for a single-file ledger. */
+  title?: string;
+}>;
+
+export type ReportActionsProps = Readonly<{
+  downloadError: string | null;
+  onDownload: () => void;
+  onClear: () => void;
+  onInspectAnother: () => void;
+  compare: boolean;
 }>;
 
 function EvidenceList({ items }: Readonly<{ items: readonly EvidenceItem[] }>) {
@@ -52,9 +72,12 @@ function EvidenceList({ items }: Readonly<{ items: readonly EvidenceItem[] }>) {
   );
 }
 
-function CheckRow({ check }: Readonly<{ check: CheckResult }>) {
+export function CheckRow({
+  check,
+  idPrefix,
+}: Readonly<{ check: CheckResult; idPrefix: string }>) {
   return (
-    <li className="check-row" data-testid={`check-${check.kind}`}>
+    <li className="check-row" data-testid={`${idPrefix}check-${check.kind}`}>
       <div className="check-heading">
         <span className="check-name">{CHECK_LABELS[check.kind]}</span>
         <span className="badge" data-execution-state={check.executionState}>
@@ -91,7 +114,7 @@ function CheckRow({ check }: Readonly<{ check: CheckResult }>) {
   );
 }
 
-function CredentialSection({ analysis }: Readonly<{ analysis: FileAnalysis }>) {
+function CredentialSection({ analysis, idPrefix }: Readonly<{ analysis: FileAnalysis; idPrefix: string }>) {
   const check = analysis.checks.find((candidate) => candidate.kind === 'c2pa');
   const finding = analysis.finding;
 
@@ -137,7 +160,7 @@ function CredentialSection({ analysis }: Readonly<{ analysis: FileAnalysis }>) {
         <dl className="kv">
           <div>
             <dt>Embedded manifest</dt>
-            <dd data-testid="c2pa-presence">
+            <dd data-testid={`${idPrefix}c2pa-presence`}>
               {finding === null ? 'No structured finding' : MANIFEST_LABELS[finding.manifestPresence]}
             </dd>
           </div>
@@ -159,31 +182,31 @@ function CredentialSection({ analysis }: Readonly<{ analysis: FileAnalysis }>) {
       <dl className="kv">
         <div>
           <dt>Embedded manifest</dt>
-          <dd data-testid="c2pa-presence">{MANIFEST_LABELS[finding.manifestPresence]}</dd>
+          <dd data-testid={`${idPrefix}c2pa-presence`}>{MANIFEST_LABELS[finding.manifestPresence]}</dd>
         </div>
         <div>
           <dt>Manifest validation</dt>
-          <dd data-testid="c2pa-manifest">{VALIDATION_LABELS[finding.manifestValidation]}</dd>
+          <dd data-testid={`${idPrefix}c2pa-manifest`}>{VALIDATION_LABELS[finding.manifestValidation]}</dd>
         </div>
         <div>
           <dt>Claim signature</dt>
-          <dd data-testid="c2pa-signature">{VALIDATION_LABELS[finding.signatureValidation]}</dd>
+          <dd data-testid={`${idPrefix}c2pa-signature`}>{VALIDATION_LABELS[finding.signatureValidation]}</dd>
         </div>
         <div>
           <dt>Asset binding</dt>
-          <dd data-testid="c2pa-binding">{VALIDATION_LABELS[finding.contentBindingValidation]}</dd>
+          <dd data-testid={`${idPrefix}c2pa-binding`}>{VALIDATION_LABELS[finding.contentBindingValidation]}</dd>
         </div>
         <div>
           <dt>Signer trust</dt>
-          <dd data-testid="c2pa-trust">{TRUST_LABELS[finding.signerTrust]}</dd>
+          <dd data-testid={`${idPrefix}c2pa-trust`}>{TRUST_LABELS[finding.signerTrust]}</dd>
         </div>
         <div>
           <dt>Timestamp check</dt>
-          <dd data-testid="c2pa-timestamp">{VALIDATION_LABELS[finding.timestampValidation]}</dd>
+          <dd data-testid={`${idPrefix}c2pa-timestamp`}>{VALIDATION_LABELS[finding.timestampValidation]}</dd>
         </div>
         <div>
           <dt>Revocation status</dt>
-          <dd data-testid="c2pa-revocation">{REVOCATION_LABELS[finding.revocationStatus]}</dd>
+          <dd data-testid={`${idPrefix}c2pa-revocation`}>{REVOCATION_LABELS[finding.revocationStatus]}</dd>
         </div>
         <div>
           <dt>Trust policy</dt>
@@ -246,7 +269,7 @@ function CredentialSection({ analysis }: Readonly<{ analysis: FileAnalysis }>) {
         {finding.sdkCodes.length === 0 ? (
           <p className="note">No status codes were returned.</p>
         ) : (
-          <ul className="code-list" data-testid="c2pa-codes">
+          <ul className="code-list" data-testid={`${idPrefix}c2pa-codes`}>
             {finding.sdkCodes.map((code) => (
               <li key={code}>
                 <code>{code}</code>
@@ -267,7 +290,7 @@ function CredentialSection({ analysis }: Readonly<{ analysis: FileAnalysis }>) {
   );
 }
 
-function MetadataSection({ analysis }: Readonly<{ analysis: FileAnalysis }>) {
+function MetadataSection({ analysis, idPrefix }: Readonly<{ analysis: FileAnalysis; idPrefix: string }>) {
   const check = analysis.checks.find((candidate) => candidate.kind === 'metadata');
   const metadata = analysis.metadata;
 
@@ -297,7 +320,7 @@ function MetadataSection({ analysis }: Readonly<{ analysis: FileAnalysis }>) {
           That is not evidence that metadata was deliberately removed. Re-encoding and ordinary
           processing can remove it.
         </p>
-        <p className="note" data-testid="metadata-gps">
+        <p className="note" data-testid={`${idPrefix}metadata-gps`}>
           {metadata.gpsPresence === 'present'
             ? 'Location metadata is present in the file. Coordinates are not extracted, displayed, or exported.'
             : metadata.gpsPresence === 'not_present'
@@ -318,7 +341,7 @@ function MetadataSection({ analysis }: Readonly<{ analysis: FileAnalysis }>) {
           </div>
         ))}
       </dl>
-      <p className="note" data-testid="metadata-gps">
+      <p className="note" data-testid={`${idPrefix}metadata-gps`}>
         {metadata.gpsPresence === 'present'
           ? 'Location metadata is present in the file. Coordinates are not extracted, displayed, or exported.'
           : metadata.gpsPresence === 'not_present'
@@ -349,27 +372,30 @@ function uniqueLimitations(analysis: FileAnalysis): string[] {
   return limitations;
 }
 
-export function EvidenceLedger({
-  analysis,
-  downloadError,
-  onDownload,
-  onClear,
-  onInspectAnother,
-}: LedgerProps) {
+/**
+ * The Evidence Ledger body for one analyzed file. `idPrefix` is empty for the
+ * single-file ledger, and `a-` or `b-` inside a comparison.
+ */
+export function FileEvidenceSections({ analysis, idPrefix, title }: FileSectionsProps) {
   const coverage = buildCoverage(analysis.checks);
   const headlineCode = analysis.summaryCodes[0];
   const limitations = uniqueLimitations(analysis);
+  const tid = (suffix: string): string => `${idPrefix}${suffix}`;
 
   return (
-    <div data-testid="ledger">
-      <header className="hero">
-        <p className="eyebrow">Evidence Ledger</p>
-        <h1>{analysis.file.displayName}</h1>
-        <p className="lede" data-testid="file-facts">
-          {formatByteSize(analysis.file.byteSize)} · {analysis.file.detectedMimeType} ·{' '}
-          {formatDimensions(analysis.file.width, analysis.file.height)}
-        </p>
-      </header>
+    <div data-testid={tid('file-ledger')}>
+      {title === undefined ? null : (
+        <header className="file-header">
+          <p className="eyebrow" data-testid={tid('file-title')}>
+            {title}
+          </p>
+          <h2 data-testid={tid('file-name')}>{analysis.file.displayName}</h2>
+          <p className="lede" data-testid={tid('file-facts')}>
+            {formatByteSize(analysis.file.byteSize)} · {analysis.file.detectedMimeType} ·{' '}
+            {formatDimensions(analysis.file.width, analysis.file.height)}
+          </p>
+        </header>
+      )}
 
       {analysis.cancelled ? (
         <p className="notice" role="status">
@@ -378,13 +404,13 @@ export function EvidenceLedger({
         </p>
       ) : null}
 
-      <section aria-labelledby="summary-heading" className="panel">
-        <h2 id="summary-heading">Summary</h2>
+      <section aria-labelledby={tid('summary-heading')} className="panel">
+        <h2 id={tid('summary-heading')}>Summary</h2>
         {headlineCode === undefined ? (
           <p className="note">No summary code was recorded for this analysis.</p>
         ) : (
           <>
-            <p className="headline" data-testid="summary-headline">
+            <p className="headline" data-testid={tid('summary-headline')}>
               {SUMMARY_HEADLINES[headlineCode]}
             </p>
             <p>{SUMMARY_DESCRIPTIONS[headlineCode]}</p>
@@ -392,7 +418,7 @@ export function EvidenceLedger({
         )}
 
         <h3>Coverage</h3>
-        <p data-testid="coverage-summary">
+        <p data-testid={tid('coverage-summary')}>
           {coverage.completed} of {coverage.total} checks completed · {coverage.failed} failed ·{' '}
           {coverage.timedOut} timed out · {coverage.cancelled} cancelled · {coverage.skipped}{' '}
           skipped
@@ -405,7 +431,7 @@ export function EvidenceLedger({
         </p>
 
         {analysis.summaryCodes.length > 1 ? (
-          <ul className="note-list" data-testid="summary-codes">
+          <ul className="note-list" data-testid={tid('summary-codes')}>
             {analysis.summaryCodes.slice(1).map((code) => (
               <li key={code}>{SUMMARY_HEADLINES[code]}</li>
             ))}
@@ -413,13 +439,13 @@ export function EvidenceLedger({
         ) : null}
       </section>
 
-      <section aria-labelledby="fingerprint-heading" className="panel">
-        <h2 id="fingerprint-heading">File fingerprint</h2>
+      <section aria-labelledby={tid('fingerprint-heading')} className="panel">
+        <h2 id={tid('fingerprint-heading')}>File fingerprint</h2>
         <dl className="kv">
           <div>
             <dt>SHA-256 of the original bytes</dt>
             <dd>
-              <code className="hash" data-testid="file-sha256">
+              <code className="hash" data-testid={tid('file-sha256')}>
                 {analysis.file.sha256}
               </code>
             </dd>
@@ -445,59 +471,73 @@ export function EvidenceLedger({
           <div>
             <dt>File ID</dt>
             <dd>
-              <code>{analysis.file.fileId}</code>
+              <code data-testid={tid('file-id')}>{analysis.file.fileId}</code>
             </dd>
           </div>
+          {analysis.file.userLabel === undefined ? null : (
+            <div>
+              <dt>User-supplied label</dt>
+              <dd data-testid={tid('user-label')}>
+                {analysis.file.userLabel === 'original' ? 'Original' : 'Edited'}
+              </dd>
+            </div>
+          )}
           <div>
             <dt>App version</dt>
             <dd>{APP_VERSION}</dd>
           </div>
         </dl>
+        {analysis.file.userLabel === undefined ? null : (
+          <p className="note" data-testid={tid('user-label-note')}>
+            This label is the user&apos;s own assertion. It was not measured, verified, or inferred
+            from the files, and it does not establish which file came first.
+          </p>
+        )}
         <p className="note">
           The fingerprint identifies this exact byte version. It does not establish who created the
           file, when an event occurred, or whether the content is true.
         </p>
       </section>
 
-      <section aria-labelledby="credential-heading" className="panel">
-        <h2 id="credential-heading">C2PA credential findings</h2>
-        <CredentialSection analysis={analysis} />
+      <section aria-labelledby={tid('credential-heading')} className="panel">
+        <h2 id={tid('credential-heading')}>C2PA credential findings</h2>
+        <CredentialSection analysis={analysis} idPrefix={idPrefix} />
       </section>
 
-      <section aria-labelledby="metadata-heading" className="panel">
-        <h2 id="metadata-heading">Metadata clues</h2>
+      <section aria-labelledby={tid('metadata-heading')} className="panel">
+        <h2 id={tid('metadata-heading')}>Metadata clues</h2>
         <p className="note">
           Metadata is unverified. It is shown only from a bounded allowlist and is never treated as
           cryptographic provenance.
         </p>
-        <MetadataSection analysis={analysis} />
+        <MetadataSection analysis={analysis} idPrefix={idPrefix} />
       </section>
 
-      <section aria-labelledby="explanation-heading" className="panel">
-        <h2 id="explanation-heading">Evidence explanation</h2>
-        <p data-testid="explanation">{analysis.explanation}</p>
+      <section aria-labelledby={tid('explanation-heading')} className="panel">
+        <h2 id={tid('explanation-heading')}>Evidence explanation</h2>
+        <p data-testid={tid('explanation')}>{analysis.explanation}</p>
         <p className="note">
           Deterministic template generated from the typed results above. No model was called, and no
           finding was added.
         </p>
       </section>
 
-      <section aria-labelledby="checks-heading" className="panel">
-        <h2 id="checks-heading">Checks and evidence</h2>
+      <section aria-labelledby={tid('checks-heading')} className="panel">
+        <h2 id={tid('checks-heading')}>Checks and evidence</h2>
         <p className="note">
           Every displayed finding belongs to one of these checks and is backed by the structured
           evidence items listed with it.
         </p>
         <ol className="check-list">
           {analysis.checks.map((check) => (
-            <CheckRow key={check.checkId} check={check} />
+            <CheckRow key={check.checkId} check={check} idPrefix={idPrefix} />
           ))}
         </ol>
       </section>
 
-      <section aria-labelledby="limitations-heading" className="panel">
-        <h2 id="limitations-heading">Limitations</h2>
-        <ul data-testid="limitations">
+      <section aria-labelledby={tid('limitations-heading')} className="panel">
+        <h2 id={tid('limitations-heading')}>Limitations</h2>
+        <ul data-testid={tid('limitations')}>
           {limitations.map((limitation) => (
             <li key={limitation}>{limitation}</li>
           ))}
@@ -508,35 +548,86 @@ export function EvidenceLedger({
           </li>
         </ul>
       </section>
+    </div>
+  );
+}
 
-      <section aria-labelledby="actions-heading" className="panel">
-        <h2 id="actions-heading">Actions</h2>
-        <p className="note">
-          The JSON report keeps check states, outcomes, evidence references, coverage gaps, and
-          limitations. It excludes image bytes and precise GPS coordinates, and it is not digitally
-          signed.
+export function ReportActions({
+  downloadError,
+  onDownload,
+  onClear,
+  onInspectAnother,
+  compare,
+}: ReportActionsProps) {
+  return (
+    <section aria-labelledby="actions-heading" className="panel">
+      <h2 id="actions-heading">Actions</h2>
+      <p className="note">
+        The JSON report keeps check states, outcomes, evidence references, coverage gaps, and
+        limitations. It excludes image bytes and precise GPS coordinates, and it is not digitally
+        signed.
+        {compare
+          ? ' A two-file report also records the Provenance Delta block and excludes image bytes from it.'
+          : ''}
+      </p>
+      <div className="actions">
+        <button type="button" onClick={onDownload} data-testid="download-report">
+          Download JSON report
+        </button>
+        <button type="button" onClick={onInspectAnother} data-testid="inspect-another">
+          {compare ? 'Start a new comparison' : 'Inspect another file'}
+        </button>
+        <button type="button" onClick={onClear} data-testid="clear-session">
+          Clear session
+        </button>
+      </div>
+      {downloadError === null ? null : (
+        <p className="panel-error-inline" role="alert" data-testid="download-error">
+          {downloadError}
         </p>
-        <div className="actions">
-          <button type="button" onClick={onDownload} data-testid="download-report">
-            Download JSON report
-          </button>
-          <button type="button" onClick={onInspectAnother} data-testid="inspect-another">
-            Inspect another file
-          </button>
-          <button type="button" onClick={onClear} data-testid="clear-session">
-            Clear session
-          </button>
-        </div>
-        {downloadError === null ? null : (
-          <p className="panel-error-inline" role="alert" data-testid="download-error">
-            {downloadError}
-          </p>
-        )}
-        <p className="note">
-          Clearing the session discards the analysis and releases the credential-check runtime. No
-          media history is stored, and refreshing the page loses the result by design.
+      )}
+      <p className="note">
+        Clearing the session discards the analysis and releases the credential-check runtime. No
+        media history is stored, and refreshing the page loses the result by design.
+      </p>
+    </section>
+  );
+}
+
+export function EvidenceLedger({
+  analysis,
+  notice,
+  downloadError,
+  onDownload,
+  onClear,
+  onInspectAnother,
+}: LedgerProps) {
+  return (
+    <div data-testid="ledger">
+      <header className="hero">
+        <p className="eyebrow">Evidence Ledger</p>
+        <h1>{analysis.file.displayName}</h1>
+        <p className="lede" data-testid="file-facts">
+          {formatByteSize(analysis.file.byteSize)} · {analysis.file.detectedMimeType} ·{' '}
+          {formatDimensions(analysis.file.width, analysis.file.height)}
         </p>
-      </section>
+      </header>
+
+      {notice === undefined ? null : (
+        <p className="notice" role="status" data-testid="session-notice">
+          {notice}
+        </p>
+      )}
+
+      <FileEvidenceSections analysis={analysis} idPrefix="" />
+
+      <ReportActions
+        downloadError={downloadError}
+        onDownload={onDownload}
+        onClear={onClear}
+        onInspectAnother={onInspectAnother}
+        compare={false}
+      />
     </div>
   );
 }

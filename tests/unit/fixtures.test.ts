@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { sha256Hex } from '@/lib/fingerprint/sha256';
 import { buildExifJpeg, buildPlainJpeg } from './helpers/exif-jpeg';
+import { decodePngPixels } from './helpers/png-pixels';
 
 /**
  * The manifest is repository-owned data, not hostile input. The cast is kept
@@ -63,7 +64,7 @@ function fixture(id: string): FixtureRecord {
 
 describe('fixture provenance manifest', () => {
   it('records each fixture once with a valid hash and byte length', () => {
-    expect(manifest.schemaVersion).toBe('1.2');
+    expect(manifest.schemaVersion).toBe('1.3');
     expect(manifest.fixtures.length).toBeGreaterThan(0);
     expect(new Set(manifest.fixtures.map((entry) => entry.id)).size).toBe(manifest.fixtures.length);
     expect(new Set(manifest.referenceOutputs.map((entry) => entry.id)).size).toBe(
@@ -157,6 +158,23 @@ describe('fixture provenance manifest', () => {
         'originlens-embedded-only-no-trust-anchors-v1',
       );
     }
+  });
+
+  it('keeps the plain and filtered PNG encodings byte-different but pixel-identical', () => {
+    const plain = fixture('c2pa-no-manifest-png');
+    const filtered = fixture('c2pa-no-manifest-png-filtered-encoding');
+
+    expect(plain.sha256).not.toBe(filtered.sha256);
+    expect(plain.byteLength).toBe(filtered.byteLength);
+
+    const plainPixels = decodePngPixels(repositoryFile(plain.file as string));
+    const filteredPixels = decodePngPixels(repositoryFile(filtered.file as string));
+
+    expect(plainPixels.width).toBe(3);
+    expect(plainPixels.height).toBe(2);
+    expect(filteredPixels.width).toBe(plainPixels.width);
+    expect(filteredPixels.height).toBe(plainPixels.height);
+    expect(filteredPixels.pixels).toEqual(plainPixels.pixels);
   });
 
   it('still lists the credential fixtures that remain unverified', () => {

@@ -12,12 +12,24 @@ import { sanitizeUntrustedText } from '@/lib/security/text';
 
 export const EXIFREADER_VERSION = '4.52.0';
 
-export type MetadataFieldKey =
-  | 'captureTime'
-  | 'software'
-  | 'orientation'
-  | 'cameraMake'
-  | 'cameraModel';
+export const METADATA_FIELD_KEYS = [
+  'captureTime',
+  'software',
+  'orientation',
+  'cameraMake',
+  'cameraModel',
+] as const;
+
+export type MetadataFieldKey = (typeof METADATA_FIELD_KEYS)[number];
+
+/**
+ * A typed orientation summary for the comparison path. `not_upright` means a
+ * rotation/flip tag outside the identity value was recorded; `invalid` means a
+ * tag existed but could not be interpreted; `unknown` means the parser failed.
+ * The preview metric refuses to run unless both files are `absent` or
+ * `upright`, because this build never applies an orientation transform itself.
+ */
+export type OrientationStatus = 'absent' | 'upright' | 'not_upright' | 'invalid' | 'unknown';
 
 export type MetadataField = Readonly<{
   key: MetadataFieldKey;
@@ -34,6 +46,7 @@ export type MetadataInspection =
       status: 'extracted';
       fields: readonly MetadataField[];
       gpsPresence: GpsPresence;
+      orientationStatus: Exclude<OrientationStatus, 'unknown'>;
       parser: Readonly<{ name: 'exifreader'; version: string }>;
       warnings: readonly string[];
       limitations: readonly string[];
@@ -42,6 +55,7 @@ export type MetadataInspection =
       status: 'not_present';
       fields: readonly [];
       gpsPresence: 'not_present';
+      orientationStatus: 'absent';
       parser: Readonly<{ name: 'exifreader'; version: string }>;
       warnings: readonly string[];
       limitations: readonly string[];
@@ -50,6 +64,7 @@ export type MetadataInspection =
       status: 'failed';
       fields: readonly [];
       gpsPresence: 'unknown';
+      orientationStatus: 'unknown';
       parser: Readonly<{ name: 'exifreader'; version: string }>;
       warnings: readonly string[];
       limitations: readonly string[];
@@ -175,11 +190,12 @@ function extractTextFields(tags: Record<string, unknown>): MetadataField[] {
 function extractOrientation(tags: Record<string, unknown>): {
   field: MetadataField | null;
   warning: string | null;
+  status: Exclude<OrientationStatus, 'unknown'>;
 } {
   const tag = tags['Orientation'];
 
   if (!isRecord(tag)) {
-    return { field: null, warning: null };
+    return { field: null, warning: null, status: 'absent' };
   }
 
   const value = tag['value'];
@@ -189,6 +205,7 @@ function extractOrientation(tags: Record<string, unknown>): {
       field: null,
       warning:
         'An orientation value was present but outside the documented 1-8 range. It was not displayed.',
+      status: 'invalid',
     };
   }
 
@@ -201,6 +218,7 @@ function extractOrientation(tags: Record<string, unknown>): {
       authority: 'unverified_metadata',
     },
     warning: null,
+    status: value === 1 ? 'upright' : 'not_upright',
   };
 }
 
@@ -224,6 +242,7 @@ export function inspectMetadata(bytes: ArrayBuffer): MetadataInspection {
         status: 'not_present',
         fields: [],
         gpsPresence: 'not_present',
+        orientationStatus: 'absent',
         parser: METADATA_PARSER,
         warnings: [
           'No embedded metadata was found. This does not mean the file has no provenance or was never edited.',
@@ -236,6 +255,7 @@ export function inspectMetadata(bytes: ArrayBuffer): MetadataInspection {
       status: 'failed',
       fields: [],
       gpsPresence: 'unknown',
+      orientationStatus: 'unknown',
       parser: METADATA_PARSER,
       warnings: ['Embedded metadata could not be parsed. Independent checks are unaffected.'],
       limitations: [...METADATA_LIMITATIONS],
@@ -266,6 +286,7 @@ export function inspectMetadata(bytes: ArrayBuffer): MetadataInspection {
       status: 'extracted',
       fields: [],
       gpsPresence: detectGpsPresence(tags),
+      orientationStatus: orientation.status,
       parser: METADATA_PARSER,
       warnings,
       limitations: [...METADATA_LIMITATIONS],
@@ -276,6 +297,7 @@ export function inspectMetadata(bytes: ArrayBuffer): MetadataInspection {
     status: 'extracted',
     fields,
     gpsPresence: detectGpsPresence(tags),
+    orientationStatus: orientation.status,
     parser: METADATA_PARSER,
     warnings,
     limitations: [...METADATA_LIMITATIONS],

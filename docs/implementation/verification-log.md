@@ -115,11 +115,49 @@ Final rerun immediately before commit (2026-10-27): `npm test` 102/102 PASS, `np
 
 **Status:** Phase 5 gate **PASS** for the single-file workflow, Evidence Ledger, report export, and recovery paths (PRD §5.1–§5.4, §5.6 primary flow). Phase 6 (Provenance Delta) is **IN PROGRESS**. Phase 1 and P1-001 remain **BLOCKED**; no Meta API call was made, no model integration exists, and no model use is claimed.
 
+## 2026-10-27 — Phase 6 Provenance Delta and two-file report
+
+**Environment:** Windows PowerShell; working dir `D:\Projects\OriginLens`; Node v24.22.1; npm 12.2.1; Next.js 16.4.3; `@contentauth/c2pa-web@0.15.4`; ExifReader 4.52.0; Chromium 1248 via Playwright 1.64.1.
+
+| # | Command / action | Result | Evidence |
+|---|---|---|---|
+| 60 | `npm run typecheck` | PASS — `tsc --noEmit`, no diagnostics after the comparison modules, schemas, UI, and E2E additions | exit 0 |
+| 61 | `npm run lint` | PASS — `eslint .`, 0 errors and 0 warnings | exit 0 |
+| 62 | `npm test` | PASS — 15 files, 259 tests (adds `compare-preview` 16, `compare-build` 10, grows `results` with the comparison contract block, and adds the fixture pixel-equality case); Vitest 5.0.5 | Vitest output |
+| 63 | `npm run test:e2e` | PASS — 26/26 Chromium specs against a production build on port 3100: 6 C2PA smoke + 9 comparison + 11 product-flow | Playwright output |
+| 64 | `npm run build` | PASS — Next.js 16.4.3 (Turbopack) production build; no server route added, so image bytes still never leave the browser | build output |
+| 65 | `npm run audit` (`npm audit --audit-level=high`) | PASS — `found 0 vulnerabilities` | command output |
+| 66 | V17 duplicate exact file | PASS — `plain-3x2.png` supplied twice: both fingerprints render the same SHA-256 but keep distinct file IDs, `delta-outcome` reads "Every compared property is equal", and the preview is skipped as `identical_fingerprint` with an explicit "not a difference of zero" note. No pixel difference is claimed | `tests/e2e/compare.spec.ts` |
+| 67 | V18 same image, different encoding | PASS — `plain-3x2.png` (SHA-256 `55da44a1…f89103`) vs `plain-3x2-filtered.png` (`7e0ee319…6d200`): fingerprint `Different`, byte size `Equal`, dimensions `Equal`, preview measured at `0 of 255` MAE and `0 of 6 (0.00%)` changed pixels, outcome "At least one compared property differs". The two figures are never merged | `tests/e2e/compare.spec.ts`; ADR-007 extension |
+| 68 | V19 different aspect ratios | PASS — `plain-1x1.jpg` vs `plain-3x2.png` skips the preview with `aspect_ratio_mismatch`, shows no `delta-preview-measured` element, and reports the dimensions row as `Different` | `tests/e2e/compare.spec.ts` |
+| 69 | V48 same filename, different files | PASS — two different JPEGs both named `capture.jpg` (buffer payloads) render the same display name while file IDs differ and the recorded SHA-256 values stay separate | `tests/e2e/compare.spec.ts` |
+| 70 | V49 user original/edited labels | PASS — labels render as "the user's own assertion", the delta row reads "Not compared by the app", the outcome is unchanged, and the downloaded report records `userLabel: "original"` / `"edited"` per file | `tests/e2e/compare.spec.ts` |
+| 71 | Two-file report contract | PASS — downloaded report is `schemaVersion: "2.0"` with two files, no `userLabel` when unset, exactly one `comparison` check carrying no `fileId`, `comparison.fileIds` equal to report file order, and a validated `preview` block. `summaryCodes` is the intersection of both files. The bytes contain no `data:image` and no latitude/longitude | `tests/e2e/compare.spec.ts`; ADR-008 |
+| 72 | V26 cancel during work | PASS — the test holds `**/c2pa_bg.wasm` open, cancels while File A's credential check is `Running`, and asserts the File A ledger survives with `3 of 4 checks completed` / `1 cancelled`, File B never runs, `compare-ledger` and `delta-check-comparison` do not exist, and the progress panel is removed | `tests/e2e/compare.spec.ts` |
+| 73 | File B failure preserves File A (FR-013) | PASS — a truncated File B produces `session-notice` naming File B and `PIPELINE_DECODE_FAILED`; File A's fingerprint, headline, and ledger remain, and its export is a valid single-file report with no `comparison` block | `tests/e2e/compare.spec.ts` |
+| 74 | Comparison screen at 360 px | PASS — the delta screen renders with no horizontal overflow at 360 px; the property and metadata tables stack with `data-column` labels carrying header context | `tests/e2e/compare.spec.ts` |
+| 75 | Preview metric determinism | PASS — `originlens-preview-rgb-mae/1` over decoder `browser-createimagebitmap-canvas-srgb/1`: target derived from the smaller source capped at 1.2 MP, channel threshold 16/255, MAE rounded to 6 decimals. Skips are `identical_fingerprint`, `aspect_ratio_mismatch`, `orientation_not_normalized`, `budget_exceeded`, `decode_failed`, `timeout`, `pixels_unavailable`; every skip carries a stable reason and none is rendered as zero | `tests/unit/compare-preview.test.ts` |
+| 76 | Comparison schema invariants | PASS — unit tests reject a two-file report without a `comparison` block, a single-file report with one, a `comparison` check that references a `fileId`, two comparison checks, a mismatched `comparison.fileIds` order, and an out-of-range file index | `tests/unit/results.test.ts`, `tests/unit/compare-build.test.ts` |
+| 77 | Fixture pixel equality (V18 basis) | PASS — the independent scanline decoder in `tests/unit/helpers/png-pixels.ts` proves `plain-3x2.png` and `plain-3x2-filtered.png` decode to identical RGB pixels despite different filter types and different SHA-256 values | `tests/unit/fixtures.test.ts` |
+| 78 | Secret scan (V43) re-run | PASS — `src/`, `tests/`, `docs/`, configs, and `.next` scanned for `NEXT_PUBLIC_`, credential-shaped assignments, and private keys: none | scan output |
+| 79 | V20 EXIF orientation | **PARTIAL** — `planPreview` skips with `orientation_not_normalized` for any orientation other than `absent`/`upright`, and the browser adapter always decodes with `imageOrientation: 'none'` onto opaque white. No committed decodable fixture with a non-upright orientation exists, so the product path is unverified | `tests/unit/compare-preview.test.ts` |
+| 80 | Content-Security-Policy | **NOT RUN** — still unconfigured; Phase 7/9 item. Not claimed | `next.config.ts` |
+| 81 | Invalid/mutated credential fixture (V04) | **NOT RUN** — no fixture acquired; listed in `pendingCategories` | fixture manifest |
+
+**Corrections made during this increment (recorded so they are not mistaken for passing first time):**
+
+1. `typecheck` failed in the new V26 spec: `releaseWasm` was assigned inside `page.route`'s callback and narrowed to `never` at the call site. Fixed by holding the resolver in an explicitly typed `{ release: (() => void) | null }` object that both the callback and the test body write through.
+2. The first two-file report assertion treated `report.disclaimers` as an array of objects, so `asRecords(...)` threw. Corrected to assert `Array.isArray` and count the string entries.
+3. `prefer-const` fired on the leaked `let releaseWasm` binding in the same spec; the typed holder removed the mutable binding rather than suppressing the rule.
+
+**Status:** Phase 6 gate **PASS** for the Provenance Delta, two-file report, and recovery paths (PRD §5.5, §7 Stage 6, §9.6). V20 is **PARTIAL** and V04 remains **NOT RUN**; both are recorded as open, not as passing. Phase 1 and P1-001 remain **BLOCKED**; no Meta API call was made, no model integration exists, and no model use is claimed.
+
 ## Pending verification (must be filled with actual outputs)
 
 - Dependency audit before submission (V42): clean on 2026-10-27; rerun on the final dependency tree.
 - Secret scans after any server route or API-key integration is added (V43).
 - Content-Security-Policy for the production build (Phase 7/9).
-- Provenance Delta E2E, product cancel control, and duplicate/alternate-encoding comparison cases (V17–V20, V26, V48, V49).
-- Invalid/mutated credential fixture (V04) and a second reference validator for the credential fixtures.
+- Invalid/mutated credential fixture (V04) and a decodable non-upright-orientation fixture (V20), or a recorded decision to accept both as limitations.
+- A second reference validator for the credential fixtures where practical.
+- Accessibility audit (automated axe pass and screen-reader review) for the single-file and comparison screens (Phase 7/9).
 - All V01–V50 rows with expected vs. actual, tool/version, environment, date.

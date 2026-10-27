@@ -1,13 +1,20 @@
 /**
- * Generates the deterministic PNG fixture used by the Phase 5 product flow and
- * by the V02 acceptance case ("valid image, no embedded credential").
+ * Generates the deterministic PNG fixtures used by the product flow and by the
+ * V02 ("valid image, no embedded credential") and V18 ("same image, different
+ * encoding") acceptance cases.
  *
  * Determinism matters: the committed bytes are pinned by byte length and
  * SHA-256 in tests/fixtures/manifest.json, and the fixtures unit test fails if
  * either drifts. This encoder therefore writes an uncompressed ("stored")
  * deflate stream instead of calling zlib, so the output does not depend on the
- * local zlib build. No ancillary chunks are emitted, so the image carries no
+ * local zlib build. No ancillary chunks are emitted, so the images carry no
  * metadata and no C2PA manifest.
+ *
+ * Two encodings of the same 3x2 pixel grid are emitted:
+ * - plain-3x2.png uses PNG filter type 0 (None);
+ * - plain-3x2-filtered.png uses PNG filter type 1 (Sub).
+ * They decode to identical pixels but have different bytes, which is exactly
+ * what the preview metric must report separately from the fingerprint delta.
  *
  * Usage: node tests/fixtures/generate-plain-png.mjs
  */
@@ -19,6 +26,7 @@ import { fileURLToPath } from 'node:url';
 
 const WIDTH = 3;
 const HEIGHT = 2;
+const BYTES_PER_PIXEL = 3; // 8-bit truecolour RGB
 
 /** A fixed 3x2 RGB pattern. The colours are arbitrary and carry no meaning. */
 const ROWS = [
@@ -115,7 +123,33 @@ function storedZlib(raw) {
   return Buffer.concat(blocks);
 }
 
-function buildPng() {
+/**
+ * Applies PNG filter type 1 (Sub) to one scanline: every byte is stored as the
+ * difference from the byte `bpp` positions earlier in the same scanline, with
+ * zero assumed for the first pixel. A decoder reconstructs the exact original
+ * bytes, so the decoded pixels are unchanged.
+ */
+function subFilter(rowBytes) {
+  return rowBytes.map(
+    (value, index) =>
+      (value - (index >= BYTES_PER_PIXEL ? rowBytes[index - BYTES_PER_PIXEL] : 0) + 256) % 256,
+  );
+}
+
+function scanlines(filterType) {
+  const raw = [];
+
+  for (const row of ROWS) {
+    const rowBytes = row.flat();
+    const filtered = filterType === 1 ? subFilter(rowBytes) : rowBytes;
+
+    raw.push(filterType, ...filtered);
+  }
+
+  return Buffer.from(raw);
+}
+
+function buildPng(filterType) {
   const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   const ihdr = Buffer.alloc(13);
 
@@ -124,36 +158,30 @@ function buildPng() {
   ihdr.writeUInt8(8, 8); // bit depth
   ihdr.writeUInt8(2, 9); // colour type: truecolour RGB
   ihdr.writeUInt8(0, 10); // compression
-  ihdr.writeUInt8(0, 11); // filter
+  ihdr.writeUInt8(0, 11); // filter method: adaptive, per-scanline filter byte
   ihdr.writeUInt8(0, 12); // interlace
-
-  const raw = [];
-
-  for (const row of ROWS) {
-    raw.push(0); // filter type: none
-
-    for (const [red, green, blue] of row) {
-      raw.push(red, green, blue);
-    }
-  }
 
   return Buffer.concat([
     signature,
     chunk('IHDR', ihdr),
-    chunk('IDAT', storedZlib(Buffer.from(raw))),
+    chunk('IDAT', storedZlib(scanlines(filterType))),
     chunk('IEND', Buffer.alloc(0)),
   ]);
 }
 
-const png = buildPng();
-const target = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  'c2pa',
-  'plain-3x2.png',
-);
+const directory = path.join(path.dirname(fileURLToPath(import.meta.url)), 'c2pa');
+const targets = [
+  ['plain-3x2.png', 0],
+  ['plain-3x2-filtered.png', 1],
+];
 
-writeFileSync(target, png);
+for (const [name, filterType] of targets) {
+  const png = buildPng(filterType);
+  const target = path.join(directory, name);
 
-process.stdout.write(
-  `${target}\nbyteLength: ${png.length}\nsha256: ${createHash('sha256').update(png).digest('hex')}\n`,
-);
+  writeFileSync(target, png);
+
+  process.stdout.write(
+    `${target}\nbyteLength: ${png.length}\nsha256: ${createHash('sha256').update(png).digest('hex')}\n`,
+  );
+}

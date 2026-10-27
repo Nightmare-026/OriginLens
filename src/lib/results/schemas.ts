@@ -1,10 +1,18 @@
 import { z } from 'zod';
+import {
+  PREVIEW_CHANNEL_THRESHOLD,
+  PREVIEW_DECODER_ID,
+  PREVIEW_METHOD_ID,
+  PREVIEW_SKIP_REASONS,
+} from '@/lib/compare/constants';
 import { isSha256Hex } from '@/lib/fingerprint/sha256';
+import { METADATA_FIELD_KEYS } from '@/lib/metadata/inspect';
 import { ID_PATTERNS } from '@/lib/results/ids';
 import {
   MAX_FILE_BYTES,
   MAX_FILES_PER_SESSION,
   MAX_IMAGE_PIXELS,
+  MAX_PREVIEW_PIXELS,
 } from '@/lib/security/limits';
 
 /**
@@ -399,6 +407,184 @@ export function collectDanglingC2paEvidenceRefs(
   return [...dangling];
 }
 
+/**
+ * Provenance Delta contracts (PRD 5.5, 7 Stage 6).
+ *
+ * The delta is additive to the PRD 9.6 report contract: `files`, `checks`, and
+ * `evidence` remain the source of truth, and the `comparison` block records
+ * only the derived, side-by-side view. It never states which file is older,
+ * original, edited, or more trustworthy, and a skipped measurement is a
+ * separate state from a measured zero difference.
+ */
+
+export const COMPARISON_DIFFERENCE_STATES = [
+  'equal',
+  'different',
+  'absent_from_both',
+  'present_only_in_first',
+  'present_only_in_second',
+  'not_evaluated',
+] as const;
+
+export type ComparisonDifferenceState = (typeof COMPARISON_DIFFERENCE_STATES)[number];
+export const comparisonDifferenceSchema = z.enum(COMPARISON_DIFFERENCE_STATES);
+
+export const metadataComparisonFieldSchema = z
+  .object({
+    field: z.enum(METADATA_FIELD_KEYS),
+    status: comparisonDifferenceSchema,
+    firstValue: boundedText(200).optional(),
+    secondValue: boundedText(200).optional(),
+  })
+  .strict()
+  .superRefine((entry, ctx) => {
+    const requireBoth = entry.status === 'equal' || entry.status === 'different';
+    const requireFirst = entry.status === 'present_only_in_first';
+    const requireSecond = entry.status === 'present_only_in_second';
+    const requireNeither =
+      entry.status === 'not_evaluated' || entry.status === 'absent_from_both';
+
+    if (requireBoth && (entry.firstValue === undefined || entry.secondValue === undefined)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'An equal or different metadata field needs both display values.',
+        path: ['status'],
+      });
+    }
+
+    if (requireFirst && (entry.firstValue === undefined || entry.secondValue !== undefined)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'A field present only in the first file needs exactly the first value.',
+        path: ['status'],
+      });
+    }
+
+    if (requireSecond && (entry.secondValue === undefined || entry.firstValue !== undefined)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'A field present only in the second file needs exactly the second value.',
+        path: ['status'],
+      });
+    }
+
+    if (requireNeither && (entry.firstValue !== undefined || entry.secondValue !== undefined)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'A not-evaluated metadata field cannot carry a display value.',
+        path: ['status'],
+      });
+    }
+
+    if (
+      entry.status === 'equal' &&
+      entry.firstValue !== undefined &&
+      entry.firstValue !== entry.secondValue
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'An equal metadata field must carry the same display value on both sides.',
+        path: ['status'],
+      });
+    }
+  });
+
+export const PREVIEW_MEASUREMENT_STATUSES = ['measured', 'skipped'] as const;
+
+const measuredPreviewSchema = z
+  .object({
+    status: z.literal('measured'),
+    methodId: z.literal(PREVIEW_METHOD_ID),
+    decoderId: z.literal(PREVIEW_DECODER_ID),
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
+    pixelCount: z.number().int().positive().max(MAX_PREVIEW_PIXELS),
+    meanAbsoluteChannelError: z.number().finite().min(0).max(255),
+    channelThreshold: z.literal(PREVIEW_CHANNEL_THRESHOLD),
+    changedPixelCount: z.number().int().min(0),
+    changedPixelShare: z.number().finite().min(0).max(1),
+  })
+  .strict()
+  .superRefine((preview, ctx) => {
+    if (preview.width * preview.height !== preview.pixelCount) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'The preview pixel count must equal width times height.',
+        path: ['pixelCount'],
+      });
+    }
+
+    if (preview.width * preview.height > MAX_PREVIEW_PIXELS) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'The preview exceeds the 1.2 megapixel budget.',
+        path: ['width'],
+      });
+    }
+
+    if (preview.changedPixelCount > preview.pixelCount) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'The changed pixel count cannot exceed the pixel count.',
+        path: ['changedPixelCount'],
+      });
+    }
+
+    const expectedShare = preview.changedPixelCount / preview.pixelCount;
+
+    if (Math.abs(expectedShare - preview.changedPixelShare) > 1e-9) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'The changed pixel share must equal changed pixels divided by pixel count.',
+        path: ['changedPixelShare'],
+      });
+    }
+  });
+
+const skippedPreviewSchema = z
+  .object({
+    status: z.literal('skipped'),
+    reason: z.enum(PREVIEW_SKIP_REASONS),
+  })
+  .strict();
+
+export const previewComparisonSchema = z.discriminatedUnion('status', [
+  measuredPreviewSchema,
+  skippedPreviewSchema,
+]);
+
+export const comparisonSchema = z
+  .object({
+    fileIds: z.tuple([fileIdSchema, fileIdSchema]),
+    checkId: checkIdSchema,
+    metadataFields: z.array(metadataComparisonFieldSchema).max(METADATA_FIELD_KEYS.length),
+    preview: previewComparisonSchema,
+  })
+  .strict()
+  .superRefine((comparison, ctx) => {
+    if (comparison.fileIds[0] === comparison.fileIds[1]) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'A comparison needs two distinct files.',
+        path: ['fileIds'],
+      });
+    }
+
+    const fields = new Set<string>();
+
+    for (const [index, entry] of comparison.metadataFields.entries()) {
+      if (fields.has(entry.field)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Each metadata field may appear once in a comparison.',
+          path: ['metadataFields', index, 'field'],
+        });
+      }
+
+      fields.add(entry.field);
+    }
+  });
+
 export const reportSchema = z
   .object({
     schemaVersion: z.literal('2.0'),
@@ -411,6 +597,7 @@ export const reportSchema = z
     summaryCodes: z.array(summaryCodeSchema).max(SUMMARY_CODES.length),
     trustPolicyId: boundedText(80),
     disclaimers: z.array(boundedText(300)).max(10),
+    comparison: comparisonSchema.optional(),
     exportOptions: z
       .object({
         includedOriginalImage: z.literal(false),
@@ -518,6 +705,83 @@ export const reportSchema = z
         path: ['summaryCodes'],
       });
     }
+
+    const comparisonChecks = report.checks.filter((check) => check.kind === 'comparison');
+
+    if (report.files.length === 2) {
+      if (report.comparison === undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'A two-file report must record a comparison block.',
+          path: ['comparison'],
+        });
+      } else {
+        const [firstFile, secondFile] = report.files;
+
+        if (
+          report.comparison.fileIds[0] !== firstFile?.fileId ||
+          report.comparison.fileIds[1] !== secondFile?.fileId
+        ) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Comparison file identifiers must match the report file order.',
+            path: ['comparison', 'fileIds'],
+          });
+        }
+
+        const comparisonCheck = report.checks.find(
+          (check) => check.checkId === report.comparison?.checkId,
+        );
+
+        if (comparisonCheck === undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'The comparison block must reference a check in the report.',
+            path: ['comparison', 'checkId'],
+          });
+        } else {
+          if (comparisonCheck.kind !== 'comparison') {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'The comparison block must reference a comparison check.',
+              path: ['comparison', 'checkId'],
+            });
+          }
+
+          if (comparisonCheck.fileId !== undefined) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'A comparison check describes both files and must not name one file.',
+              path: ['comparison', 'checkId'],
+            });
+          }
+        }
+
+        if (comparisonChecks.length !== 1) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'A two-file report must contain exactly one comparison check.',
+            path: ['checks'],
+          });
+        }
+      }
+    } else {
+      if (report.comparison !== undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'A single-file report must not contain a comparison block.',
+          path: ['comparison'],
+        });
+      }
+
+      if (comparisonChecks.length > 0) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'A single-file report must not contain a comparison check.',
+          path: ['checks'],
+        });
+      }
+    }
   });
 
 function sameEvidence(left: EvidenceItem, right: EvidenceItem): boolean {
@@ -544,4 +808,7 @@ export type ValidationState = z.infer<typeof validationStateSchema>;
 export type SignerTrust = z.infer<typeof signerTrustSchema>;
 export type RevocationStatus = z.infer<typeof revocationStatusSchema>;
 export type SummaryCode = z.infer<typeof summaryCodeSchema>;
+export type MetadataComparisonField = z.infer<typeof metadataComparisonFieldSchema>;
+export type PreviewComparison = z.infer<typeof previewComparisonSchema>;
+export type Comparison = z.infer<typeof comparisonSchema>;
 export type OriginLensReport = z.infer<typeof reportSchema>;

@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import type { DisplayError } from '@/lib/pipeline/types';
 import { MAX_FILE_BYTES, MAX_FILES_PER_SESSION, MAX_IMAGE_PIXELS } from '@/lib/security/limits';
 
@@ -5,13 +8,13 @@ import { MAX_FILE_BYTES, MAX_FILES_PER_SESSION, MAX_IMAGE_PIXELS } from '@/lib/s
  * Screen A - Start (PRD 5.1), plus the recoverable Screen B error state.
  *
  * The screen states what the tool checks, what it does not check, and what a
- * missing credential means, before any file is selected. The comparison action
- * is visible but disabled: it is not implemented in this build, and an honest
- * disabled action is preferable to a partial comparison.
+ * missing credential means, before any file is selected. The comparison form
+ * collects two independent files and never asks which one is the original.
  */
 
 export type StartScreenProps = Readonly<{
   onFile: (file: File) => void;
+  onCompare: (first: File, second: File) => void;
   disabled?: boolean;
   notice?: string;
   error?: DisplayError | null;
@@ -20,7 +23,17 @@ export type StartScreenProps = Readonly<{
 const MIB = MAX_FILE_BYTES / (1024 * 1024);
 const MEGAPIXELS = MAX_IMAGE_PIXELS / 1_000_000;
 
-export function StartScreen({ onFile, disabled = false, notice, error }: StartScreenProps) {
+export function StartScreen({
+  onFile,
+  onCompare,
+  disabled = false,
+  notice,
+  error,
+}: StartScreenProps) {
+  const [first, setFirst] = useState<File | null>(null);
+  const [second, setSecond] = useState<File | null>(null);
+  const [comparisonError, setComparisonError] = useState<string | null>(null);
+
   return (
     <div data-testid="start-screen">
       <header className="hero">
@@ -85,14 +98,62 @@ export function StartScreen({ onFile, disabled = false, notice, error }: StartSc
       <section aria-labelledby="compare-heading" className="panel">
         <h2 id="compare-heading">Compare two images</h2>
         <p>
-          A Provenance Delta places two files side by side without presuming which one is original.
+          A Provenance Delta checks each file independently, then places the recorded properties side
+          by side. It does not presume which file is original, older, or edited.
         </p>
-        <button type="button" disabled data-testid="compare-disabled">
-          Compare two images
+        <p className="field">
+          <label htmlFor="compare-file-a">File A (JPEG or PNG)</label>
+          <input
+            id="compare-file-a"
+            data-testid="compare-file-a"
+            type="file"
+            accept="image/jpeg,image/png"
+            disabled={disabled}
+            onChange={(event) => {
+              setFirst(event.currentTarget.files?.[0] ?? null);
+              setComparisonError(null);
+            }}
+          />
+        </p>
+        <p className="field">
+          <label htmlFor="compare-file-b">File B (JPEG or PNG)</label>
+          <input
+            id="compare-file-b"
+            data-testid="compare-file-b"
+            type="file"
+            accept="image/jpeg,image/png"
+            disabled={disabled}
+            onChange={(event) => {
+              setSecond(event.currentTarget.files?.[0] ?? null);
+              setComparisonError(null);
+            }}
+          />
+        </p>
+        <button
+          type="button"
+          data-testid="compare-start"
+          disabled={disabled || first === null || second === null}
+          onClick={() => {
+            if (first === null || second === null) {
+              setComparisonError('Select both files before starting the comparison.');
+              return;
+            }
+
+            setComparisonError(null);
+            onCompare(first, second);
+          }}
+        >
+          Compare these two files
         </button>
+        {comparisonError === null ? null : (
+          <p className="panel-error-inline" role="alert" data-testid="compare-form-error">
+            {comparisonError}
+          </p>
+        )}
         <p className="note">
-          Two-file comparison is not enabled in this build. The action stays disabled rather than
-          showing an incomplete comparison.
+          Each file is analysed separately with the same checks as a single inspection. A failed
+          check on one file does not erase the other file&apos;s results. Both files stay in this
+          browser.
         </p>
       </section>
 

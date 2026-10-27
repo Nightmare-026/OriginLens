@@ -16,6 +16,7 @@ import {
   checkResultSchema,
   commonOutcomeSchema,
   collectDanglingC2paEvidenceRefs,
+  comparisonSchema,
   evidenceAuthoritySchema,
   evidenceItemSchema,
   evidenceValueTypeSchema,
@@ -48,8 +49,10 @@ const FILE_C_ID = 'file_cccccccccccc';
 const CHECK_INTAKE_ID = 'chk_iiiiiiiiiiii';
 const CHECK_FINGERPRINT_ID = 'chk_ffffffffffff';
 const CHECK_C2PA_ID = 'chk_cccccccccccc';
+const CHECK_COMPARISON_ID = 'chk_qqqqqqqqqqqq';
 const EV_HASH_A_ID = 'ev_hhhhhhhhhhhh';
 const EV_C2PA_PRESENCE_ID = 'ev_pppppppppppp';
+const EV_FINGERPRINTS_EQUAL_ID = 'ev_feeeeeeeeeee';
 const EV_ACTION_ID = 'ev_actaaaaaaaaa';
 const EV_INGREDIENT_ID = 'ev_ingaaaaaaaaa';
 const REPORT_ID = 'rpt_rrrrrrrrrrrr';
@@ -107,6 +110,18 @@ function makeC2paPresenceEvidence(): EvidenceItem {
   };
 }
 
+function makeComparisonEvidence(): EvidenceItem {
+  return {
+    evidenceId: EV_FINGERPRINTS_EQUAL_ID,
+    sourceCheckId: CHECK_COMPARISON_ID,
+    key: 'comparison.fingerprints_equal',
+    value: false,
+    valueType: 'boolean',
+    authority: 'file_measurement',
+    interpretationCode: 'exact_byte_versions_compared',
+  };
+}
+
 function makeIntakeCheck(): CheckResult {
   return {
     checkId: CHECK_INTAKE_ID,
@@ -160,6 +175,24 @@ function makeC2paCheck(): CheckResult {
   };
 }
 
+function makeComparisonCheck(): CheckResult {
+  return {
+    checkId: CHECK_COMPARISON_ID,
+    kind: 'comparison',
+    executionState: 'completed',
+    outcome: 'different',
+    checkerName: 'originlens-provenance-delta',
+    checkerVersion: '1',
+    startedAtUtc: STARTED_AT,
+    finishedAtUtc: FINISHED_AT,
+    evidence: [makeComparisonEvidence()],
+    warnings: [],
+    limitations: [
+      'The delta compares recorded checks side by side. It does not establish which file is the original.',
+    ],
+  };
+}
+
 function makeReport(): OriginLensReport {
   return {
     schemaVersion: '2.0',
@@ -167,13 +200,38 @@ function makeReport(): OriginLensReport {
     reportId: REPORT_ID,
     createdAtUtc: '2026-10-27T12:00:05.000Z',
     files: [makeFileA(), makeFileB()],
-    checks: [makeIntakeCheck(), makeFingerprintCheck(), makeC2paCheck()],
-    evidence: [makeHashEvidence(), makeC2paPresenceEvidence()],
+    checks: [makeIntakeCheck(), makeFingerprintCheck(), makeC2paCheck(), makeComparisonCheck()],
+    evidence: [makeHashEvidence(), makeC2paPresenceEvidence(), makeComparisonEvidence()],
     summaryCodes: ['no_supported_embedded_credentials'],
     trustPolicyId: 'originlens-default-embedded-v1',
     disclaimers: [
       'A SHA-256 fingerprint identifies this exact byte version, not its origin or truth.',
     ],
+    comparison: {
+      fileIds: [FILE_A_ID, FILE_B_ID],
+      checkId: CHECK_COMPARISON_ID,
+      metadataFields: [
+        {
+          field: 'software',
+          status: 'different',
+          firstValue: 'Editor A',
+          secondValue: 'Editor B',
+        },
+        { field: 'orientation', status: 'absent_from_both' },
+      ],
+      preview: {
+        status: 'measured',
+        methodId: 'originlens-preview-rgb-mae/1',
+        decoderId: 'browser-createimagebitmap-canvas-srgb/1',
+        width: 30,
+        height: 20,
+        pixelCount: 600,
+        meanAbsoluteChannelError: 12.5,
+        channelThreshold: 16,
+        changedPixelCount: 200,
+        changedPixelShare: 200 / 600,
+      },
+    },
     exportOptions: {
       includedOriginalImage: false,
       includedPreciseGps: false,
@@ -430,8 +488,8 @@ describe('report contract', () => {
 
     expect(report.schemaVersion).toBe('2.0');
     expect(report.files).toHaveLength(2);
-    expect(report.checks).toHaveLength(3);
-    expect(report.evidence).toHaveLength(2);
+    expect(report.checks).toHaveLength(4);
+    expect(report.evidence).toHaveLength(3);
   });
 
   it('survives a JSON export/import round trip', () => {
@@ -456,7 +514,7 @@ describe('report contract', () => {
       ...report,
       evidence: [
         { ...evidenceWithId(report, EV_HASH_A_ID), extra: true },
-        evidenceWithId(report, EV_C2PA_PRESENCE_ID),
+        ...report.evidence.slice(1),
       ],
     };
 
@@ -636,6 +694,193 @@ describe('report contract', () => {
     );
   });
 });
+
+describe('comparison contract', () => {
+  function makeComparison(): NonNullable<OriginLensReport['comparison']> {
+    const report = makeReport();
+
+    if (report.comparison === undefined) {
+      throw new Error('Fixture is missing the comparison block.');
+    }
+
+    return structuredClone(report.comparison);
+  }
+
+  function singleFileReport(): OriginLensReport {
+    const report = makeReport();
+    const { comparison, ...rest } = report;
+
+    void comparison;
+
+    return {
+      ...rest,
+      files: [makeFileA()],
+      checks: [makeIntakeCheck(), makeFingerprintCheck(), makeC2paCheck()],
+      evidence: report.evidence.filter((item) => item.sourceCheckId !== CHECK_COMPARISON_ID),
+    };
+  }
+
+  it('accepts the two-file comparison block', () => {
+    expect(comparisonSchema.safeParse(makeComparison()).success).toBe(true);
+  });
+
+  it('requires two distinct files in the recorded order', () => {
+    const identical = makeComparison();
+
+    identical.fileIds = [FILE_A_ID, FILE_A_ID];
+
+    expect(comparisonSchema.safeParse(identical).success).toBe(false);
+
+    const reversed = makeComparison();
+
+    reversed.fileIds = [FILE_B_ID, FILE_A_ID];
+    expectInvalid({ ...makeReport(), comparison: reversed }, /fileIds/);
+  });
+
+  it('records each metadata field at most once', () => {
+    const comparison = makeComparison();
+
+    comparison.metadataFields = [
+      { field: 'software', status: 'absent_from_both' },
+      { field: 'software', status: 'absent_from_both' },
+    ];
+
+    expect(comparisonSchema.safeParse(comparison).success).toBe(false);
+  });
+
+  it('keeps the value set consistent with each metadata comparison status', () => {
+    const cases: readonly Record<string, unknown>[] = [
+      { field: 'software', status: 'equal', firstValue: 'A', secondValue: 'B' },
+      { field: 'software', status: 'equal', firstValue: 'A' },
+      { field: 'software', status: 'absent_from_both', firstValue: 'A' },
+      { field: 'software', status: 'present_only_in_first', firstValue: 'A', secondValue: 'B' },
+      { field: 'software', status: 'present_only_in_second', firstValue: 'A', secondValue: 'B' },
+      { field: 'software', status: 'not_evaluated', secondValue: 'B' },
+    ];
+
+    for (const metadataField of cases) {
+      expect(
+        comparisonSchema.safeParse({
+          ...makeComparison(),
+          metadataFields: [metadataField],
+        }).success,
+      ).toBe(false);
+    }
+  });
+
+  it('accepts a metadata field that only one file records', () => {
+    expect(
+      comparisonSchema.safeParse({
+        ...makeComparison(),
+        metadataFields: [{ field: 'software', status: 'present_only_in_first', firstValue: 'A' }],
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rejects a measured preview whose numbers disagree with each other', () => {
+    const base = makeComparison();
+
+    for (const preview of [
+      { ...measuredPreview(), pixelCount: 601 },
+      { ...measuredPreview(), changedPixelShare: 0.5 },
+      { ...measuredPreview(), changedPixelCount: 601 },
+      { ...measuredPreview(), width: 0 },
+      { ...measuredPreview(), channelThreshold: 15 },
+      { ...measuredPreview(), meanAbsoluteChannelError: 256 },
+    ]) {
+      expect(comparisonSchema.safeParse({ ...base, preview }).success).toBe(false);
+    }
+  });
+
+  it('rejects a preview larger than the 1.2 megapixel budget', () => {
+    const oversized = {
+      ...measuredPreview(),
+      width: 1200,
+      height: 1001,
+      pixelCount: 1200 * 1001,
+      changedPixelCount: 0,
+      changedPixelShare: 0,
+    };
+
+    expect(
+      comparisonSchema.safeParse({ ...makeComparison(), preview: oversized }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a preview skip reason outside the documented list', () => {
+    expect(
+      comparisonSchema.safeParse({
+        ...makeComparison(),
+        preview: { status: 'skipped', reason: 'looks_fine' },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('requires a comparison block on a two-file report and forbids it on a single-file report', () => {
+    const report = makeReport();
+    const { comparison, ...withoutComparison } = report;
+
+    void comparison;
+
+    expectInvalid(withoutComparison, /comparison/);
+    expectValid(singleFileReport());
+    expectInvalid({ ...singleFileReport(), comparison: makeComparison() }, /comparison/);
+  });
+
+  it('requires the comparison block to reference the single comparison check', () => {
+    const wrongKind = makeComparison();
+
+    wrongKind.checkId = CHECK_C2PA_ID;
+
+    expectInvalid({ ...makeReport(), comparison: wrongKind }, /comparison/);
+
+    const attachedToFile = makeComparisonCheck();
+
+    attachedToFile.fileId = FILE_A_ID;
+
+    const attachedComparison = makeComparison();
+
+    attachedComparison.checkId = CHECK_COMPARISON_ID;
+
+    expectInvalid(
+      {
+        ...makeReport(),
+        checks: [
+          makeIntakeCheck(),
+          makeFingerprintCheck(),
+          makeC2paCheck(),
+          attachedToFile,
+        ],
+        comparison: attachedComparison,
+      },
+      /comparison/,
+    );
+  });
+
+  it('refuses a second comparison check in a two-file report', () => {
+    const report = makeReport();
+    const extra = makeComparisonCheck();
+
+    extra.checkId = 'chk_rrrrrrrrrrrr';
+
+    expectInvalid({ ...report, checks: [...report.checks, extra] }, /comparison/);
+  });
+});
+
+function measuredPreview(): Record<string, unknown> {
+  return {
+    status: 'measured',
+    methodId: 'originlens-preview-rgb-mae/1',
+    decoderId: 'browser-createimagebitmap-canvas-srgb/1',
+    width: 30,
+    height: 20,
+    pixelCount: 600,
+    meanAbsoluteChannelError: 12.5,
+    channelThreshold: 16,
+    changedPixelCount: 200,
+    changedPixelShare: 200 / 600,
+  };
+}
 
 describe('file record contract', () => {
   it('accepts a JPEG record with an optional user label', () => {

@@ -4,6 +4,44 @@ Material decisions with source, date, and consequence. Newest first.
 
 ---
 
+## ADR-008 — Provenance Delta is recorded as one `comparison` check plus an additive report block
+
+**Date:** 2026-10-27
+**Status:** ACCEPTED
+**Deciders:** project owner (participant) + implementation agent
+
+### Context
+
+PRD §9.6 fixes the report contract around one or more files, each with its own checks and evidence, but does not define how a two-file Provenance Delta is represented. Two failure modes had to be avoided:
+
+1. Attaching the delta to one file, which would read as "this file's result" and quietly imply an ordering or a primary file.
+2. Adding a second copy of the comparison facts (one in the check evidence, one in a bespoke block) that could disagree with the check.
+
+PRD §5.5 also requires the delta to compare only recorded properties and to keep a skipped measurement explicitly skipped. The PRD says a report summary must not overstate what was established, but report-level `summaryCodes` are a single list, so a two-file report needs a rule for combining per-file summaries.
+
+### Decision
+
+1. **One check, owned by neither file.** The delta is a single `CheckResult` with `kind: 'comparison'` and **no** `fileId`. All of its evidence items carry `sourceCheckId` equal to that check's `checkId`, so every comparison statement resolves to the same place as any other check. The comparison checker is recorded as `originlens-provenance-delta` with the app version.
+2. **Additive report block.** `reportSchema` gains an optional `comparison` object containing `fileIds` (a two-element tuple in report file order), `checkId`, `metadataFields`, and `preview`. It is **required** when the report has two files and **forbidden** when it has one. The schema version stays `2.0`: the field is additive and optional, single-file reports are byte-for-byte unchanged in shape, and no existing field changes meaning.
+3. **Cross-references are enforced.** The report super-refinement requires exactly one `comparison` check, requires `comparison.checkId` to reference it, requires that check to have no `fileId`, and requires `comparison.fileIds` to equal the report's file order. `buildReport` fails closed with `PIPELINE_CONTRACT_VIOLATION` on any violation, as it already did for duplicate IDs.
+4. **Session summary = intersection.** A two-file report lists a summary code only when every file's own `summaryCodes` contains it, so the report never claims one file's finding on behalf of both. `COMPARISON_SUMMARY_DISCLAIMER` states this and points readers at the per-file ledgers. `COMPARISON_REPORT_DISCLAIMER` states that the delta identifies neither an original nor an edited file.
+5. **Outcome precedence.** `different` when any compared property differs; otherwise `inconclusive` when any compared input was not evaluated; otherwise `equal`. A preview skip counts as a gap **except** `identical_fingerprint` (the measurement would be redundant) and `aspect_ratio_mismatch` (stretching or cropping would invent a difference). A skipped preview is recorded as `skipped` with a stable reason and is never reported as a difference of zero.
+6. **Metadata states are explicit.** Each allowlisted field is `equal`, `different`, `absent_from_both`, `present_only_in_first`, `present_only_in_second`, or `not_evaluated`. `present_only_in_*` is deliberately distinct from `different`: one file not recording a field is not the same as two files disagreeing about it.
+
+### Consequences
+
+- Every V17–V20, V48, V49 assertion can be read from the report without re-deriving the delta from prose.
+- A consumer of schema `2.0` must tolerate the optional `comparison` field; nothing about single-file reports changes.
+- The delta cannot exist without its check, and the check cannot exist without the delta, so the two cannot drift.
+- A failed or cancelled File B produces no `comparison` block at all: the surviving File A result exports as an ordinary single-file report (asserted end-to-end).
+- Adding a second comparison check, or attaching one to a file, is rejected by the runtime schema rather than rendered.
+
+### Rollback
+
+Drop the `comparison` block and export per-file reports only. That removes the report's record of the delta, so the UI could still show it but the exported artifact would no longer be auditable against the PRD §5.5 requirement.
+
+---
+
 ## ADR-006 — Phase 5 pipeline: injected stages, PRD cancellation mapping, fail-closed report IDs
 
 **Date:** 2026-10-27
@@ -48,7 +86,9 @@ V02 needs a valid PNG with no embedded credential. Options were: download a publ
 
 ### Decision
 
-`tests/fixtures/generate-plain-png.mjs` writes `tests/fixtures/c2pa/plain-3x2.png` (3 × 2, truecolour RGB, no ancillary chunks) using the PNG signature, `IHDR`, a **stored** (uncompressed) deflate `IDAT` block, and `IEND`. Stored blocks avoid any dependency on the local zlib build, so the bytes are reproducible. The script prints the byte length and SHA-256 that are recorded in `tests/fixtures/manifest.json` (schema 1.2), and `tests/unit/fixtures.test.ts` re-hashes the committed file.
+`tests/fixtures/generate-plain-png.mjs` writes `tests/fixtures/c2pa/plain-3x2.png` (3 × 2, truecolour RGB, no ancillary chunks) using the PNG signature, `IHDR`, a **stored** (uncompressed) deflate `IDAT` block, and `IEND`. Stored blocks avoid any dependency on the local zlib build, so the bytes are reproducible. The script prints the byte length and SHA-256 that are recorded in `tests/fixtures/manifest.json` (schema 1.3), and `tests/unit/fixtures.test.ts` re-hashes the committed file.
+
+Phase 6 added a second encoding from the same generator: `tests/fixtures/c2pa/plain-3x2-filtered.png` writes the same pixel grid with PNG filter type 1 (Sub) on each scanline. It is the same 88 bytes long but has a different SHA-256, and `tests/unit/helpers/png-pixels.ts` — an independent scanline decoder used only by the fixture test — proves both files decode to identical pixels. That pair is what V18 needs: a real byte difference beside a preview metric of zero, with neither figure able to explain the other.
 
 ### Consequences
 
