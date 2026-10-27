@@ -70,7 +70,6 @@ export function SiteHeader() {
             <span className="brand-name">
               Origin<span className="brand-lens-gradient">Lens</span>
             </span>
-            <span className="brand-badge">Evidence-First</span>
           </span>
         </Link>
 

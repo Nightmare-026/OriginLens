@@ -30,10 +30,6 @@ export function SiteFooter() {
             Evidence-First Media Provenance Explorer. Inspects cryptographic C2PA credentials
             and file metadata clues with honest uncertainty—without guessing authenticity or intent.
           </p>
-          <div className="footer-privacy-pill" role="status">
-            <span className="footer-privacy-dot" aria-hidden="true" />
-            <span>100% In-Browser Engine • Zero Remote Relays • Zero Cookies</span>
-          </div>
         </div>
 
         {!isHome ? (
@@ -105,13 +101,6 @@ export function SiteFooter() {
             </li>
           </ul>
         </div>
-      </div>
-
-      <div className="footer-bottom-bar">
-        <p className="footer-copy">
-          OriginLens is open-source under the MIT License • Powered by pinned{' '}
-          <code>@contentauth/c2pa-web@0.15.4</code> WebAssembly engine.
-        </p>
       </div>
     </footer>
   );

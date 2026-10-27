@@ -70,11 +70,6 @@ export function StartScreen({
       )}
 
       <section aria-labelledby="inspect-heading" className="panel">
-        <div className="card-badge-row">
-          <span className="badge">Single File</span>
-          <span className="badge">C2PA + EXIF + SHA-256</span>
-          <span className="badge badge-privacy">100% Client-Side</span>
-        </div>
         <h2 id="inspect-heading">Inspect one image</h2>
         <p>
           The file stays in this browser. The app validates it before reading the whole file, then
@@ -104,11 +99,6 @@ export function StartScreen({
       </section>
 
       <section aria-labelledby="compare-heading" className="panel">
-        <div className="card-badge-row">
-          <span className="badge">Provenance Delta</span>
-          <span className="badge">Two Independent Files</span>
-          <span className="badge badge-privacy">Side-by-Side</span>
-        </div>
         <h2 id="compare-heading">Compare two images</h2>
         <p>
           A Provenance Delta checks each file independently, then places the recorded properties side
