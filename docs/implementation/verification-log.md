@@ -79,10 +79,47 @@ Final rerun immediately before commit (2026-10-27): `npm test` 102/102 PASS, `np
 
 **Status:** Phase 3 gate **PASS** for the C2PA integration (tested proof-of-concept in the real production build, ADR-004/ADR-005). CSP and the product Evidence Ledger flow remain open and are not claimed. Phase 1 remains **BLOCKED**; no Meta API call was made and no model integration is claimed.
 
+## 2026-10-27 — Phase 5 single-file workflow and Evidence Ledger
+
+**Environment:** Windows PowerShell; working dir `D:\Projects\OriginLens`; Node v24.22.1; npm 12.2.1; Next.js 16.4.3; `@contentauth/c2pa-web@0.15.4`; Chromium 1248 via Playwright 1.64.1.
+
+| # | Command / action | Result | Evidence |
+|---|---|---|---|
+| 42 | `npm run typecheck` | PASS — `tsc --noEmit`, no diagnostics after the pipeline, UI, report, and test additions | exit 0 |
+| 43 | `npm run lint` | PASS — `eslint .`, 0 errors and 0 warnings | exit 0 |
+| 44 | `npm test` | PASS — 13 files, 220 tests: adds `pipeline-analyze` 24, `pipeline-summary` 13, `report-build` 6, `inspector-labels` 10, and grows the fixture suite to 7; Vitest 5.0.5 | Vitest output |
+| 45 | `npm run test:e2e` | PASS — 17/17 Chromium specs against a production build on port 3100: 6 C2PA smoke + 11 product-flow (verified fixture, missing manifest, PNG, malformed recovery, report download, download failure, offline, inspect-another, clear session, keyboard, 360 px) | Playwright output, 33.7 s |
+| 46 | `npm run build` | PASS — Next.js 16.4.3 (Turbopack); `/`, `/_not-found`, `/dev/c2pa-smoke` prerendered as static content; no server route added | build output |
+| 47 | `npm run audit` (`npm audit --audit-level=high`) | PASS — `found 0 vulnerabilities` | command output |
+| 48 | Pipeline defect found by the new call-order test | **CORRECTED** — the metadata stage called the module-level `inspectMetadata` instead of `deps.inspectMetadata`, so an injected parser was ignored. Fixed; `harness.calls` now pins the exact order `readHeader → decodeDimensions → readBytes → sha256 → inspectMetadata → inspectC2pa` | `tests/unit/pipeline-analyze.test.ts` |
+| 49 | Cancellation semantics aligned with PRD §12.2 (line 797) | **CORRECTED** — work that never started is `skipped`; only an interrupted C2PA check is `cancelled`; a late inspection that returns a real result is recorded. Documented in ADR-006 | `src/lib/pipeline/analyze.ts`; unit tests |
+| 50 | Screen B fidelity (PRD §5.2) | **CORRECTED** — the progress panel withheld the display name and byte size until the intake stage completed, and the heading reads "Validating the selected file" until then | `progress-panel.tsx`, `workflow.tsx` |
+| 51 | Deterministic PNG fixture (V02) | PASS — `node tests/fixtures/generate-plain-png.mjs` writes an 88-byte 3 × 2 RGB PNG, SHA-256 `55da44a11728930a62c75c7607cdbd466d20f5847742c6a4f6748c28e8f89103`; stored-deflate blocks make the bytes zlib-independent (ADR-007). ExifReader 4.52.0 probe returns PNG header tags only, so the allowlist yields 0 fields | generator output; fixture manifest v1.2; `tests/unit/fixtures.test.ts` |
+| 52 | Real-browser PNG credential check (V02) | PASS — the same fixture in the product flow yields `not_present` with `4 of 4 checks completed`; recorded in the fixture manifest `expected` block | Playwright `inspect.spec.ts` |
+| 53 | Offline degradation (V25) | PASS — `context.setOffline(true)` after page load: SHA-256 and metadata complete, the credential check fails with `C2PA_RUNTIME_UNAVAILABLE`, headline `Evidence incomplete`, no fabricated result | Playwright `inspect.spec.ts` |
+| 54 | Report download failure (V35) | PASS — `URL.createObjectURL` forced to throw for the JSON blob: `download-error` shown, ledger and fingerprint intact, control still enabled | Playwright `inspect.spec.ts` |
+| 55 | Secret scan (V43) | PASS — tracked + untracked source scanned for credential-shaped assignments: none; no `NEXT_PUBLIC_` reference; `.next/static` contains no secret-shaped string or private key | scan output |
+| 56 | Content-Security-Policy | **NOT RUN** — still unconfigured; Phase 7/9 item. Not claimed | `next.config.ts` |
+| 57 | Provenance Delta / two-file comparison (FR-008, V17–V20, V48, V49) | **NOT RUN** — action rendered but disabled and labelled as not enabled in this build | `start-screen.tsx` |
+| 58 | Product cancel-control E2E (V26) | **NOT RUN** — pipeline cancellation semantics are unit-tested; no browser test drives the Cancel control deterministically yet | `tests/e2e/inspect.spec.ts` |
+| 59 | Invalid/mutated credential fixture (V04) | **NOT RUN** — no fixture acquired; listed in `pendingCategories` | fixture manifest |
+
+**Corrections made during this increment (recorded so they are not mistaken for passing first time):**
+
+1. The first product-flow E2E run failed one spec on the trust label: the test expected "Not evaluated under the configured policy", but `TRUST_LABELS.not_evaluated` is exactly "Not evaluated" (the policy is shown in its own row). The expectation was corrected to the shipped label; the label itself was left unchanged.
+2. A second spec failed on an ambiguous text locator ("Absence is not evidence…" appears in two panels); it was narrowed to the `limitations` test id.
+3. `typecheck` failed in the new harness because `new Uint8Array(n)` is typed `Uint8Array<ArrayBufferLike>`, which is not a `BlobPart`; fixed by typing the helper as `Uint8Array<ArrayBuffer>`.
+4. A report test reused sequential IDs across two analyses, which `buildReport` rejected as a duplicate-ID contract violation. The harness gained a `startId` offset, and a separate test now pins the rejection as intended behaviour.
+5. An `unsupported` credential inspection produces a structured finding whose presence is `unsupported` and whose components are all `not_evaluated`; the initial test asserted `finding === null` and was corrected to the real contract.
+6. The first summary-copy test banned the word "tampering" outright, which rejected the accurate sentence "not proof of intent, deception, or tampering". The assertion now targets claim language ("100%", "probability", "deepfake", "forensically certified", "verified by meta") and separately requires an explicit limitation.
+
+**Status:** Phase 5 gate **PASS** for the single-file workflow, Evidence Ledger, report export, and recovery paths (PRD §5.1–§5.4, §5.6 primary flow). Phase 6 (Provenance Delta) is **IN PROGRESS**. Phase 1 and P1-001 remain **BLOCKED**; no Meta API call was made, no model integration exists, and no model use is claimed.
+
 ## Pending verification (must be filled with actual outputs)
 
-- Dependency audit before submission (V42): initial audit is clean; rerun on the final dependency tree.
+- Dependency audit before submission (V42): clean on 2026-10-27; rerun on the final dependency tree.
 - Secret scans after any server route or API-key integration is added (V43).
 - Content-Security-Policy for the production build (Phase 7/9).
-- Offline behavior, product cancel control, and Evidence Ledger/Provenance Delta E2E (V25, V26, FR-007/FR-008).
+- Provenance Delta E2E, product cancel control, and duplicate/alternate-encoding comparison cases (V17–V20, V26, V48, V49).
+- Invalid/mutated credential fixture (V04) and a second reference validator for the credential fixtures.
 - All V01–V50 rows with expected vs. actual, tool/version, environment, date.

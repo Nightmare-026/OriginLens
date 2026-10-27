@@ -56,9 +56,9 @@ export type MetadataInspection =
       errorCode: 'METADATA_PARSE_FAILED';
     }>;
 
-const PARSER = { name: 'exifreader', version: EXIFREADER_VERSION } as const;
+export const METADATA_PARSER = { name: 'exifreader', version: EXIFREADER_VERSION } as const;
 
-const LIMITATIONS = [
+export const METADATA_LIMITATIONS = [
   'Metadata is an unverified clue. It may be absent, copied, edited, or misleading.',
   'GPS coordinates are never extracted into results in this build; only their presence is reported.',
   'A capture-time string does not establish a trustworthy timestamp because its timezone is often unspecified.',
@@ -224,11 +224,11 @@ export function inspectMetadata(bytes: ArrayBuffer): MetadataInspection {
         status: 'not_present',
         fields: [],
         gpsPresence: 'not_present',
-        parser: PARSER,
+        parser: METADATA_PARSER,
         warnings: [
           'No embedded metadata was found. This does not mean the file has no provenance or was never edited.',
         ],
-        limitations: [...LIMITATIONS],
+        limitations: [...METADATA_LIMITATIONS],
       };
     }
 
@@ -236,9 +236,9 @@ export function inspectMetadata(bytes: ArrayBuffer): MetadataInspection {
       status: 'failed',
       fields: [],
       gpsPresence: 'unknown',
-      parser: PARSER,
+      parser: METADATA_PARSER,
       warnings: ['Embedded metadata could not be parsed. Independent checks are unaffected.'],
-      limitations: [...LIMITATIONS],
+      limitations: [...METADATA_LIMITATIONS],
       errorCode: 'METADATA_PARSE_FAILED',
     };
   }
@@ -266,9 +266,9 @@ export function inspectMetadata(bytes: ArrayBuffer): MetadataInspection {
       status: 'extracted',
       fields: [],
       gpsPresence: detectGpsPresence(tags),
-      parser: PARSER,
+      parser: METADATA_PARSER,
       warnings,
-      limitations: [...LIMITATIONS],
+      limitations: [...METADATA_LIMITATIONS],
     };
   }
 
@@ -276,8 +276,8 @@ export function inspectMetadata(bytes: ArrayBuffer): MetadataInspection {
     status: 'extracted',
     fields,
     gpsPresence: detectGpsPresence(tags),
-    parser: PARSER,
+    parser: METADATA_PARSER,
     warnings,
-    limitations: [...LIMITATIONS],
+    limitations: [...METADATA_LIMITATIONS],
   };
 }

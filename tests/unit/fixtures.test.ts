@@ -63,7 +63,7 @@ function fixture(id: string): FixtureRecord {
 
 describe('fixture provenance manifest', () => {
   it('records each fixture once with a valid hash and byte length', () => {
-    expect(manifest.schemaVersion).toBe('1.1');
+    expect(manifest.schemaVersion).toBe('1.2');
     expect(manifest.fixtures.length).toBeGreaterThan(0);
     expect(new Set(manifest.fixtures.map((entry) => entry.id)).size).toBe(manifest.fixtures.length);
     expect(new Set(manifest.referenceOutputs.map((entry) => entry.id)).size).toBe(

@@ -8,21 +8,21 @@
 
 | ID | Requirement (faithful short form) | PRD | Planned location | Tests | Status |
 |---|---|---|---|---|---|
-| FR-001 | Single-image intake; recoverable, specific feedback for invalid inputs | §3.1, §5.2 | `src/lib/intake`, `src/app/page.tsx` | V01, V11–V16 | PARTIAL — preflight and sanitized display names exist; start page is informational only; no file picker or results UI |
-| FR-002 | Preflight checks byte limit, format policy, signature/MIME consistency, decode result, pixel limit before expensive work | §3.1, §7 Stage 1 | `src/lib/intake` | V11–V16 | PARTIAL — `preflightFile` enforces size → extension/MIME → signature → dimensions with 26 unit tests; browser decode result not wired |
-| FR-003 | SHA-256 of original uploaded bytes, not preview/transform | §3.1, §7 Stage 2 | `src/lib/fingerprint` | V21 | PARTIAL — `sha256Hex` matches published vectors and hashes only the exact view; not yet bound to an uploaded `File` |
-| FR-004 | Metadata allowlist shown as unverified clues; GPS hidden by default | §3.1, §7 Stage 3 | `src/lib/metadata` | V07, V08, V16, V22 (GPS export) | PARTIAL — ExifReader allowlist, GPS presence-only, and text sanitization unit-tested; no UI or report export |
-| FR-005 | Real pinned C2PA SDK inspection; actual validator states/warnings preserved | §3.1, §7 Stage 4 | `src/lib/c2pa` | V03, V04, V22–V24, V27, V50 | PARTIAL — pinned `@contentauth/c2pa-web@0.15.4` adapter (session/map/check) verified by unit tests and six real-Chromium E2E specs against a production build; product Evidence Ledger UI not built |
-| FR-006 | Manifest/signature/content-binding validity and signer trust remain separate | §3.1, §6.2 | `src/lib/c2pa`, `src/lib/results` | V05, V06, V27 | PARTIAL — runtime schema models each state separately and rejects dependent findings without a manifest; SDK mapping tested against recorded output, where signature/content binding are `valid` while signer trust is `not_evaluated` under the no-anchor policy (ADR-005) |
-| FR-007 | Evidence Ledger: every displayed finding references a real check + structured evidence | §3.1, §2.1, §5.4 | `src/components/evidence-ledger`, `src/lib/results` | V03, V33 | PARTIAL — `CheckResult`/`EvidenceItem` contracts and report cross-reference validation tested; ledger UI not built |
-| FR-008 | Provenance Delta: compare two files by hash, dimensions, properties, selected metadata, supported preview | §3.1, §5.5, §7 Stage 6 | `src/lib/compare`, `src/components/provenance-delta` | V17–V20, V48, V49 | NOT STARTED |
-| FR-009 | Typed execution states distinct from result outcomes | §3.1, §9.1, §12 | `src/lib/results` | V26, V27, V33 | PARTIAL — execution state is separate from outcome; completed/outcome and failed/errorCode invariants unit-tested; no execution engine |
-| FR-010 | Versioned JSON report download; print view optional only if tested | §3.1, §9.6, §7 Stage 8 | `src/lib/report` | V33–V35, V43 | PARTIAL — versioned `2.0` report schema validates, and byte/GPS export literals are fixed `false`; serializer/download not built |
-| FR-011 | Privacy defaults: no login, no persistent media history, no server image upload | §3.1, §11.2 | `src/app`, `src/lib/security` | V08, V43, V44 | PARTIAL — no server upload, telemetry, auth, or persistence code; start page states browser-first; no file workflow to verify |
-| FR-012 | Clear session releases object URLs, SDK objects, preview resources | §3.1, §5.4, §7 Stage 8 | `src/lib/security`, UI | V36 | PARTIAL — `C2paSession.dispose()` and per-reader `free()` in `finally` are unit-proven (success, exception, timeout, cancel, double-dispose); no object URLs or previews are created yet |
-| FR-013 | Recoverable errors: a failing non-critical check preserves independent results | §3.1, §12.2 | `src/lib/results`, UI | V15, V22, V25, V26 | PARTIAL — metadata parser and C2PA failures become typed non-critical results with stable codes; real-browser run recovers after a malformed file and after a missing WASM asset; pipeline/UI recovery not built |
-| FR-014 | Accessible responsive UI: keyboard + narrow viewport | §3.1, §5.6 | UI components | V37, V38 | PARTIAL — static shell has semantic landmarks, visible focus, reduced-motion CSS, and fluid width; primary flow and keyboard E2E absent |
-| FR-015 | Test-backed demo: all release-critical tests pass, fixture provenance recorded | §3.1, §14 | `tests/fixtures/manifest.json`, `tests/**` | V01–V50 | PARTIAL — 167 unit tests and 6 real-Chromium E2E tests pass; fixture manifest v1.1 records C2PA fixture hashes, recorded SDK output, and the trust policy; product-flow E2E absent |
+| FR-001 | Single-image intake; recoverable, specific feedback for invalid inputs | §3.1, §5.2 | `src/lib/intake`, `src/components/inspector` | V01, V11–V16 | PASS — start screen accepts one file, shows scope/limits, and displays a recoverable error panel with a safe code (`error-panel`/`error-code`). E2E: truncated JPEG → `PIPELINE_DECODE_FAILED`, session stays usable; unit: SVG/extension/MIME/signature rejections. |
+| FR-002 | Preflight checks byte limit, format policy, signature/MIME consistency, decode result, pixel limit before expensive work | §3.1, §7 Stage 1 | `src/lib/intake`, `src/lib/pipeline` | V11–V16 | PASS — pipeline rejects `FILE_TOO_LARGE` before `readHeader`, `PIXEL_LIMIT_EXCEEDED` before `readBytes`, and format/signature mismatches before decode (pipeline unit tests with injected deps); browser decoder reports dimensions before forcing a full decode. |
+| FR-003 | SHA-256 of original uploaded bytes, not preview/transform | §3.1, §7 Stage 2 | `src/lib/fingerprint`, `src/lib/pipeline` | V21 | PASS — the pipeline hashes exactly the `ArrayBuffer` read from the selected `File` and fails closed when its length differs from `file.size`; E2E shows the recorded fixture hash for both JPEG and PNG. |
+| FR-004 | Metadata allowlist shown as unverified clues; GPS hidden by default | §3.1, §7 Stage 3 | `src/lib/metadata`, `src/components/inspector/ledger.tsx` | V07, V08, V16 | PASS — ledger shows only allowlisted fields, each labelled unverified; only GPS presence is reported; report fixes `includedPreciseGps: false`. Unit tests prove no coordinate keys/values are extracted or serialized. |
+| FR-005 | Real pinned C2PA SDK inspection; actual validator states/warnings preserved | §3.1, §7 Stage 4 | `src/lib/c2pa`, `src/lib/pipeline` | V03, V22–V24, V27, V50 | PASS — the product ledger is driven by `@contentauth/c2pa-web@0.15.4` in a real Chromium production build; recorded SDK codes, warnings and limitations are displayed; reader freed in `finally`; missing-WASM and offline failures are typed check failures. |
+| FR-006 | Manifest/signature/content-binding validity and signer trust remain separate | §3.1, §6.2 | `src/lib/c2pa`, `src/lib/results`, `src/components/inspector` | V05, V06, V27 | PASS — ledger renders manifest validation, claim signature, asset binding, signer trust, timestamp and revocation as separate rows; E2E shows signature/binding `Valid` with trust `Not evaluated` under `originlens-embedded-only-no-trust-anchors-v1` (ADR-005). |
+| FR-007 | Evidence Ledger: every displayed finding references a real check + structured evidence | §3.1, §2.1, §5.4 | `src/components/inspector`, `src/lib/results` | V03, V33 | PASS — each check row exposes checker name/version, execution state, outcome, warnings, limitations and its evidence items with IDs; the canonical evidence list equals the per-check evidence and every `sourceCheckId` resolves (unit), and report cross-references validate. |
+| FR-008 | Provenance Delta: compare two files by hash, dimensions, properties, selected metadata, supported preview | §3.1, §5.5, §7 Stage 6 | `src/lib/compare`, `src/components/provenance-delta` | V17–V20, V48, V49 | NOT STARTED — the compare action is rendered but disabled and explicitly labelled as not enabled in this build. No comparison logic or preview metric exists. |
+| FR-009 | Typed execution states distinct from result outcomes | §3.1, §9.1, §12 | `src/lib/results`, `src/lib/pipeline` | V26, V27, V33 | PASS — execution state is separate from outcome in schemas, progress UI and ledger; unstarted work is `skipped` and only an interrupted check is `cancelled` (PRD §12.2 line 797, ADR-006); a failed check carries `errorCode` and no outcome. |
+| FR-010 | Versioned JSON report download; print view optional only if tested | §3.1, §9.6, §7 Stage 8 | `src/lib/report`, `src/components/inspector` | V33–V35, V43 | PASS — `buildReport` produces schema `2.0` validated by `reportSchema`, fails closed on duplicate IDs or out-of-range files, and the E2E downloads a report whose bytes contain no image data and fixed `false` export flags. Print view not implemented (optional). |
+| FR-011 | Privacy defaults: no login, no persistent media history, no server image upload | §3.1, §11.2 | `src/app`, `src/lib/security` | V08, V43, V44 | PASS — static browser-only build with no API route, auth, telemetry, storage or remote fetch; media lives in component state and is discarded on reset/refresh. Secret scan and production build inspected. |
+| FR-012 | Clear session releases object URLs, SDK objects, preview resources | §3.1, §5.4, §7 Stage 8 | `src/components/inspector`, `src/lib/c2pa` | V36 | PASS — `clear-session` and `inspect-another` abort the run, bump the run token, and dispose the C2PA runtime (E2E: start screen returns, ledger removed); the decoder revokes its object URL in `finally`; reader lifecycle unit-tested (success/exception/timeout/cancel). |
+| FR-013 | Recoverable errors: a failing non-critical check preserves independent results | §3.1, §12.2 | `src/lib/pipeline`, `src/components/inspector` | V15, V22, V25, V26 | PASS — unit matrix keeps completed metadata when C2PA fails, keeps a completed credential check when metadata fails, turns thrown SDK exceptions into `C2PA_INTERNAL_ERROR`; E2E covers malformed file, offline runtime, and download failure without losing the on-screen result. |
+| FR-014 | Accessible responsive UI: keyboard + narrow viewport | §3.1, §5.6 | UI components, `src/app/globals.css` | V37, V38 | PASS (primary flow) — E2E: file input reachable by Tab, report download reachable and focused, activated with Enter; 360 px viewport has no horizontal overflow before or after analysis; status is text + badge, never colour-only; `prefers-reduced-motion` honoured. Automated axe and screen-reader passes remain Phase 7/9. |
+| FR-015 | Test-backed demo: all release-critical tests pass, fixture provenance recorded | §3.1, §14 | `tests/fixtures/manifest.json`, `tests/**` | V01–V50 | PASS — 220 unit tests (13 files) and 17 Chromium E2E specs pass against a production build; fixture manifest v1.2 records byte length + SHA-256 for every stored fixture, the recorded SDK output, and the no-anchor trust policy. |
 
 ## P1 — Conditional (after P0 stable)
 
@@ -59,60 +59,60 @@ Watermark provider API; remote URL/crawling/reverse-image search; video/audio/an
 
 ## V01–V50 acceptance matrix (PRD §14.4)
 
-Statuses reflect the 2026-10-27 Phase 3 C2PA increment. `PARTIAL` means module-level or harness-level tests exist while the end-to-end product scenario remains unverified; no row is `PASS` without recorded evidence.
+Statuses reflect the 2026-10-27 Phase 5 increment. `PARTIAL` means module-level or harness-level tests exist while the end-to-end product scenario remains unverified; no row is `PASS` without recorded evidence in `verification-log.md`.
 
 | ID | Scenario | Status / note |
 |---|---|---|
-| V01 | Valid JPEG within limits | NOT RUN |
-| V02 | Valid PNG, no embedded manifest | NOT RUN |
-| V03 | Known supported C2PA fixture | PARTIAL — `adobe-20220124-C.jpg` (SHA-256 `75a8da33…ce864`) yields `present`/`Valid` in a real Chromium production build with recorded SDK output; verified through the dev harness, not the product Evidence Ledger |
-| V04 | Invalid credential fixture | NOT RUN — no invalid/mutated credential fixture acquired |
-| V05 | Valid signature, unknown signer trust | PARTIAL — same fixture: signature/content-binding `valid`, signer trust `not_evaluated`, with an explicit no-trust-anchor warning (unit + E2E); product UI not built |
-| V06 | Trust resources unavailable | PARTIAL — the build configures no trust anchors and performs no trust fetch, so trust/revocation stay `not_evaluated` rather than absent-success (unit + E2E). No configured-anchor path exists to make unavailable |
-| V07 | Missing metadata | PARTIAL — plain JPEG/PNG return no allowlisted fields without failing; app scenario not built |
-| V08 | GPS metadata hidden/excluded | PARTIAL — unit test proves coordinates are never extracted or serialized; report schema fixes precise-GPS export to `false`; no UI/export |
-| V09 | No provider configured | NOT RUN |
-| V10 | Model explainer unavailable → deterministic fallback | NOT RUN — P1 blocked; fallback required when/if enabled |
-| V11 | File > 20 MiB rejected before full processing | PARTIAL — `validateDeclaredFile` rejects before any body read (unit test) |
-| V12 | File > 20 MP rejected before high-memory allocation | PARTIAL — `validateDimensions` rejects with checked math (unit test); browser decode not wired |
-| V13 | Extension/MIME mismatch handled safely | PARTIAL — extension, browser MIME, and signature disagreement rejected in unit tests |
-| V14 | Unsupported format clear result | PARTIAL — GIF/WebP/HEIF/AVIF/TIFF/PDF/SVG/archive signatures map to `UNSUPPORTED_FORMAT` |
-| V15 | Corrupt/truncated file recoverable | PARTIAL — short headers and unparseable metadata fail recoverably in module tests; full decode absent |
-| V16 | Hostile filename/metadata escaped | PARTIAL — filename/metadata sanitizers strip control/bidi characters and bound length; not rendered in the DOM |
-| V17 | Duplicate exact file | NOT RUN |
-| V18 | Same image, different encoding | NOT RUN |
-| V19 | Different dimensions/aspect ratios | NOT RUN |
-| V20 | EXIF orientation/color handling differs | NOT RUN |
-| V21 | SHA-256 from original bytes (not preview) | PARTIAL — hashes only the exact supplied byte view; published SHA-256 vectors pass; not yet bound to upload |
-| V22 | SDK WASM resource missing | PARTIAL — real-browser test points the session at a non-existent WASM path: check fails with `C2PA_RUNTIME_UNAVAILABLE`, no finding is produced, and a later run succeeds after a new session |
-| V23 | Reader cleanup after success | PARTIAL — unit lifecycle test proves exactly one `free()` per reader across repeated and overlapping runs; browser test proves three consecutive runs stay independent. No heap/worker instrumentation |
-| V24 | Reader cleanup after exception | PARTIAL — unit tests free the reader when `manifestStore()` rejects, when `fromBlob` rejects (no reader created), and when `free()` itself throws (outcome kept) |
-| V25 | Browser offline | NOT RUN — local inspection is offline-capable by design, but no offline browser test exists |
-| V26 | User cancels during work | PARTIAL — external abort and session disposal return `cancelled` with no outcome or error code, and a late reader is still freed (unit); no product cancel control |
-| V27 | Unknown SDK code stays unknown | PARTIAL — an unrecognized code is preserved in `sdkCodes`, flagged as needing interpretation, and cannot set a state (unit, synthetic code). No real fixture produces one yet |
+| V01 | Valid JPEG within limits | PASS — E2E: `adobe-20220124-C.jpg` is accepted, the ledger shows `image/jpeg`, `W × H px`, the recorded SHA-256, and `4 of 4 checks completed` |
+| V02 | Valid PNG, no embedded manifest | PASS — E2E: committed `plain-3x2.png` (88 B, SHA-256 `55da44a1…f89103`) yields `not_present`, `3 × 2 px`, and a complete hash/metadata record |
+| V03 | Known supported C2PA fixture | PASS — E2E product ledger reproduces the recorded SDK outcome exactly: `present`, manifest/signature/binding `Valid`, trust `Not evaluated`, codes contain `claimSignature.validated` |
+| V04 | Invalid credential fixture | NOT RUN — no invalid/mutated credential fixture acquired yet; it is an explicit entry in `pendingCategories` |
+| V05 | Valid signature, unknown signer trust | PASS — E2E: `c2pa-signature` = `Valid` and `c2pa-binding` = `Valid` while `c2pa-trust` = `Not evaluated`, shown in separate rows |
+| V06 | Trust resources unavailable | PASS — no trust anchors or trust fetch are configured, so trust and revocation render `Not evaluated` and no trusted badge exists (E2E + ADR-005). There is no configured-anchor path that could become unavailable |
+| V07 | Missing metadata | PASS — E2E: plain JPEG and PNG produce `No selected metadata fields were found…` with no fabricated fields, dates, or camera values |
+| V08 | GPS metadata hidden/excluded | PASS — E2E `metadata-gps` states presence only; unit tests prove no coordinate key/value is extracted or serialized; the report fixes `includedPreciseGps: false` (ADR-003) |
+| V09 | No provider configured | N/A — no provider adapter is integrated (P2 deferred); the ledger states that only the listed checks ran and anything unlisted was not evaluated |
+| V10 | Model explainer unavailable → deterministic fallback | N/A — no model explainer is integrated (P1-001 blocked); the deterministic template is the only explanation path and is asserted in E2E |
+| V11 | File > 20 MiB rejected before full processing | PASS — pipeline unit test: `FILE_TOO_LARGE` returned before `readHeader`, with zero dependency calls |
+| V12 | File > 20 MP rejected before high-memory allocation | PASS — pipeline unit test: 6000 × 4000 → `PIXEL_LIMIT_EXCEEDED` with no `readBytes`; `validateDimensions` uses checked math. The guard prevents this app's full decode/canvas allocation; it cannot prevent the browser from parsing an image header |
+| V13 | Extension/MIME mismatch handled safely | PASS — pipeline unit test: PNG bytes named `photo.jpg` → `FORMAT_MISMATCH` before decode; unit matrix covers extension, MIME, and signature disagreement |
+| V14 | Unsupported format clear result | PASS — pipeline unit test: SVG bytes named `image.jpg` → `UNSUPPORTED_FORMAT` before `readHeader`; signature table covers GIF/WebP/HEIC/AVIF/TIFF/PDF/archive |
+| V15 | Corrupt/truncated file recoverable | PASS — E2E: `truncated.jpg` → error panel `PIPELINE_DECODE_FAILED`, no ledger, and a later valid file analyzes normally |
+| V16 | Hostile filename/metadata escaped | PASS — sanitizers strip control/bidi characters and bound length (unit); all displayed text goes through React escaping and no raw-HTML sink exists in `src/`. No dedicated XSS E2E |
+| V17 | Duplicate exact file | NOT RUN — Phase 6 (Provenance Delta) |
+| V18 | Same image, different encoding | NOT RUN — Phase 6 |
+| V19 | Different dimensions/aspect ratios | NOT RUN — Phase 6 |
+| V20 | EXIF orientation/color handling differs | NOT RUN — Phase 6 |
+| V21 | SHA-256 from original bytes (not preview) | PASS — pipeline unit test hashes exactly the buffer read from the `File` and fails closed on a length mismatch; E2E hashes equal the values computed directly from the committed fixture files |
+| V22 | SDK WASM resource missing | PASS — smoke E2E points the session at a missing WASM path → `C2PA_RUNTIME_UNAVAILABLE`, no finding, later session succeeds; offline E2E reaches the same typed failure |
+| V23 | Reader cleanup after success | PASS — unit lifecycle test proves exactly one `free()` per reader across repeated/overlapping runs; smoke E2E keeps three consecutive runs independent. No heap/worker instrumentation |
+| V24 | Reader cleanup after exception | PASS — unit tests free the reader when `manifestStore()` rejects, when `fromBlob` rejects (no reader), and when `free()` itself throws (outcome kept) |
+| V25 | Browser offline | PASS — E2E: after `context.setOffline(true)`, hash + metadata complete, the credential check fails with `C2PA_RUNTIME_UNAVAILABLE`, headline is `Evidence incomplete`, and no result is fabricated |
+| V26 | User cancels during work | PARTIAL — pipeline semantics unit-tested (unstarted = `skipped`, interrupted = `cancelled`, partial ledger kept); the Cancel control exists in the progress panel but no deterministic E2E drives it yet (Phase 6) |
+| V27 | Unknown SDK code stays unknown | PASS — an unrecognized code is preserved in `sdkCodes`, flagged as needing interpretation, and cannot set a state (unit, synthetic code). No real fixture produces one yet |
 | V28 | Provider 429 bounded retry | N/A — no third-party provider integrated (P2 deferred) |
 | V29 | Provider 401/403 no retry, no secret exposure | N/A — same as V28 |
 | V30 | Provider 5xx/timeout preserves local results | N/A — same as V28 |
 | V31 | Invalid provider schema rejected | N/A — same as V28 |
 | V32 | Unknown provider field stable | N/A — same as V28 |
-| V33 | Report passes runtime schema/references | PARTIAL — valid report fixture and JSON round trip validated; no download path |
-| V34 | Report with bad status/reference blocked | PARTIAL — 53 contract tests reject bad hashes/timestamps/MIME, duplicate IDs, dangling references, and export-flag violations |
-| V35 | Report download failure handled | NOT RUN |
-| V36 | Clear session releases resources | NOT RUN |
-| V37 | Mobile viewport without overflow | NOT RUN |
-| V38 | Keyboard-only flow | NOT RUN |
-| V39 | Model invents unsupported claim → rejected | NOT RUN — P1 blocked |
-| V40 | Model emits unknown evidence ID → rejected | NOT RUN — P1 blocked |
-| V41 | Model malformed JSON/timeout → template | NOT RUN — P1 blocked |
-| V42 | Critical dependency audit issue blocks release | PARTIAL — `npm audit` reports 0 vulnerabilities on 2026-10-27; rerun on the final dependency tree |
-| V43 | API secret scan (bundle, maps, history) | PASS — source/docs/`.next` JS+map+JSON files and git history scanned 2026-10-27 with no secret found; one confirmed false positive (`sk-async-storage-instance`); rerun after any server route |
-| V44 | External-call disclosure + consent precede outbound call | N/A — no outbound calls implemented; required before any P1 integration |
-| V45 | No check yields a finding → coverage insufficient | NOT RUN |
+| V33 | Report passes runtime schema/references | PASS — E2E downloads the report and re-parses it against `reportSchema`; unit tests prove the JSON round trip, schema version, and that every evidence/check/file reference resolves |
+| V34 | Report with bad status/reference blocked | PASS — `buildReport` fails closed (`PIPELINE_CONTRACT_VIOLATION`) on duplicate IDs, out-of-range file counts, or schema violations, and the download handler renders that as `download-error` without discarding the ledger (same rendering path as the V35 E2E) |
+| V35 | Report download failure handled | PASS — E2E forces `URL.createObjectURL` to throw for the JSON blob: `download-error` appears, the ledger and fingerprint stay intact, and the button remains enabled |
+| V36 | Clear session releases resources | PASS — E2E: `clear-session` returns to the start screen, removes the ledger, shows the notice, and disposes the runtime; the decoder revokes its object URL in `finally`; reader disposal unit-tested |
+| V37 | Mobile viewport without overflow | PASS — E2E at 360 × 800 px: no horizontal overflow before or after analysis |
+| V38 | Keyboard-only flow | PASS — E2E: file input reached with Tab, report download focusable with visible focus and activated by Enter |
+| V39 | Model invents unsupported claim → rejected | N/A — P1 blocked; no model output path exists |
+| V40 | Model emits unknown evidence ID → rejected | N/A — P1 blocked |
+| V41 | Model malformed JSON/timeout → template | N/A — P1 blocked |
+| V42 | Critical dependency audit issue blocks release | PASS — `npm run audit` reports `found 0 vulnerabilities` on the current tree (2026-10-27); rerun required before submission |
+| V43 | API secret scan (bundle, maps, history) | PASS — source, untracked files and `.next/static` scanned 2026-10-27: no credential-shaped assignment, no `NEXT_PUBLIC_`, no private key. Rerun after any server route |
+| V44 | External-call disclosure + consent precede outbound call | N/A — no outbound call is implemented; required before any P1 integration |
+| V45 | No check yields a finding → coverage insufficient | PASS — `summarize` never returns an empty list and reports `evidence_incomplete` when the credential check is unsupported, failed, skipped, or cancelled (unit matrix); unsupported fixture path asserted end-to-end in the pipeline tests |
 | V46 | Two providers disagree → separate results | N/A — no providers integrated |
-| V47 | Timezones stored UTC, display labelled | PARTIAL — report/evidence timestamps require exact ISO UTC; display labelling not built |
-| V48 | Same filename, different files separated | NOT RUN |
-| V49 | User original/edited labels marked user-supplied | NOT RUN |
-| V50 | Unsupported C2PA variant doesn't break other checks | PARTIAL — a format outside the C2PA set returns `unsupported` without starting the SDK, and the check contract keeps it distinct from validity (unit); no multi-check pipeline to prove independence yet |
+| V47 | Timezones stored UTC, display labelled | PARTIAL — report/evidence timestamps must be exact ISO UTC (unit) and `formatUtcInstant` labels UTC (unit); the ledger displays no timestamps at all, so there is no mislabelled value to test |
+| V48 | Same filename, different files separated | NOT RUN — Phase 6 |
+| V49 | User original/edited labels marked user-supplied | NOT RUN — Phase 6 |
+| V50 | Unsupported C2PA variant doesn't break other checks | PASS — E2E with the truncated JPEG: the credential check fails with a safe code while the hash/metadata checks stay completed; the pipeline contract test records an `unsupported` outcome as `evidence_incomplete`, never as "no credentials" |
 
 ## Non-functional requirements carried into every task
 

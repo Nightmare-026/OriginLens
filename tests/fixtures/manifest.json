@@ -1,9 +1,10 @@
 {
-  "schemaVersion": "1.1",
-  "updatedAtUtc": "2026-10-27T00:00:00.000Z",
+  "schemaVersion": "1.2",
+  "updatedAtUtc": "2026-10-27T19:00:00.000Z",
   "verificationEnvironment": "Windows; Node v24.22.1; ExifReader 4.52.0; @contentauth/c2pa-web 0.15.4; Chromium 1248 via Playwright 1.64.1",
   "notes": [
     "Synthetic fixtures are generated deterministically by test code, not downloaded content.",
+    "Committed PNG fixtures are reproduced by their generator script and written with stored deflate blocks, so the bytes do not depend on a local zlib build.",
     "C2PA expectations come from recorded output of the pinned SDK in a real Chromium run. No file is described as valid or trusted because of its name, its source page, or a website description.",
     "A filename is never evidence for an expected result.",
     "The reference manifest store is a reduced hand-normalized extract used to cross-check claim fields only. It carries no validation status and proves nothing about validity or trust."
@@ -101,6 +102,33 @@
         "findingIsNotEvidenceOfAbsence": true
       },
       "expectationEstablishedBy": "c2pa-web 0.15.4 returned null from Reader.fromBlob in Chromium 1248 on 2026-10-27; asserted by tests/e2e/c2pa-smoke.spec.ts"
+    },
+    {
+      "id": "c2pa-no-manifest-png",
+      "file": "tests/fixtures/c2pa/plain-3x2.png",
+      "generation": "tests/fixtures/generate-plain-png.mjs",
+      "source": "Project-generated 3x2 RGB PNG with no ancillary chunks, written with stored deflate blocks so the bytes never depend on the local zlib build",
+      "license": "Project-generated; no third-party content",
+      "byteLength": 88,
+      "sha256": "55da44a11728930a62c75c7607cdbd466d20f5847742c6a4f6748c28e8f89103",
+      "expected": {
+        "inspectionStatus": "not_present",
+        "executionState": "completed",
+        "outcome": "not_present",
+        "manifestPresence": "not_present",
+        "manifestValidation": "not_evaluated",
+        "signatureValidation": "not_evaluated",
+        "contentBindingValidation": "not_evaluated",
+        "signerTrust": "not_evaluated",
+        "revocationStatus": "not_evaluated",
+        "metadataStatus": "extracted",
+        "metadataCheckOutcome": "not_present",
+        "allowlistedMetadataFields": 0,
+        "gpsPresence": "not_present",
+        "dimensions": { "width": 3, "height": 2 },
+        "sdkCodes": []
+      },
+      "expectationEstablishedBy": "Metadata keys confirmed by an ExifReader 4.52.0 parse probe (PNG header tags only, no allowlisted field) on 2026-10-27; C2PA null result and browser decode confirmed by tests/e2e/inspect.spec.ts in Chromium 1248"
     },
     {
       "id": "c2pa-truncated-jpeg",
