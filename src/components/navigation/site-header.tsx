@@ -115,7 +115,6 @@ export function SiteHeader() {
                 </>
               )}
             </svg>
-            <span className="menu-btn-label">Menu</span>
           </button>
 
           <nav
