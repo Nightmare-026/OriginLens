@@ -6,6 +6,15 @@ export const metadata: Metadata = {
   title: 'Privacy Policy — OriginLens',
   description:
     'Our core architectural guarantee: 100% in-browser media analysis, zero image uploads, zero cookies, zero telemetry, and GPS masking by default.',
+  alternates: {
+    canonical: '/privacy',
+  },
+  openGraph: {
+    title: 'Privacy Policy — OriginLens',
+    description:
+      'Our core architectural guarantee: 100% in-browser media analysis, zero image uploads, zero cookies, zero telemetry, and GPS masking by default.',
+    url: 'https://originlens.org/privacy',
+  },
 };
 
 export default function PrivacyPolicyPage() {
@@ -25,7 +34,6 @@ export default function PrivacyPolicyPage() {
         <h2 id="privacy-matrix-heading">Privacy Invariants at a Glance</h2>
         <div className="privacy-matrix-grid">
           <div className="privacy-matrix-card">
-            <div className="privacy-matrix-badge privacy-badge-green">Guaranteed</div>
             <h3>Zero Image Uploads</h3>
             <p>
               100% of hashing, EXIF parsing, and C2PA cryptographic signature verification occurs
@@ -34,7 +42,6 @@ export default function PrivacyPolicyPage() {
           </div>
 
           <div className="privacy-matrix-card">
-            <div className="privacy-matrix-badge privacy-badge-green">Guaranteed</div>
             <h3>Volatile Session Memory</h3>
             <p>
               Images exist only in transient browser RAM during analysis. We use no cookies, no
@@ -44,7 +51,6 @@ export default function PrivacyPolicyPage() {
           </div>
 
           <div className="privacy-matrix-card">
-            <div className="privacy-matrix-badge privacy-badge-green">Guaranteed</div>
             <h3>GPS Masked by Default</h3>
             <p>
               Precise geolocation coordinates are never displayed by default and are strictly
@@ -53,7 +59,6 @@ export default function PrivacyPolicyPage() {
           </div>
 
           <div className="privacy-matrix-card">
-            <div className="privacy-matrix-badge privacy-badge-green">Guaranteed</div>
             <h3>Zero Telemetry or Ads</h3>
             <p>
               No Google Analytics, tracking pixels, user profiling, or third-party ad networks. We do
@@ -135,18 +140,40 @@ export default function PrivacyPolicyPage() {
       </section>
 
       <section aria-labelledby="ai-third-parties-heading" className="doc-section">
-        <h2 id="ai-third-parties-heading">4. Cloud AI & Third-Party Service Policy</h2>
+        <h2 id="ai-third-parties-heading">4. Cloud AI & Optional Meta Llama 3.2 Vision Co-Pilot</h2>
         <p>
-          Many platforms send your images to proprietary cloud AI services for &ldquo;detection&rdquo;.
-          OriginLens does <strong>not</strong> relay your images or metadata to any external AI
-          model by default.
+          Many commercial platforms silently transmit full image files to remote proprietary cloud
+          services for heuristic analysis. OriginLens maintains a strict browser-first boundary:
         </p>
-        <p className="note">
-          Any future feature connecting to external services (such as optional cloud trust lists or
-          verified model explanations) requires an explicit opt-in confirmation dialogue disclosing
-          the recipient, data category, purpose, and retention terms before any outbound request is
-          made.
-        </p>
+        <ul>
+          <li>
+            <strong>100% Client-Side Ingestion by Default:</strong> Initial file intake, SHA-256 byte
+            hashing, EXIF metadata extraction, and WebAssembly C2PA credential verification execute
+            entirely within your local browser sandbox. No network requests are made during standard
+            inspection.
+          </li>
+          <li>
+            <strong>Deliberate Opt-In Activation:</strong> OriginLens provides an optional Meta Llama
+            3.2 Vision explanation feature (<code>/api/explain</code>). This service is invoked only
+            when you explicitly request an explanation and confirm the consent dialogue.
+          </li>
+          <li>
+            <strong>Bounded Metadata Transmission:</strong> External model requests transmit only
+            sanitized, structured evidence codes: the calculated SHA-256 digest, C2PA validation
+            outcome codes, check warnings, target audience mode (<code>general</code>,{' '}
+            <code>newsroom</code>, or <code>forensic</code>), and your optional inquiry query to the
+            configured inference provider (NVIDIA API / Meta).
+          </li>
+          <li>
+            <strong>Strict Data Exclusions:</strong> Media bytes, canvas bitmaps, preview pixels, GPS
+            coordinates, and raw EXIF payloads are <em>never</em> transmitted to external model
+            endpoints under any circumstance.
+          </li>
+          <li>
+            <strong>Stateless Processing:</strong> Model explanation requests are ephemeral and
+            stateless. OriginLens retains no copies of queries or generated prose.
+          </li>
+        </ul>
       </section>
 
       <section aria-labelledby="audit-reports-heading" className="doc-section">

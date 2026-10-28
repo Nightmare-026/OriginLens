@@ -5,6 +5,15 @@ export const metadata: Metadata = {
   title: 'How to Use — OriginLens',
   description:
     'A concrete, step-by-step guide to inspecting image provenance, comparing two images, and reading media evidence with OriginLens.',
+  alternates: {
+    canonical: '/how-to-use',
+  },
+  openGraph: {
+    title: 'How to Use — OriginLens',
+    description:
+      'A concrete, step-by-step guide to inspecting image provenance, comparing two images, and reading media evidence with OriginLens.',
+    url: 'https://originlens.org/how-to-use',
+  },
 };
 
 export default function HowToUsePage() {
@@ -124,8 +133,7 @@ export default function HowToUsePage() {
                 <h4>1. File Identity</h4>
                 <p>
                   Shows verified byte size, MIME type, dimensions, and the cryptographic{' '}
-                  <strong>SHA-256 fingerprint</strong> calculated over the uncompressed original
-                  byte stream.
+                  <strong>SHA-256 fingerprint</strong> calculated over the exact original uploaded file bytes.
                 </p>
               </div>
               <div className="breakdown-item">
@@ -212,7 +220,7 @@ export default function HowToUsePage() {
             </span>
             <div>
               <h3>Download & Share Audit Reports</h3>
-              <p className="step-subtitle">Export a tamper-evident JSON audit record conforming to PRD v2.0</p>
+              <p className="step-subtitle">Export a versioned JSON inspection report conforming to PRD v2.0</p>
             </div>
           </div>
           <div className="step-content">
@@ -226,7 +234,7 @@ export default function HowToUsePage() {
                 versioned check definitions, and evidence items.
               </li>
               <li>
-                <strong>Privacy Guaranteed:</strong> By default, reports exclude raw image bytes (
+                <strong>Privacy by Default:</strong> By default, reports exclude raw image bytes (
                 <code>includedOriginalImage: false</code>) and precise GPS coordinates (
                 <code>includedPreciseGps: false</code>).
               </li>

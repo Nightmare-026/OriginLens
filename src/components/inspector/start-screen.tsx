@@ -9,6 +9,7 @@ import {
   CameraIcon,
   CpuIcon,
   SlidersIcon,
+  UploadCloudIcon,
 } from '@/components/ui/icons';
 
 /**
@@ -45,10 +46,12 @@ export function StartScreen({
   const [loadingSample, setLoadingSample] = useState<string | null>(null);
   const [presetError, setPresetError] = useState<string | null>(null);
   const [isDragOverInspect, setIsDragOverInspect] = useState(false);
+  const [isDragOverA, setIsDragOverA] = useState(false);
+  const [isDragOverB, setIsDragOverB] = useState(false);
 
   // Global Clipboard Paste (Ctrl+V) handler
   useEffect(() => {
-    if (disabled || mode === 'compare') return;
+    if (disabled) return;
     const handlePaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
@@ -59,7 +62,17 @@ export function StartScreen({
           const file = item.getAsFile();
           if (file) {
             e.preventDefault();
-            onFile(file);
+            if (mode === 'compare') {
+              if (first === null) {
+                setFirst(file);
+                setComparisonError(null);
+              } else if (second === null) {
+                setSecond(file);
+                setComparisonError(null);
+              }
+            } else {
+              onFile(file);
+            }
             break;
           }
         }
@@ -68,7 +81,7 @@ export function StartScreen({
 
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [disabled, mode, onFile]);
+  }, [disabled, mode, onFile, first, second]);
 
   // Reset sequential focus caret when active element is explicitly blurred to document body
   useEffect(() => {
@@ -200,26 +213,38 @@ export function StartScreen({
             records a fingerprint, a bounded metadata allowlist, and the result of the pinned C2PA
             validator.
           </p>
-          <p className="field">
-            <label htmlFor="inspect-file">Image file (JPEG or PNG, or drag & drop / paste)</label>
-            <input
-              id="inspect-file"
-              data-testid="inspect-file"
-              type="file"
-              accept="image/jpeg,image/png"
-              disabled={disabled}
-              onChange={(event) => {
-                const file = event.currentTarget.files?.[0];
 
-                if (file !== undefined) {
-                  onFile(file);
-                }
+          <div className="prominent-dropzone-box">
+            <div className="dropzone-upload-icon-wrapper" aria-hidden="true">
+              <UploadCloudIcon size={36} />
+            </div>
+            <p className="dropzone-main-text">
+              <strong>Drag and drop image here</strong>, or paste from clipboard (<code>Ctrl+V</code>)
+            </p>
+            <p className="field dropzone-file-field">
+              <label htmlFor="inspect-file">Image file (JPEG or PNG, or drag &amp; drop / paste)</label>
+              <input
+                id="inspect-file"
+                data-testid="inspect-file"
+                type="file"
+                accept="image/jpeg,image/png"
+                disabled={disabled}
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0];
 
-                // Allow the same file to be selected again after a clear.
-                event.currentTarget.value = '';
-              }}
-            />
-          </p>
+                  if (file !== undefined) {
+                    onFile(file);
+                  }
+
+                  // Allow the same file to be selected again after a clear.
+                  event.currentTarget.value = '';
+                }}
+              />
+            </p>
+            <p className="dropzone-subtext">
+              Supported formats: JPEG (<code>.jpg</code>, <code>.jpeg</code>) and PNG (<code>.png</code>) up to 20 MiB &bull; 20 MP max
+            </p>
+          </div>
         </section>
       )}
 
@@ -230,34 +255,103 @@ export function StartScreen({
             A Provenance Delta checks each file independently, then places the recorded properties side
             by side. It does not presume which file is original, older, or edited.
           </p>
-          <p className="field">
-            <label htmlFor="compare-file-a">File A (JPEG or PNG)</label>
-            <input
-              id="compare-file-a"
-              data-testid="compare-file-a"
-              type="file"
-              accept="image/jpeg,image/png"
-              disabled={disabled}
-              onChange={(event) => {
-                setFirst(event.currentTarget.files?.[0] ?? null);
-                setComparisonError(null);
+
+          <div className="compare-inputs-grid">
+            <div
+              className={`compare-file-card ${isDragOverA ? 'dropzone-active' : ''}`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragOverA(true);
               }}
-            />
-          </p>
-          <p className="field">
-            <label htmlFor="compare-file-b">File B (JPEG or PNG)</label>
-            <input
-              id="compare-file-b"
-              data-testid="compare-file-b"
-              type="file"
-              accept="image/jpeg,image/png"
-              disabled={disabled}
-              onChange={(event) => {
-                setSecond(event.currentTarget.files?.[0] ?? null);
-                setComparisonError(null);
+              onDragLeave={() => setIsDragOverA(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragOverA(false);
+                const file = e.dataTransfer?.files?.[0];
+                if (file && !disabled) {
+                  setFirst(file);
+                  setComparisonError(null);
+                }
               }}
-            />
-          </p>
+            >
+              <div className="compare-file-card-header">
+                <div className="dropzone-upload-icon-wrapper-sm" aria-hidden="true">
+                  <UploadCloudIcon size={20} className="compare-card-icon" />
+                </div>
+                <span className="compare-card-title">Candidate File A</span>
+              </div>
+              <p className="dropzone-compare-cue">
+                <strong>Drag &amp; drop File A here</strong>, or browse
+              </p>
+              <p className="field">
+                <label htmlFor="compare-file-a">File A (JPEG or PNG, or drag &amp; drop)</label>
+                <input
+                  id="compare-file-a"
+                  data-testid="compare-file-a"
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  disabled={disabled}
+                  onChange={(event) => {
+                    setFirst(event.currentTarget.files?.[0] ?? null);
+                    setComparisonError(null);
+                  }}
+                />
+              </p>
+              {first !== null && (
+                <p className="compare-file-info">
+                  Selected: <strong>{first.name}</strong> ({(first.size / (1024 * 1024)).toFixed(2)} MB)
+                </p>
+              )}
+            </div>
+
+            <div
+              className={`compare-file-card ${isDragOverB ? 'dropzone-active' : ''}`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragOverB(true);
+              }}
+              onDragLeave={() => setIsDragOverB(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragOverB(false);
+                const file = e.dataTransfer?.files?.[0];
+                if (file && !disabled) {
+                  setSecond(file);
+                  setComparisonError(null);
+                }
+              }}
+            >
+              <div className="compare-file-card-header">
+                <div className="dropzone-upload-icon-wrapper-sm" aria-hidden="true">
+                  <UploadCloudIcon size={20} className="compare-card-icon" />
+                </div>
+                <span className="compare-card-title">Candidate File B</span>
+              </div>
+              <p className="dropzone-compare-cue">
+                <strong>Drag &amp; drop File B here</strong>, or browse
+              </p>
+              <p className="field">
+                <label htmlFor="compare-file-b">File B (JPEG or PNG, or drag &amp; drop)</label>
+                <input
+                  id="compare-file-b"
+                  data-testid="compare-file-b"
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  disabled={disabled}
+                  onChange={(event) => {
+                    setSecond(event.currentTarget.files?.[0] ?? null);
+                    setComparisonError(null);
+                  }}
+                />
+              </p>
+              {second !== null && (
+                <p className="compare-file-info">
+                  Selected: <strong>{second.name}</strong> ({(second.size / (1024 * 1024)).toFixed(2)} MB)
+                </p>
+              )}
+            </div>
+          </div>
+
           <button
             type="button"
             data-testid="compare-start"
@@ -288,7 +382,7 @@ export function StartScreen({
       )}
 
       {/* 1-Click Preset Demo Gallery (Accordion Disclosure for Clean Keyboard Navigation) */}
-      <details open className="panel presets-panel" style={{ cursor: 'pointer' }}>
+      <details className="panel presets-panel" style={{ cursor: 'pointer' }}>
         <summary id="presets-heading" style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-headline)' }}>
           1-Click Live Demo Gallery (Sample Credentials & Pairs)
         </summary>

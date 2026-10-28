@@ -13,9 +13,37 @@ const sourceSans3 = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://originlens.org'),
   title: 'OriginLens — Evidence-First Media Provenance Explorer',
   description:
     'Inspect supported embedded provenance evidence and compare two images without a real or fake verdict. Grounded in C2PA Content Credentials and exact cryptographic fingerprints.',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'OriginLens — Evidence-First Media Provenance Explorer',
+    description:
+      'Inspect supported embedded provenance evidence and compare two images without a real or fake verdict. Grounded in C2PA Content Credentials and exact cryptographic fingerprints.',
+    url: 'https://originlens.org',
+    siteName: 'OriginLens',
+    images: [
+      {
+        url: '/logo.png',
+        width: 128,
+        height: 128,
+        alt: 'OriginLens Logo',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'OriginLens — Evidence-First Media Provenance Explorer',
+    description:
+      'Inspect supported embedded provenance evidence and compare two images without a real or fake verdict. Grounded in C2PA Content Credentials and exact cryptographic fingerprints.',
+    images: ['/logo.png'],
+  },
 };
 
 export const viewport: Viewport = {

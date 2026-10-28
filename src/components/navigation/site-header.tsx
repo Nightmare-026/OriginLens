@@ -83,14 +83,6 @@ export function SiteHeader() {
         {/* Desktop inline navigation links */}
         <nav className="desktop-nav-links" aria-label="Desktop navigation">
           <Link
-            id="nav-home-desktop"
-            data-testid="nav-home-desktop"
-            href="/"
-            className={`desktop-nav-link ${pathname === '/' ? 'nav-link-active' : ''}`}
-          >
-            Home
-          </Link>
-          <Link
             id="nav-inspect-desktop"
             data-testid="nav-inspect-desktop"
             href="/inspect"

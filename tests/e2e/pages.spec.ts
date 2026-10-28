@@ -89,12 +89,19 @@ test('privacy page renders zero-knowledge invariants and passes accessibility', 
   await expectNoHorizontalOverflow(page);
 });
 
-test('header breadboard menu button toggles dropdown list with navigation links', async ({
+test('header suppresses hamburger menu button on desktop and toggles dropdown on mobile', async ({
   page,
 }) => {
+  // On desktop viewports (>= 768px), the hamburger button is suppressed
+  await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto('/');
 
   const menuButton = page.getByTestId('nav-menu-button');
+  await expect(menuButton).toBeHidden();
+  await expect(page.getByTestId('nav-inspect-desktop')).toBeVisible();
+
+  // On mobile viewports (< 768px), the hamburger button is visible and interactive
+  await page.setViewportSize({ width: 375, height: 667 });
   await expect(menuButton).toBeVisible();
   await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
 
@@ -127,27 +134,61 @@ test('landing page renders storytelling hero, pipeline, and passes accessibility
   // Single h1 rule
   const headings = page.locator('h1');
   await expect(headings).toHaveCount(1);
-  await expect(headings).toContainText('Truth Over Deception');
+  await expect(headings).toContainText('Truth Through Verification');
 
   // Hero CTAs
   await expect(page.getByTestId('cta-hero-inspect')).toBeVisible();
   await expect(page.getByTestId('cta-hero-compare')).toBeVisible();
 
   // Trust indicators
-  await expect(page.getByText('100% Client-Side Privacy')).toBeVisible();
+  await expect(page.getByText('100% Client-Side Inspection by Default')).toBeVisible();
   await expect(page.getByText('C2PA WebAssembly Standard')).toBeVisible();
 
-  // Interactive Mini-Demo tab switching
-  await expect(page.getByText('Live Cryptographic Evidence Engine')).toBeVisible();
-  await page.getByRole('tab', { name: /Binding Mismatch/ }).click();
-  await expect(page.getByText('assertion.dataHash.mismatch')).toBeVisible();
-  await page.getByRole('tab', { name: /Unsigned Photo/ }).click();
-  await expect(page.getByText('Sony Alpha 7R V')).toBeVisible();
-  await page.getByRole('tab', { name: /Verified C2PA/ }).click();
-  await expect(page.getByText('Adobe Creative Cloud')).toBeVisible();
+  // Interactive Pipeline Diagram tab switching across all 4 stages
+  await expect(page.getByText('Interactive Cryptographic Verification Pipeline')).toBeVisible();
+  await expect(page.getByText('Stage 01: Preflight Intake')).toBeVisible();
+  await expect(page.getByText('intake.format.valid')).toBeVisible();
+
+  // Switch to Stage 2: SHA-256 Digest
+  await page.getByRole('tab', { name: /SHA-256 Digest/ }).click();
+  await expect(page.getByText('Stage 02: Original-Byte Cryptographic Hash')).toBeVisible();
+  await expect(page.getByText('sha256.digest')).toBeVisible();
+
+  // Switch to Stage 3: WASM C2PA Engine
+  await page.getByRole('tab', { name: /WASM C2PA Engine/ }).click();
+  await expect(page.getByText('Stage 03: WebAssembly C2PA Verification Engine')).toBeVisible();
+  await expect(page.getByText('c2pa.manifest')).toBeVisible();
+
+  // Switch to Stage 4: Meta Llama Co-Pilot
+  await page.getByRole('tab', { name: /Meta Llama Co-Pilot/ }).click();
+  await expect(page.getByText('Stage 04: Meta Llama Multimodal Interrogation')).toBeVisible();
+  await expect(page.getByText('llama.payload')).toBeVisible();
+
+  // Test WAI-ARIA roving tabindex and arrow key navigation
+  const stage1Tab = page.locator('#tab-stage-1');
+  await stage1Tab.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#tab-stage-2')).toBeFocused();
+  await expect(page.getByText('Stage 02: Original-Byte Cryptographic Hash')).toBeVisible();
+
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#tab-stage-3')).toBeFocused();
+  await expect(page.getByText('Stage 03: WebAssembly C2PA Verification Engine')).toBeVisible();
+
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('#tab-stage-2')).toBeFocused();
+
+  await page.keyboard.press('Home');
+  await expect(page.locator('#tab-stage-1')).toBeFocused();
+
+  await page.keyboard.press('End');
+  await expect(page.locator('#tab-stage-4')).toBeFocused();
+  await expect(page.getByText('Stage 04: Meta Llama Multimodal Interrogation')).toBeVisible();
 
   // Storytelling & Pipeline & Features
-  await expect(page.getByText('The Anti-Snake-Oil Philosophy')).toBeVisible();
+  await expect(page.getByText('The Provenance Approach')).toBeVisible();
+  await expect(page.getByText('The Provenance Standard')).toBeVisible();
+  await expect(page.getByText('Why Statistical Detection Fails & Cryptographic Verification Succeeds')).toBeVisible();
   await expect(page.getByText('How OriginLens Verifies Integrity')).toBeVisible();
   await expect(page.getByText('Evidence Ledger', { exact: true })).toBeVisible();
   await expect(page.getByText('Provenance Delta', { exact: true })).toBeVisible();
@@ -206,7 +247,6 @@ test('verifies user visual requests: no hero pill, clean story cards, transparen
 
   // 4. Navbar links & brand logo: No underline on hover
   const navLinks = [
-    page.getByTestId('nav-home-desktop'),
     page.getByTestId('nav-inspect-desktop'),
     page.getByTestId('nav-compare-desktop'),
     page.getByTestId('nav-how-to-use-desktop'),
@@ -221,5 +261,45 @@ test('verifies user visual requests: no hero pill, clean story cards, transparen
     );
     expect(textDecoration).toBe('none');
   }
+});
+
+test('verifies correct canonical and openGraph metadata across all public routes', async ({
+  page,
+}) => {
+  const routes = [
+    { path: '/', canonical: 'https://originlens.org' },
+    { path: '/inspect', canonical: 'https://originlens.org/inspect' },
+    { path: '/compare', canonical: 'https://originlens.org/compare' },
+    { path: '/how-to-use', canonical: 'https://originlens.org/how-to-use' },
+    { path: '/privacy', canonical: 'https://originlens.org/privacy' },
+  ];
+
+  for (const route of routes) {
+    await page.goto(route.path);
+    const canonicalLink = page.locator('link[rel="canonical"]');
+    await expect(canonicalLink).toHaveAttribute('href', route.canonical);
+  }
+});
+
+test('compare screen desktop layout renders balanced 2-column dropzone cards', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/compare');
+
+  // Verify compare cards exist
+  const cardA = page.locator('.compare-file-card').nth(0);
+  const cardB = page.locator('.compare-file-card').nth(1);
+  await expect(cardA).toBeVisible();
+  await expect(cardB).toBeVisible();
+
+  // Verify prominent dropzone cues and icons
+  await expect(cardA.getByText('Drag & drop File A here')).toBeVisible();
+  await expect(cardB.getByText('Drag & drop File B here')).toBeVisible();
+
+  // Verify 2-column grid layout
+  const grid = page.locator('.compare-inputs-grid');
+  await expect(grid).toBeVisible();
+  const boxA = await cardA.boundingBox();
+  const boxB = await cardB.boundingBox();
+  expect(boxA && boxB && Math.abs(boxA.y - boxB.y) < 2).toBe(true);
 });
 
