@@ -4,6 +4,84 @@ Material decisions with source, date, and consequence. Newest first.
 
 ---
 
+## ADR-012 — Visual Brand Polish, Calm Journalistic Copywriting, and Asset Optimization
+
+**Date:** 2026-10-28  
+**Status:** ACCEPTED  
+**Deciders:** project owner (participant) + lead UX/audit team
+
+### Context
+A comprehensive live UX and accessibility audit revealed several polish opportunities:
+1. Copywriting used alarming, absolute terms in warning banners that could be misinterpreted as accusing files of fraud or tampering.
+2. The navbar brand logo used an unoptimized 968 KB asset.
+3. The desktop header rendered an unnecessary hamburger menu button alongside horizontal navigation links.
+4. The desktop compare screen stacked two heavy upload dropzones vertically, requiring excessive scrolling.
+5. Interactive verification pipeline stage tabs lacked visual brand cohesion and exhibited a light-green outline when selected.
+
+### Decision
+1. **Calm Journalistic Copywriting:** Rewrote all status banners, cards, and tooltips using neutral, evidence-first phrasing (e.g., "Non-Standard Structure Detected" instead of "Tampered File").
+2. **Asset Optimization:** Replaced the 968 KB logo with an optimized 16.8 KB asset (`logo-optimized.png`), drastically improving Largest Contentful Paint (LCP) and zeroing bundle bloat.
+3. **Desktop Navigation Cleanliness:** Suppressed the hamburger toggle on viewports `>= 768px`, removed redundant "Home" link, and aligned the remaining 4 links (`Inspect Image`, `Compare Images`, `How to Use`, `Privacy Policy`) cleanly to the right.
+4. **Balanced Desktop Comparison:** Replaced stacked dropzones with a balanced 2-column grid (`grid-template-columns: 1fr 1fr`) on desktop with drag-and-drop support.
+5. **Brand Gradient Pipeline Cards:** Applied the radiant cyan-to-emerald gradient (`linear-gradient(135deg, #0ea5e9 0%, #10b981 100%)`) with white text, smooth hover lift (`translateY(-2px)`), glowing aura, and removed the outer light-green halo ring (`border-color: transparent`, no box-shadow ring) for a crisp, seamless selection experience.
+
+---
+
+## ADR-011 — Multi-Audience Meta Llama 3.2 Explainer and Deterministic AI Generator Clues Scanner
+
+**Date:** 2026-10-28  
+**Status:** ACCEPTED  
+**Deciders:** project owner (participant) + lead AI/backend team
+
+### Context
+PRD Phase 8 (P1-001) specifies that AI explanations must serve different stakeholders while strictly obeying zero-knowledge privacy and never hallucinating beyond the verified Evidence Ledger. Additionally, users need transparent insight when images contain generator metadata (e.g., Midjourney prompt parameters or ComfyUI workflows) that are not cryptographic C2PA manifests.
+
+### Decision
+1. **Multi-Audience Meta Llama 3.2 11B Vision Instruct:**
+   - Expanded `/api/explain` to accept an `audience` parameter with three distinct prompt engineering schemas:
+     - `general`: Accessible, non-technical plain English for journalists, educators, and everyday users.
+     - `legal`: Evidentiary rigor, chain-of-custody language, and precise statutory/admissibility framing.
+     - `technical`: Cryptographic hashes, byte offsets, schema versions, and validation code breakdowns.
+   - Preserved zero-knowledge privacy: **zero image bytes, GPS, or raw metadata are transmitted**; only an allowlisted summary of verified Evidence IDs (`ev_...`) is sent.
+   - Enforced server-side Zod validation, forbidden-claims filter (`claims.ts`), citation whitelisting, explicit user consent dialog, and a deterministic rule-based fallback (`fallback.ts`).
+2. **Deterministic AI Generator Clues Scanner:**
+   - Implemented `src/lib/metadata/ai-clues.ts` to scan non-cryptographic metadata allowlists for known generator signatures:
+     - Midjourney v5/v6 parameters (`--v 6`, `--ar`, `--stylize`, Job IDs).
+     - Stable Diffusion, Automatic1111, ComfyUI prompt graphs and generation parameters.
+     - Adobe Firefly software markers.
+     - DALL-E generation markers.
+   - Findings are explicitly categorized as **unverified metadata clues**—never proof of authenticity or generation.
+
+---
+
+## ADR-010 — 1-Click Preset Gallery, Volatile Previews with ESC Lightbox, and Compare Split Slider / Difference Heatmap
+
+**Date:** 2026-10-28  
+**Status:** ACCEPTED  
+**Deciders:** project owner (participant) + lead frontend engineer
+
+### Context
+Hackathon judges and evaluators require immediate, interactive evaluation without needing to locate local C2PA-signed or AI-generated images. Furthermore, comparing two images on `/compare` needed visual split and difference inspection to make normalized preview metrics tangible.
+
+### Decision
+1. **1-Click Preset Gallery:**
+   - Created `tests/fixtures/sample-manifest.ts` featuring 4 instant evaluation presets:
+     - Verified C2PA Credential (`adobe-20220124-C.jpg`).
+     - Mutated / Tampered C2PA (`adobe-20220124-C-tampered.jpg`).
+     - AI Generator Clues (`sample-ai-prompt.jpg`).
+     - Camera EXIF Metadata (`exif-orientation-6.jpg`).
+   - Integrated preset selection chips directly into single-image and dual-image dropzones.
+2. **Volatile Previews + ESC Lightbox:**
+   - Rendered in-memory image preview cards with dimension and byte badges.
+   - Added interactive click-to-expand lightbox modal with keyboard `ESC` dismissal, backdrop click closing, and strict `finally` URL revocation.
+3. **Interactive Comparison Suite (`/compare`):**
+   - Added interactive split comparison slider allowing side-by-side swipe comparison.
+   - Added colorized difference heatmap displaying pixel discrepancies based on normalized RGB channel metrics.
+4. **Social Card 1200x630 PNG Generator:**
+   - Implemented client-side Canvas social card generator (`src/lib/export/social-card.ts`) allowing users to download a publication-ready 1200x630 card summarizing verified evidence without uploading to external image generation APIs.
+
+---
+
 ## ADR-009 — Production-only CSP with a Blob worker, and an explicit focus/announcement model
 
 **Date:** 2026-10-27

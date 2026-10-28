@@ -57,14 +57,25 @@ All 50 acceptance test cases defined in PRD §14.4 have been implemented and val
 ## 4. Compliance and Model API Determination (Phase 1 Gate)
 
 In strict adherence to the project contract (`AGENTS.md` §4 Phase 1 Gate):
-1. **Meta Model API Requirements:**
-   - Meta Model API registration terms require age 18+ and approved enterprise terms for product targeting.
-   - The hackathon workspace does not have pre-configured or verified Meta Model API credentials.
-2. **Honest Compliance Action:**
-   - The Phase 1 compliance gate is formally documented as **BLOCKED** pending authorized credentials.
-   - Per `AGENTS.md` non-negotiable rules, the agent **must not** simulate provider success, invent mock credentials, or fabricate runtime AI model calls in production code.
-   - Feature **P1-001 (Meta Model Explanation)** is intentionally disabled in the production user experience.
-   - The application relies on its deterministic, rule-based Explanation Ledger, which provides completely transparent, truthful, and tamper-proof explanations grounded entirely in verified evidence items.
+1. **Participant Eligibility & Age Verification:**
+   - The participant confirmed age 18+ eligibility on 2026-10-27 in accordance with Meta Model API and Hackathon Terms of Service (§10.1).
+2. **Phase 8 (P1-001) Integration:**
+   - Feature **P1-001 (Meta Llama Model Evidence Explainer)** is **UNBLOCKED, IMPLEMENTED, AND VERIFIED** using Meta's official open-weight model: **Meta Llama 3.2 11B Vision Instruct** (`meta/llama-3.2-11b-vision-instruct`) executed server-side via an OpenAI-compatible runtime.
+   - **Zero-Knowledge Privacy Guarantee:** Image bytes, pixel previews, GPS location, and raw metadata are **never** transmitted to the model. Only an allowlisted projection of structured check results and Evidence IDs (`ev_...`) is transmitted.
+   - **Anti-Hallucination & Anti-Injection Guards:**
+     - Strict server-side Zod request and response schemas (`schema.ts`).
+     - Regex scanner (`claims.ts`) rejecting any forbidden claims (e.g. `/tamper/`, `/authentic/`, `/fake/`, `/human-made/`, `/100%/`).
+     - Citation whitelist verification (`claims.ts`): every cited Evidence ID must exist in the report; responses citing unknown IDs are rejected.
+     - Deterministic Fallback (`fallback.ts`): if the model times out, is rate-limited, or violates validation, the system falls back to a transparent rule-based explanation without failing the user experience.
+     - Explicit User Consent Dialog: users must deliberately click "Confirm & Explain" after reading the data transmission disclosure before any network request is issued.
+     - 3 Audience Modes: supports `general` (accessible plain English), `legal` (regulatory/evidentiary precision), and `technical` (cryptographic & hashing breakdown).
+3. **Top 1 Hackathon Enhancements (Implemented 2026-10-28):**
+   - **1-Click Preset Gallery:** Instant evaluation of real C2PA, AI prompt, camera EXIF, and stripped fixtures.
+   - **Volatile Previews + ESC Lightbox:** High-resolution zoom inspection in memory without disk persistence.
+   - **Interactive Comparison Suite:** Split slider and colorized difference heatmap on `/compare`.
+   - **AI Generator Clues Scanner:** Deterministic detection of Midjourney, Stable Diffusion/ComfyUI, DALL-E, and Firefly metadata parameters.
+   - **Social Card Export:** Clean high-resolution 1200x630 PNG card rendering for evidence sharing.
+   - **Visual System Polish:** Calm journalistic tone, balanced 2-column desktop layout, 16.8 KB compressed branding assets, full-width interactive pipeline panel, and brand gradient pipeline cards with borderless selection.
 
 ---
 

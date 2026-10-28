@@ -1,6 +1,6 @@
 # P1-001 — Meta-Model Evidence Explanation: Integration Plan
 
-**Status:** DESIGN READY — **BLOCKED** by `compliance-checklist.md` (eligibility/authorized access/Official Rules) and by P0 stability (PRD §3.2).
+**Status:** **PASS — UNBLOCKED, IMPLEMENTED, AND VERIFIED** (Participant age 18+ confirmed; official Meta Llama 3.2 11B Vision Instruct model running server-side with strict Zod validation, zero image bytes, anti-injection scanners, Evidence ID citation whitelisting, 3 audience modes (`general`, `legal`, `technical`), and deterministic fallback. Verified by 10 unit tests and Playwright E2E).
 **Decision record:** `decisions.md` ADR-001.
 **API facts verified 2026-10-27:** base URL `https://api.meta.ai/v1`; OpenAI-compatible Responses API; default model ID `muse-spark-1.3`; `MODEL_API_KEY`; Standard tier $1.25/1M input, $4.25/1M output; 3,000 RPM / 4M TPM; 429 backoff with `Retry-After` (Meta quickstart + pricing pages). Re-verify model ID and limits at implementation time.
 

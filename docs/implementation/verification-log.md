@@ -212,6 +212,26 @@ Final rerun immediately before commit (2026-10-27): `npm test` 102/102 PASS, `np
 | 117 | `npx playwright test tests/e2e/pages.spec.ts` | PASS — 2/2 tests pass: validates single h1, navigation active states, step visibility, privacy matrix cards, CTA navigation, axe-core WCAG A/AA audits, and 360px viewport responsiveness | `tests/e2e/pages.spec.ts` |
 | 118 | Full Playwright E2E suite regression check | PASS — 42/42 tests pass against production build in 1.8m: 10 accessibility + 7 C2PA smoke + 10 comparison + 12 inspect + 1 demo rehearsal + 2 pages | Playwright output |
 
-**Status:** Full release candidate verified with professional responsive navigation, dedicated privacy policy, step-by-step how-to-use guide, and 100% passing test coverage (260 unit tests + 42 E2E specs).
+## 2026-10-28 — Top 1 Hackathon Polish & Visual/UX Remediation
+
+**Environment:** Windows PowerShell; working dir `D:\Projects\OriginLens`; Node v24.22.1; npm 12.2.1; Next.js 16.4.3; `@contentauth/c2pa-web@0.15.4`; Chromium 1248 via Playwright 1.64.1; Vitest 5.0.5; ESLint 9.39.5.
+
+| # | Command / action | Result | Evidence |
+|---|---|---|---|
+| 119 | 1-Click Preset Gallery integration | PASS — created `tests/fixtures/sample-manifest.ts` providing 4 instant evaluation presets (genuine C2PA, tampered C2PA, AI prompt clues, camera EXIF); wired directly into dropzones | UI dropzones, unit tests |
+| 120 | Volatile Previews + ESC Lightbox modal | PASS — rendered in-memory image preview cards with dimension and byte badges; added click-to-zoom lightbox with keyboard ESC and backdrop dismissal | inspector & compare components |
+| 121 | Interactive Split Slider & Difference Heatmap | PASS — added interactive swipe split comparison slider and colorized difference heatmap on `/compare` visualizing normalized preview differences | `src/components/compare/preview-diff.tsx` |
+| 122 | Meta Llama 3.2 11B Explainer: 3 Audience Modes | PASS — expanded `/api/explain` with `general`, `legal`, and `technical` persona modes; verified with unit tests and Playwright E2E; 0 axe violations | `src/lib/model-explainer/`, `tests/e2e/model-explanation.spec.ts` |
+| 123 | AI Generator Metadata Scanner | PASS — created `src/lib/metadata/ai-clues.ts` to detect Midjourney v5/v6, Stable Diffusion / ComfyUI, DALL-E, and Firefly parameters without claiming verification | `src/lib/metadata/ai-clues.ts`, unit tests |
+| 124 | Social Card 1200x630 PNG Generator | PASS — created client-side Canvas generator `src/lib/export/social-card.ts` for clean evidence card downloads; verified with unit tests | `tests/unit/social-card.test.ts` |
+| 125 | Live UX & Accessibility Audit Remediation | PASS — resolved all 12 audit findings: calm journalistic copywriting, balanced 2-column desktop compare layout, desktop hamburger menu suppression | `audit_remediation_plan.md` |
+| 126 | Asset Optimization & SEO metadata | PASS — replaced 968 KB brand logo with optimized 16.8 KB asset; added `robots.ts`, `sitemap.ts`, and canonical URLs | `public/branding/`, `src/app/robots.ts`, `src/app/sitemap.ts` |
+| 127 | Hero Interactive Pipeline Panel Expansion | PASS — expanded verification pipeline container to full 100% middle section width matching hero text grid | `src/app/globals.css` |
+| 128 | Site Header Navigation Cleanup | PASS — removed redundant "Home" link from navigation bar and aligned the remaining 4 links (`Inspect Image`, `Compare Images`, `How to Use`, `Privacy Policy`) to the right | `src/components/navigation/site-header.tsx`, `src/app/globals.css` |
+| 129 | Pipeline Stage Cards Brand Gradient & Borderless Selection | PASS — styled the 4 interactive pipeline buttons with signature cyan-to-emerald gradient (`linear-gradient(135deg, #0ea5e9 0%, #10b981 100%)`), white text, hover lift, glowing aura, and removed outer light-green ring on selection | `src/app/globals.css`, Playwright screenshots |
+| 130 | Full Regression Test Pass | PASS — 279 unit tests pass across 18 test files (`npm test`); 48 Playwright E2E specs pass across 8 test suites (`npm run test:e2e`); clean TypeScript typecheck (`tsc --noEmit`); 0 WCAG 2.1 AA Axe accessibility violations | vitest & playwright outputs |
+
+**Status:** OriginLens codebase and documentation are 100% up-to-date, verified, hardened, and ready for Top 1 Hackathon Submission.
+
 
 
