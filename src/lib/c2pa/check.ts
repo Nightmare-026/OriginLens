@@ -413,6 +413,71 @@ function buildEvidence(
     }
   }
 
+  if (store.signatureInfo) {
+    if (store.signatureInfo.issuer !== null) {
+      push({
+        key: 'c2pa.signature.issuer',
+        value: store.signatureInfo.issuer,
+        valueType: 'text',
+        authority: 'cryptographic_validation',
+        interpretationCode: 'recorded_signature_issuer',
+      });
+    }
+
+    if (store.signatureInfo.commonName !== null) {
+      push({
+        key: 'c2pa.signature.common_name',
+        value: store.signatureInfo.commonName,
+        valueType: 'text',
+        authority: 'cryptographic_validation',
+        interpretationCode: 'recorded_signature_common_name',
+      });
+    }
+
+    if (store.signatureInfo.serialNumber !== null) {
+      push({
+        key: 'c2pa.signature.cert_serial_number',
+        value: store.signatureInfo.serialNumber,
+        valueType: 'code',
+        authority: 'cryptographic_validation',
+        interpretationCode: 'recorded_signature_serial',
+      });
+    }
+
+    if (store.signatureInfo.time !== null) {
+      const parsedTime = new Date(store.signatureInfo.time);
+      const isoTime = !Number.isNaN(parsedTime.getTime()) ? parsedTime.toISOString() : null;
+
+      if (isoTime !== null) {
+        push({
+          key: 'c2pa.signature.time',
+          value: isoTime,
+          valueType: 'timestamp',
+          authority: 'cryptographic_validation',
+          interpretationCode: 'recorded_signature_time',
+        });
+      } else {
+        push({
+          key: 'c2pa.signature.time',
+          value: store.signatureInfo.time,
+          valueType: 'text',
+          authority: 'cryptographic_validation',
+          interpretationCode: 'recorded_signature_time',
+        });
+      }
+    }
+
+    if (store.signatureInfo.algorithm !== null) {
+      push({
+        key: 'c2pa.signature.algorithm',
+        value: store.signatureInfo.algorithm,
+        valueType: 'code',
+        authority: 'cryptographic_validation',
+        interpretationCode: 'recorded_signature_algorithm',
+      });
+    }
+  }
+
   return { evidence, actions, ingredients };
 }
 

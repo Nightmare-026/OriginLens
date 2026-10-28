@@ -37,6 +37,14 @@ export type C2paRecordedIngredient = Readonly<{
   title: string | null;
 }>;
 
+export type C2paSignatureInfo = Readonly<{
+  algorithm: string | null;
+  issuer: string | null;
+  commonName: string | null;
+  serialNumber: string | null;
+  time: string | null;
+}>;
+
 export type MappedC2paStore = Readonly<{
   /** The SDK's own `validation_state` string, bounded, or null when absent. */
   validationState: string | null;
@@ -48,6 +56,7 @@ export type MappedC2paStore = Readonly<{
   activeManifestLabel: string | null;
   actions: readonly C2paRecordedAction[];
   ingredients: readonly C2paRecordedIngredient[];
+  signatureInfo?: C2paSignatureInfo | null;
   /** Entries dropped because of bounded budgets. Reported, never silently lost. */
   omittedEntryCount: number;
 }>;

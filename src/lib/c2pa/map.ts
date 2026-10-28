@@ -2,6 +2,7 @@ import { sanitizeUntrustedText } from '@/lib/security/text';
 import type {
   C2paRecordedAction,
   C2paRecordedIngredient,
+  C2paSignatureInfo,
   C2paStatusEntry,
   C2paStatusCodeGroup,
   MappedC2paStore,
@@ -277,6 +278,22 @@ function resolveActiveManifest(store: Record<string, unknown>): ResolvedManifest
   return { manifest: onlyManifest, label: onlyKey === undefined ? null : readText(onlyKey, MAX_TEXT_LENGTH) };
 }
 
+function readSignatureInfo(manifest: Record<string, unknown>): C2paSignatureInfo | null {
+  const info = manifest['signature_info'];
+
+  if (!isRecord(info)) {
+    return null;
+  }
+
+  return {
+    algorithm: readText(info['alg'], MAX_CODE_LENGTH),
+    issuer: readText(info['issuer'], MAX_TEXT_LENGTH),
+    commonName: readText(info['common_name'], MAX_TEXT_LENGTH),
+    serialNumber: readText(info['cert_serial_number'], MAX_TEXT_LENGTH),
+    time: readText(info['time'], MAX_TEXT_LENGTH),
+  };
+}
+
 function mapStore(raw: unknown): MappedC2paStore | null {
   if (!isRecord(raw)) {
     return null;
@@ -326,6 +343,7 @@ function mapStore(raw: unknown): MappedC2paStore | null {
     activeManifestLabel: resolved.label,
     actions: actionsRead.actions,
     ingredients: ingredientsRead.ingredients,
+    signatureInfo: manifest === null ? null : readSignatureInfo(manifest),
     omittedEntryCount,
   };
 }

@@ -146,6 +146,22 @@ describe('C2PA check and finding derivation', () => {
     );
   });
 
+  it('records signature information from the manifest into evidence', () => {
+    const store = mappedRecordedStore();
+    const { check } = buildC2paResult(buildInput({ status: 'present', store }));
+    const byKey = new Map(check.evidence.map((item) => [item.key, item]));
+
+    expect(byKey.get('c2pa.signature.issuer')?.value).toBe('C2PA Test Signing Cert');
+    expect(byKey.get('c2pa.signature.issuer')?.authority).toBe('cryptographic_validation');
+    expect(byKey.get('c2pa.signature.common_name')?.value).toBe('C2PA Signer');
+    expect(byKey.get('c2pa.signature.cert_serial_number')?.value).toBe(
+      '720724073027128164015125666832722375746636448153',
+    );
+    expect(byKey.get('c2pa.signature.time')?.value).toBe('2023-01-24T14:48:56.000Z');
+    expect(byKey.get('c2pa.signature.time')?.valueType).toBe('timestamp');
+    expect(byKey.get('c2pa.signature.algorithm')?.value).toBe('Ps256');
+  });
+
   it('warns that signer trust was not evaluated under the no-anchor policy', () => {
     const { check, finding } = buildC2paResult(
       buildInput({ status: 'present', store: mappedRecordedStore() }),

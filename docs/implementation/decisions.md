@@ -404,3 +404,47 @@ Feature flag `MODEL_EXPLANATION_ENABLED` (default `false`); deleting the route a
 3. Standard tier confirmed in the account/dashboard.
 4. Jurisdiction not in the Restricted Territories.
 5. Exact model ID/version at implementation time (catalog may change).
+
+
+---
+
+## ADR-013 — Category 1 & Category 2 Forensic Extensions Architecture
+
+**Date:** 2026-10-29
+**Status:** ACCEPTED / IMPLEMENTED
+**Deciders:** project owner + implementation agent
+
+### Context
+
+To provide deep, production-grade provenance inspection and forensic evaluation beyond baseline manifest parsing, OriginLens incorporates Category 1 (Feasible Engineering Extensions) and Category 2 (Conditionally Feasible Features based on structured data):
+1. **Signer Trust Anchors & PKI Evaluation:** Distinguish known certificate authorities from test or self-signed credentials without overstating trust.
+2. **Remote / Durable C2PA Credential Recovery:** Look up durable C2PA cloud manifest stores (CAI Manifest Store) by SHA-256 for stripped credentials with zero-knowledge privacy guarantees.
+3. **Invisible Watermarking & 2D DCT Spectral Analysis:** Detect high-frequency spatial energy anomalies characteristic of generative AI decoders and scan for known invisible watermark markers (SynthID, Adobe, Truepic, Digimarc).
+4. **Web Provenance & Reverse Lookup:** Check archive crawlers (Wayback Machine) and generate search links (Google Lens, TinEye, Bing Visual) with explicit user consent.
+5. **Editing-History Lineage Tree:** Reconstruct and render an interactive C2PA provenance graph containing ancestor ingredients, categorized actions, software agents, and expandable parameters.
+6. **Chronology & Provenance Ordering:** Deterministically order compared assets using signed RFC 3161 timestamps vs camera EXIF dates with explicit authority ratings and delta duration formatting.
+
+### Decision
+
+1. **Zero-Knowledge Privacy:** 100% client-side execution by default. Any external network calls transmit only the 64-character SHA-256 hex digest. Zero image bytes, dimensions, GPS coordinates, or EXIF metadata ever leave the user's browser. Outbound reverse-search links remain deactivated until explicit user consent is granted.
+2. **SSRF & API Security Architecture:** `/api/c2pa/lookup` and `/api/web-provenance` enforce strict server-side safeguards:
+   - Same-origin verification rejecting cross-origin requests (`sec-fetch-site` and `origin` checks).
+   - In-memory rate limiting (max 10 requests / 5 min window per client with `Retry-After: 300`).
+   - Strict 64 KiB request body cap.
+   - For `/api/c2pa/lookup`, an SSRF protection allowlist restricts destination hosts strictly to verified Content Authenticity registries (`manifests.contentauthenticity.org`, `cai.contentauth.org`) over HTTPS.
+   - `Cache-Control: no-store` on all responses to protect user privacy.
+3. **Honest Sampling & Anti-Fabrication Invariants:**
+   - PKI trust evaluation consumes authentic `c2pa.signature.*` evidence items derived from parsed manifests; missing certificates evaluate as `not_evaluated` with zero synthetic fallback values.
+   - Frequency spectral inspection computes 2D DCT (Type-II) on authentic image luminance pixels extracted from the rendered volatile preview canvas (Rec. 601 coefficients: `0.299 R + 0.587 G + 0.114 B`). In the absence of rendered preview pixels, the transform reports an honest `inconclusive` state with zero energy shares, eliminating synthetic pseudo-random simulations while preserving metadata watermark marker scanning.
+   - Edit history tree reconstructs actions both from structured C2PA assertions (`c2pa.actions.v2`) and direct manifest actions, guaranteeing all ancestor ingredients and transformations render faithfully.
+   - Chronology ordering compares signed RFC 3161 timestamps vs camera EXIF dates with unambiguous authority ratings, rendered uniquely in the comparison screen without duplicate DOM IDs.
+4. **Heading and Accessible Design:** All panels follow strict heading hierarchy (`h2` -> `h3`) with text contrast exceeding WCAG AA minimums (>= 4.5:1) and zero emoji iconography (handcrafted SVGs only).
+5. **Resilient Degradation:** If external registries fail, time out, or find no records, the system reports typed safe statuses (`not_found`, `inconclusive`, `error`) without crashing or erasing independent local evidence.
+
+### Verification Record
+
+- 321 unit tests passed across 26 test files (100% pass).
+- 48 Playwright E2E tests passed across 7 test suites with 0 automated WCAG A/AA violations.
+- Next.js production build (`next build`) succeeded with all static and dynamic API routes compiled.
+- ESLint (`next lint`) passed with 0 errors and 0 warnings.
+- TypeScript (`tsc --noEmit`) passed with 0 errors.

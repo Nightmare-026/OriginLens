@@ -18,6 +18,11 @@ import {
   formatDimensions,
 } from './labels';
 import { ModelExplanationCard } from './model-explanation';
+import { PkiTrustCard } from './pki-trust-card';
+import { EditHistoryTree } from './edit-history-tree';
+import { SpectralCard } from './spectral-card';
+import { RemoteRecoveryCard } from './remote-recovery-card';
+import { WebProvenanceCard } from './web-provenance-card';
 import {
   EyeIcon,
   CheckCircleIcon,
@@ -838,6 +843,15 @@ export function FileEvidenceSections({ analysis, idPrefix, title, previewUrl }: 
         <CredentialSection analysis={analysis} idPrefix={idPrefix} />
       </section>
 
+      {/* Feature 1: PKI Trust Anchors & Evaluation */}
+      <PkiTrustCard analysis={analysis} idPrefix={idPrefix} />
+
+      {/* Feature 5: Full Editing-History Reconstruction (Lineage Graph Tree) */}
+      <EditHistoryTree analysis={analysis} idPrefix={idPrefix} />
+
+      {/* Feature 2: Remote / Durable C2PA Credential Recovery */}
+      <RemoteRecoveryCard analysis={analysis} idPrefix={idPrefix} />
+
       <section aria-labelledby={tid('metadata-heading')} className="panel">
         <h2 id={tid('metadata-heading')}>Metadata clues</h2>
         <p className="note">
@@ -889,6 +903,12 @@ export function FileEvidenceSections({ analysis, idPrefix, title, previewUrl }: 
           </div>
         </section>
       ) : null}
+
+      {/* Feature 3: Invisible Watermark & Frequency Domain Signal Inspector */}
+      <SpectralCard analysis={analysis} previewUrl={previewUrl} idPrefix={idPrefix} />
+
+      {/* Feature 4: Web Provenance & Reverse Lookup */}
+      <WebProvenanceCard analysis={analysis} idPrefix={idPrefix} />
 
       <section aria-labelledby={tid('explanation-heading')} className="panel">
         <h2 id={tid('explanation-heading')}>Evidence explanation</h2>

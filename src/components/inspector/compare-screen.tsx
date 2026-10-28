@@ -3,6 +3,7 @@ import { useState, useRef, type Ref } from 'react';
 import type { FileAnalysis } from '@/lib/pipeline/types';
 import { PREVIEW_NORMALIZATION_NOTE } from '@/lib/compare/preview';
 import { CheckRow, FileEvidenceSections, ReportActions } from './ledger';
+import { ChronologySection } from './chronology-section';
 import { SplitIcon } from '@/components/ui/icons';
 import {
   CHECK_LABELS,
@@ -420,6 +421,9 @@ export function CompareScreen({
           nameB={secondFile.displayName}
         />
       ) : null}
+
+      {/* Feature 6: Provenance Chronology & Temporal Ordering Determination */}
+      <ChronologySection first={first} second={second} />
 
       <section aria-labelledby="delta-heading" className="panel">
         <h2 id="delta-heading">Comparison result</h2>
