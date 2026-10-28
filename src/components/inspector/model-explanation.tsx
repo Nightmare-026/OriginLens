@@ -10,6 +10,7 @@ export type ModelExplanationProps = Readonly<{
 }>;
 
 type AudienceMode = 'general' | 'newsroom' | 'forensic';
+type ExplainerStatus = 'idle' | 'loading' | 'success' | 'error';
 
 const CURATED_QUESTIONS = [
   'Why is signer trust unanchored in this report?',
@@ -19,16 +20,17 @@ const CURATED_QUESTIONS = [
 
 export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationProps) {
   const [showConsent, setShowConsent] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<ExplainerStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [explanation, setExplanation] = useState<ExplainResponse | null>(null);
   const [audience, setAudience] = useState<AudienceMode>('general');
   const [userQuery, setUserQuery] = useState('');
 
+  const loading = status === 'loading';
   const tid = (name: string) => (idPrefix ? `${idPrefix}${name}` : name);
 
   const handleRequestExplanation = async (customQuery?: string) => {
-    setLoading(true);
+    setStatus('loading');
     setError(null);
 
     const queryToSend = customQuery ?? userQuery;
@@ -95,18 +97,37 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
 
       const data: ExplainResponse = await res.json();
       setExplanation(data);
+      setStatus('success');
       setShowConsent(false);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to request explanation';
       setError(msg);
-    } finally {
-      setLoading(false);
+      setStatus('error');
     }
   };
 
   return (
     <div className="model-explanation-container" data-testid={tid('model-explainer')}>
-      {explanation === null ? (
+      {status === 'loading' ? (
+        <div
+          className="explainer-skeleton-card"
+          data-testid={tid('explainer-loading')}
+          role="status"
+          aria-live="polite"
+        >
+          <div className="explainer-skeleton-header">
+            <span className="badge badge-meta badge-pulse">
+              <span className="pulse-dot" aria-hidden="true" />
+              Synthesizing cryptographic evidence with Meta Llama 3.2...
+            </span>
+          </div>
+          <div className="skeleton-shimmer-box" aria-hidden="true">
+            <div className="skeleton-line skeleton-line-1" />
+            <div className="skeleton-line skeleton-line-2" />
+            <div className="skeleton-line skeleton-line-3" />
+          </div>
+        </div>
+      ) : explanation === null ? (
         <div className="model-explainer-prompt">
           {!showConsent ? (
             <div className="explainer-trigger-row">
@@ -339,6 +360,7 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
               className="button-ghost button-small"
               onClick={() => {
                 setExplanation(null);
+                setStatus('idle');
                 setShowConsent(true);
               }}
             >

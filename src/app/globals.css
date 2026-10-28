@@ -901,11 +901,11 @@ button:disabled {
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  background: var(--header-bg);
-  border-bottom: 1px solid rgba(215, 225, 238, 0.7);
-  box-shadow: 0 4px 14px rgba(166, 180, 200, 0.2), 0 1px 2px rgba(255, 255, 255, 0.8);
+  background: rgba(244, 246, 250, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .site-header a,
@@ -1588,6 +1588,223 @@ button:disabled {
 }
 
 /* ==========================================================================
+   Meta Llama Live Pulse / Skeleton Shimmer
+   ========================================================================== */
+
+.explainer-skeleton-card {
+  padding: 1.5rem;
+  background: var(--surface-canvas);
+  border: 1.5px solid rgba(16, 185, 129, 0.45);
+  border-radius: var(--rounded-lg);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.08), var(--neu-flat);
+  position: relative;
+  overflow: hidden;
+}
+
+.explainer-skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.badge-pulse {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.pulse-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulse-ring 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.skeleton-shimmer-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding: 0.5rem 0;
+}
+
+.skeleton-line {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0.6) 0%,
+    rgba(167, 243, 208, 0.45) 50%,
+    rgba(226, 232, 240, 0.6) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 2s ease-in-out infinite;
+}
+
+.skeleton-line-1 {
+  height: 1.25rem;
+  width: 75%;
+}
+
+.skeleton-line-2 {
+  height: 1rem;
+  width: 95%;
+}
+
+.skeleton-line-3 {
+  height: 1rem;
+  width: 82%;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot,
+  .skeleton-line {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   Lineage Graph Forensics Workbench
+   ========================================================================== */
+
+.action-lineage-graph,
+.c2pa-lineage-graph {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 1rem 0 1.25rem 0;
+  padding: 1rem 1.25rem;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--rounded-lg);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.lineage-node {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--rounded-default);
+  background: var(--surface-canvas);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  min-width: 130px;
+  max-width: 240px;
+}
+
+.lineage-node-action {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.lineage-node-ingredient {
+  background: #f0fdf4;
+  border: 1px dashed #86efac;
+}
+
+.lineage-node-terminal {
+  background: #ecfdf5;
+  border: 1.5px solid #10b981;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.12);
+}
+
+.lineage-node-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.lineage-step-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 700;
+  color: var(--secondary-text);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.lineage-tool-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.lineage-action-code {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  word-break: break-all;
+  background: transparent;
+  padding: 0;
+}
+
+.lineage-marker-text {
+  font-size: 0.725rem;
+  color: var(--secondary-text);
+  font-weight: 500;
+}
+
+.lineage-evidence-ref {
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  font-family: ui-monospace, monospace;
+}
+
+.lineage-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.lineage-connector svg {
+  display: block;
+}
+
+/* ==========================================================================
    Responsive Adaptations
    ========================================================================== */
 
@@ -2267,11 +2484,9 @@ button:disabled {
 
 @keyframes panel-fade-in {
   from {
-    opacity: 0.65;
     transform: translateY(3px);
   }
   to {
-    opacity: 1;
     transform: translateY(0);
   }
 }
@@ -2300,26 +2515,26 @@ button:disabled {
 }
 
 .demo-status-pill.warning {
-  background: #fef3c7;
-  color: #92400e;
+  background: #fefce8;
+  color: #854d0e;
   border: 1px solid #fde68a;
 }
 
 .demo-status-pill.error {
   background: #fef2f2;
-  color: #b91c1c;
+  color: #991b1b;
   border: 1px solid #fecaca;
 }
 
 .demo-status-pill.neutral {
   background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
+  color: #334155;
+  border: 1px solid #cbd5e1;
 }
 
 .demo-status-pill.info {
   background: #f0f9ff;
-  color: #0369a1;
+  color: #075985;
   border: 1px solid #bae6fd;
 }
 

@@ -18,7 +18,17 @@ import {
   formatDimensions,
 } from './labels';
 import { ModelExplanationCard } from './model-explanation';
-import { EyeIcon, CheckCircleIcon, AlertTriangleIcon, InfoIcon } from '@/components/ui/icons';
+import {
+  EyeIcon,
+  CheckCircleIcon,
+  AlertTriangleIcon,
+  InfoIcon,
+  ShieldCheckIcon,
+  SlidersIcon,
+  LayersIcon,
+  CpuIcon,
+  FileCheckIcon,
+} from '@/components/ui/icons';
 
 
 /**
@@ -63,6 +73,8 @@ export type ReportActionsProps = Readonly<{
   onInspectAnother: () => void;
   compare: boolean;
   analysis?: FileAnalysis;
+  onExportComparisonCard?: () => void;
+  exportingComparisonCard?: boolean;
 }>;
 
 function EvidenceList({ items }: Readonly<{ items: readonly EvidenceItem[] }>) {
@@ -123,6 +135,111 @@ export function CheckRow({
         <EvidenceList items={check.evidence} />
       </details>
     </li>
+  );
+}
+
+export type ActionLineageGraphProps = Readonly<{
+  actions: readonly { actionCode: string; sourceEvidenceId: string }[];
+  ingredients?: readonly { relationship?: string | null; title?: string | null; sourceEvidenceId: string }[];
+}>;
+
+function getActionCategory(actionCode: string): string {
+  if (actionCode.includes('created')) return 'Asset Genesis';
+  if (actionCode.includes('drawing')) return 'Vector Drawing';
+  if (actionCode.includes('color')) return 'Color Adjustment';
+  if (actionCode.includes('cropped')) return 'Geometry Crop';
+  if (actionCode.includes('resized')) return 'Resample Geometry';
+  if (actionCode.includes('filtered')) return 'Filter Process';
+  if (actionCode.includes('placed')) return 'Composite Layer';
+  if (actionCode.includes('edited')) return 'Image Modification';
+  return 'Manifest Action';
+}
+
+function getActionIcon(actionCode: string) {
+  if (actionCode.includes('created')) return <FileCheckIcon size={12} />;
+  if (actionCode.includes('ai') || actionCode.includes('generate')) return <CpuIcon size={12} />;
+  return <SlidersIcon size={12} />;
+}
+
+export function ActionLineageGraph({ actions, ingredients = [] }: ActionLineageGraphProps) {
+  if (actions.length === 0 && ingredients.length === 0) return null;
+
+  return (
+    <div
+      className="action-lineage-graph c2pa-lineage-graph"
+      role="region"
+      aria-label="C2PA Action and Ingredient Lineage Graph"
+    >
+      {/* Ingredient inputs if recorded */}
+      {ingredients.map((ing) => (
+        <div key={ing.sourceEvidenceId} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="lineage-node lineage-node-ingredient">
+            <div className="lineage-node-header">
+              <span className="lineage-step-badge" style={{ color: '#15803d' }}>
+                <LayersIcon size={12} />
+                <span>Ingredient</span>
+              </span>
+              <span className="lineage-tool-badge" style={{ background: '#dcfce7', color: '#166534' }}>
+                {ing.relationship ?? 'Input'}
+              </span>
+            </div>
+            <strong style={{ fontSize: '0.8125rem', color: '#14532d', wordBreak: 'break-word' }}>
+              {ing.title ?? 'Source Asset'}
+            </strong>
+            <span className="lineage-evidence-ref">evidence {ing.sourceEvidenceId}</span>
+          </div>
+          <div className="lineage-connector" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </div>
+        </div>
+      ))}
+
+      {/* Sequential Action Nodes */}
+      {actions.map((action, idx) => (
+        <div key={action.sourceEvidenceId} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="lineage-node lineage-node-action">
+            <div className="lineage-node-header">
+              <span className="lineage-step-badge">
+                {getActionIcon(action.actionCode)}
+                <span>Step {idx + 1}</span>
+              </span>
+              <span className="lineage-tool-badge">SEQ-{idx + 1}</span>
+            </div>
+            <code className="lineage-action-code">{action.actionCode}</code>
+            <span className="lineage-marker-text">{getActionCategory(action.actionCode)}</span>
+            <span className="lineage-evidence-ref">evidence {action.sourceEvidenceId}</span>
+          </div>
+          <div className="lineage-connector" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </div>
+        </div>
+      ))}
+
+      {/* Terminal Node: Current Inspected Version */}
+      <div className="lineage-node lineage-node-terminal">
+        <div className="lineage-node-header">
+          <span className="lineage-step-badge" style={{ color: '#047857' }}>
+            <ShieldCheckIcon size={13} />
+            <span>Terminal</span>
+          </span>
+          <span className="lineage-tool-badge" style={{ background: '#d1fae5', color: '#065f46' }}>
+            Audited
+          </span>
+        </div>
+        <strong style={{ fontSize: '0.8125rem', color: '#064e3b' }}>
+          Current Version
+        </strong>
+        <span className="lineage-marker-text" style={{ color: '#047857' }}>
+          Active Manifest State
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -246,56 +363,7 @@ function CredentialSection({ analysis, idPrefix }: Readonly<{ analysis: FileAnal
         <div>
           <h3>Recorded actions</h3>
           <p className="note">{C2PA_FIELD_HELP.actions}</p>
-          <div
-            className="action-lineage-graph"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flexWrap: 'wrap',
-              margin: '10px 0 14px 0',
-              padding: '10px 14px',
-              background: 'var(--surface-sunken, #f8fafc)',
-              borderRadius: '8px',
-              border: '1px solid var(--border, #e2e8f0)',
-            }}
-          >
-            {finding.actions.map((action, idx) => (
-              <div key={action.sourceEvidenceId} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    background: '#eff6ff',
-                    border: '1px solid #bfdbfe',
-                    color: '#1e3a8a',
-                    fontSize: '0.8125rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  <span style={{ color: '#1e3a8a', fontWeight: 700, marginRight: '4px' }}>{idx + 1}.</span>
-                  <code style={{ color: '#1e3a8a' }}>{action.actionCode}</code>
-                </span>
-                {idx < finding.actions.length - 1 && (
-                  <span aria-hidden="true" style={{ color: '#475569', fontWeight: 'bold' }}>──►</span>
-                )}
-              </div>
-            ))}
-            <span aria-hidden="true" style={{ color: '#475569', fontWeight: 'bold' }}>──►</span>
-            <span
-              style={{
-                padding: '4px 10px',
-                borderRadius: '6px',
-                background: '#ecfdf5',
-                border: '1px solid #a7f3d0',
-                color: '#065f46',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-              }}
-            >
-              Current Version
-            </span>
-          </div>
+          <ActionLineageGraph actions={finding.actions} ingredients={finding.ingredients} />
           <ul>
             {finding.actions.map((action) => (
               <li key={action.sourceEvidenceId}>
@@ -869,6 +937,8 @@ export function ReportActions({
   onInspectAnother,
   compare,
   analysis,
+  onExportComparisonCard,
+  exportingComparisonCard = false,
 }: ReportActionsProps) {
   const [exportingCard, setExportingCard] = useState(false);
 
@@ -910,6 +980,17 @@ export function ReportActions({
             data-testid="export-social-card"
           >
             {exportingCard ? 'Generating card...' : 'Export Social Card (PNG)'}
+          </button>
+        ) : null}
+        {compare && onExportComparisonCard ? (
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={onExportComparisonCard}
+            disabled={exportingComparisonCard}
+            data-testid="export-comparison-card"
+          >
+            {exportingComparisonCard ? 'Generating card...' : 'Export Comparison Card (PNG)'}
           </button>
         ) : null}
         <button type="button" onClick={onInspectAnother} data-testid="inspect-another">

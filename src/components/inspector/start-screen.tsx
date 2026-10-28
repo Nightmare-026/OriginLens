@@ -382,7 +382,7 @@ export function StartScreen({
       )}
 
       {/* 1-Click Preset Demo Gallery (Accordion Disclosure for Clean Keyboard Navigation) */}
-      <details className="panel presets-panel" style={{ cursor: 'pointer' }}>
+      <details open className="panel presets-panel" style={{ cursor: 'pointer' }}>
         <summary id="presets-heading" style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-headline)' }}>
           1-Click Live Demo Gallery (Sample Credentials & Pairs)
         </summary>

@@ -365,6 +365,29 @@ export function CompareScreen({
   onLabelSecond,
   headingRef,
 }: CompareScreenProps) {
+  const [exportingCard, setExportingCard] = useState(false);
+
+  const handleExportComparisonCard = async () => {
+    setExportingCard(true);
+    try {
+      const { generateComparisonCardBlob, downloadSocialCard } = await import('@/lib/report/card');
+      const blob = await generateComparisonCardBlob(
+        first,
+        second,
+        comparison,
+        previewUrlA,
+        previewUrlB,
+      );
+      const nameA = first.file.displayName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const nameB = second.file.displayName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      downloadSocialCard(blob, `compare_${nameA}_vs_${nameB}`);
+    } catch (err) {
+      console.error('Failed to export comparison social card:', err);
+    } finally {
+      setExportingCard(false);
+    }
+  };
+
   const evidence = check.evidence;
   const fingerprintsEqual = readBoolean(evidence, 'comparison.fingerprints_equal');
   const byteSizesEqual = readBoolean(evidence, 'comparison.byte_sizes_equal');
@@ -611,6 +634,8 @@ export function CompareScreen({
         onClear={onClear}
         onInspectAnother={onInspectAnother}
         compare
+        onExportComparisonCard={() => void handleExportComparisonCard()}
+        exportingComparisonCard={exportingCard}
       />
     </div>
   );
