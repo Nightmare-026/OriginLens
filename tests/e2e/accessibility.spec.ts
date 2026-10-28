@@ -63,7 +63,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 }
 
 test('the start screen has no automated WCAG A/AA violation', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/inspect');
   await expect(page.getByTestId('start-screen')).toBeVisible();
 
   const { violations } = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
@@ -72,7 +72,7 @@ test('the start screen has no automated WCAG A/AA violation', async ({ page }) =
 });
 
 test('the evidence ledger has no automated WCAG A/AA violation', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/inspect');
   await analyze(page, 'adobe-20220124-C.jpg');
 
   const { violations } = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
@@ -81,7 +81,7 @@ test('the evidence ledger has no automated WCAG A/AA violation', async ({ page }
 });
 
 test('the comparison screen has no automated WCAG A/AA violation', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/compare');
   await startComparison(page, 'plain-3x2.png', 'plain-3x2-filtered.png');
 
   const { violations } = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
@@ -90,12 +90,12 @@ test('the comparison screen has no automated WCAG A/AA violation', async ({ page
 });
 
 test('keeps one page heading per screen and moves focus to the result', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/inspect');
 
   const headings = page.locator('h1');
 
   await expect(headings).toHaveCount(1);
-  await expect(headings).toHaveText('OriginLens');
+  await expect(headings).toContainText('OriginLens');
 
   await analyze(page, 'adobe-20220124-C.jpg');
 
@@ -116,11 +116,11 @@ test('keeps one page heading per screen and moves focus to the result', async ({
     'The previous analysis was discarded',
   );
   await expect(headings).toHaveCount(1);
-  await expect(headings).toHaveText('OriginLens');
+  await expect(headings).toContainText('OriginLens');
 });
 
 test('the comparison result also has one page heading and takes focus', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/compare');
   await startComparison(page, 'plain-3x2.png', 'plain-3x2-filtered.png');
 
   await expect(page.locator('h1')).toHaveCount(1);
@@ -145,7 +145,7 @@ test('marks a running check as busy and announces the start', async ({ page }) =
     }
   });
 
-  await page.goto('/');
+  await page.goto('/inspect');
   await page.getByTestId('inspect-file').setInputFiles(fixturePath('plain-3x2.png'));
 
   await expect(page.getByTestId('stage-c2pa')).toContainText('Running', { timeout: 60_000 });
@@ -176,7 +176,7 @@ test('the running comparison has one page heading of its own', async ({ page }) 
     }
   });
 
-  await page.goto('/');
+  await page.goto('/compare');
   await page.getByTestId('compare-file-a').setInputFiles(fixturePath('plain-3x2.png'));
   await page.getByTestId('compare-file-b').setInputFiles(fixturePath('plain-3x2-filtered.png'));
   await page.getByTestId('compare-start').click();
@@ -193,7 +193,7 @@ test('the running comparison has one page heading of its own', async ({ page }) 
 test('every start-screen control is reachable by Tab and has an accessible name', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('/compare');
 
   type Stop = Readonly<{ id: string; name: string; focusVisible: boolean }>;
 
@@ -243,9 +243,8 @@ test('every start-screen control is reachable by Tab and has an accessible name'
     return stops;
   };
 
-  const withoutFiles = await tabStops(8);
+  const withoutFiles = await tabStops(15);
 
-  expect(withoutFiles.map((stop) => stop.id)).toContain('inspect-file');
   expect(withoutFiles.map((stop) => stop.id)).toContain('compare-file-a');
   expect(withoutFiles.map((stop) => stop.id)).toContain('compare-file-b');
 
@@ -262,17 +261,22 @@ test('every start-screen control is reachable by Tab and has an accessible name'
     }
   });
 
-  const withFiles = await tabStops(8);
+  const withFiles = await tabStops(15);
 
   expect(withFiles.map((stop) => stop.id)).toContain('compare-start');
   await expect(page.getByTestId('compare-start')).toBeEnabled();
+
+  // Also verify /inspect tab stops
+  await page.goto('/inspect');
+  const inspectStops = await tabStops(15);
+  expect(inspectStops.map((stop) => stop.id)).toContain('inspect-file');
 });
 
 test('the running screen fits a 360 px viewport and keeps the headers exposed', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
-  await page.goto('/');
+  await page.goto('/compare');
   await startComparison(page, 'plain-3x2.png', 'plain-3x2-filtered.png');
 
   await expectNoHorizontalOverflow(page);
@@ -322,6 +326,7 @@ test('serves the production security policy and still runs the credential check'
 
   // The policy is only meaningful if the real runtime compiles WebAssembly
   // inside its blob worker under it.
+  await page.goto('/inspect');
   await analyze(page, 'adobe-20220124-C.jpg');
 
   await expect(page.getByTestId('c2pa-presence')).toHaveText('Present');

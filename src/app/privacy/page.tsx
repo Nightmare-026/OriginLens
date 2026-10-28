@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { ExternalLinkIcon } from '@/components/ui/icons';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — OriginLens',
@@ -180,15 +181,17 @@ export default function PrivacyPolicyPage() {
             target="_blank"
             rel="noopener noreferrer"
             className="external-link"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
           >
-            Review the OriginLens source code on GitHub ↗
+            <span>Review the OriginLens source code on GitHub</span>
+            <ExternalLinkIcon size={13} />
           </a>
         </p>
       </section>
 
       <div className="page-actions-center">
-        <Link href="/" className="btn-primary">
-          ← Return to Media Explorer
+        <Link href="/inspect" className="btn-primary">
+          Return to Media Explorer
         </Link>
       </div>
     </main>

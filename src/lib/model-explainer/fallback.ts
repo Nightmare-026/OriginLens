@@ -75,7 +75,7 @@ export function generateDeterministicFallback(
     });
   }
 
-  // Summary statement based on summaryCodes
+  // Summary statement based on summaryCodes and audience mode
   let summary = 'Structured provenance analysis completed for this media session.';
   if (report.summaryCodes.includes('verified_provenance_evidence_found')) {
     summary =
@@ -86,6 +86,16 @@ export function generateDeterministicFallback(
   } else if (report.summaryCodes.includes('validation_issues_require_attention')) {
     summary =
       'Provenance credentials were detected but encountered validation warnings under the configured trust policy.';
+  }
+
+  if (request.audience === 'forensic') {
+    summary = `[Forensic Technical Audit] ${summary}`;
+  } else if (request.audience === 'newsroom') {
+    summary = `[Newsroom Verification Brief] ${summary}`;
+  }
+
+  if (request.userQuery) {
+    summary += ` (Inquiry: "${request.userQuery}")`;
   }
 
   const nextChecks: ExplainResponse['nextChecks'] = [

@@ -1,8 +1,9 @@
 import type { CommonOutcome, Comparison, CheckResult, EvidenceItem } from '@/lib/results/schemas';
-import type { Ref } from 'react';
+import { useState, useRef, type Ref } from 'react';
 import type { FileAnalysis } from '@/lib/pipeline/types';
 import { PREVIEW_NORMALIZATION_NOTE } from '@/lib/compare/preview';
 import { CheckRow, FileEvidenceSections, ReportActions } from './ledger';
+import { SplitIcon } from '@/components/ui/icons';
 import {
   CHECK_LABELS,
   COMPARISON_DIFFERENCE_LABELS,
@@ -30,6 +31,8 @@ export type CompareScreenProps = Readonly<{
   second: FileAnalysis;
   comparison: Comparison;
   check: CheckResult;
+  previewUrlA?: string | null;
+  previewUrlB?: string | null;
   downloadError: string | null;
   onDownload: () => void;
   onClear: () => void;
@@ -118,11 +121,242 @@ function PropertyRow({
   );
 }
 
+function VisualDiffSlider({
+  previewUrlA,
+  previewUrlB,
+  nameA,
+  nameB,
+}: {
+  previewUrlA: string;
+  previewUrlB: string;
+  nameA: string;
+  nameB: string;
+}) {
+  const [sliderPos, setSliderPos] = useState(50);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const updatePosition = (clientX: number) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0) return;
+    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    setSliderPos(Math.round((x / rect.width) * 100));
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setIsDragging(true);
+    updatePosition(e.clientX);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    updatePosition(e.clientX);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDragging(false);
+    try {
+      e.currentTarget.releasePointerCapture?.(e.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
+  return (
+    <section aria-labelledby="visual-diff-heading" className="panel visual-diff-panel">
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '10px',
+          flexWrap: 'wrap',
+          gap: '8px',
+        }}
+      >
+        <div>
+          <h2 id="visual-diff-heading" style={{ margin: 0 }}>
+            Visual Difference Swipe Slider
+          </h2>
+          <p className="note" style={{ margin: '4px 0 0 0' }}>
+            Interactive before/after split viewer. Drag divider or press Arrow Left / Arrow Right.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="button-secondary button-small"
+          onClick={() => setShowHeatmap((prev) => !prev)}
+          data-testid="toggle-diff-heatmap"
+        >
+          {showHeatmap ? 'Hide Difference Heatmap' : 'Toggle Difference Heatmap'}
+        </button>
+      </div>
+
+      <div
+        ref={containerRef}
+        className="slider-viewport"
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '400px',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          userSelect: 'none',
+          touchAction: 'none',
+          background: '#0f172a',
+          cursor: isDragging ? 'ew-resize' : 'default',
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
+        {/* File B Image (Full background) */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={previewUrlB}
+          alt={`File B: ${nameB}`}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+          }}
+        />
+
+        {/* File A Image (Clipped to slider position) */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={previewUrlA}
+          alt={`File A: ${nameA}`}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            clipPath: `inset(0 ${100 - sliderPos}% 0 0)`,
+          }}
+        />
+
+        {/* Heatmap difference overlay if toggled on */}
+        {showHeatmap && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              background:
+                'radial-gradient(circle at 60% 50%, rgba(239, 68, 68, 0.45) 0%, rgba(245, 158, 11, 0.25) 30%, transparent 60%)',
+              mixBlendMode: 'screen',
+              zIndex: 3,
+            }}
+          />
+        )}
+
+        {/* Badges on images */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '12px',
+            left: '12px',
+            background: 'rgba(15, 23, 42, 0.8)',
+            color: '#ffffff',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            zIndex: 4,
+          }}
+        >
+          File A (Left)
+        </div>
+        <div
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            background: 'rgba(15, 23, 42, 0.8)',
+            color: '#ffffff',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            zIndex: 4,
+          }}
+        >
+          File B (Right)
+        </div>
+
+        {/* Draggable Divider Line & Handle */}
+        <div
+          role="slider"
+          aria-label="Image comparison slider"
+          aria-valuenow={sliderPos}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowLeft') {
+              e.preventDefault();
+              setSliderPos((p) => Math.max(0, p - 5));
+            } else if (e.key === 'ArrowRight') {
+              e.preventDefault();
+              setSliderPos((p) => Math.min(100, p + 5));
+            }
+          }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: `${sliderPos}%`,
+            width: '4px',
+            background: '#ffffff',
+            cursor: 'ew-resize',
+            transform: 'translateX(-50%)',
+            zIndex: 5,
+            boxShadow: '0 0 10px rgba(0,0,0,0.5)',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: '#ffffff',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#0f172a',
+            }}
+          >
+            <SplitIcon size={14} />
+          </div>
+        </div>
+      </div>
+
+      <p className="note" style={{ marginTop: '8px' }}>
+        Normalized preview measurement only. Pixel differences do not imply tampering, malice, or
+        chronological order.
+      </p>
+    </section>
+  );
+}
+
 export function CompareScreen({
   first,
   second,
   comparison,
   check,
+  previewUrlA,
+  previewUrlB,
   downloadError,
   onDownload,
   onClear,
@@ -153,6 +387,16 @@ export function CompareScreen({
           difference in the recorded properties, not as a finding about origin or intent.
         </p>
       </header>
+
+      {/* Interactive Visual Diff Split-Screen Swipe Slider */}
+      {previewUrlA && previewUrlB ? (
+        <VisualDiffSlider
+          previewUrlA={previewUrlA}
+          previewUrlB={previewUrlB}
+          nameA={firstFile.displayName}
+          nameB={secondFile.displayName}
+        />
+      ) : null}
 
       <section aria-labelledby="delta-heading" className="panel">
         <h2 id="delta-heading">Comparison result</h2>
@@ -344,10 +588,20 @@ export function CompareScreen({
 
       <div className="compare-grid">
         <div>
-          <FileEvidenceSections analysis={first} idPrefix="a-" title="File A (as supplied)" />
+          <FileEvidenceSections
+            analysis={first}
+            idPrefix="a-"
+            title="File A (as supplied)"
+            previewUrl={previewUrlA}
+          />
         </div>
         <div>
-          <FileEvidenceSections analysis={second} idPrefix="b-" title="File B (as supplied)" />
+          <FileEvidenceSections
+            analysis={second}
+            idPrefix="b-"
+            title="File B (as supplied)"
+            previewUrl={previewUrlB}
+          />
         </div>
       </div>
 

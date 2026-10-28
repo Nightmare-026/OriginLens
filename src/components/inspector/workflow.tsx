@@ -59,6 +59,7 @@ type SessionState =
   | Readonly<{
       kind: 'ready';
       analysis: FileAnalysis;
+      previewUrl?: string | null;
       notice?: string;
       downloadError: string | null;
     }>
@@ -66,6 +67,8 @@ type SessionState =
       kind: 'readyCompare';
       first: FileAnalysis;
       second: FileAnalysis;
+      previewUrlA?: string | null;
+      previewUrlB?: string | null;
       comparison: Extract<ComparisonOutput, { status: 'ok' }>;
       labelFirst: UserLabel | null;
       labelSecond: UserLabel | null;
@@ -172,13 +175,31 @@ function sessionAnnouncement(state: SessionState): string {
   }
 }
 
-export function InspectorWorkflow() {
+export type InspectorWorkflowProps = Readonly<{
+  mode?: 'all' | 'single' | 'compare';
+}>;
+
+export function InspectorWorkflow({ mode = 'all' }: InspectorWorkflowProps = {}) {
   const [state, setState] = useState<SessionState>({ kind: 'idle', error: null });
   const runTokenRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const sessionRef = useRef<C2paSession | null>(null);
   const resultsHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const previousKindRef = useRef<SessionState['kind'] | null>(null);
+  const objectUrlsRef = useRef<string[]>([]);
+
+  const revokeAllVolatileUrls = useCallback((): void => {
+    for (const url of objectUrlsRef.current) {
+      URL.revokeObjectURL(url);
+    }
+    objectUrlsRef.current = [];
+  }, []);
+
+  const createVolatileUrl = useCallback((file: File): string => {
+    const url = URL.createObjectURL(file);
+    objectUrlsRef.current.push(url);
+    return url;
+  }, []);
 
   // PRD 5.6: a status change must reach assistive technology, and a completed
   // run must not leave focus on a control that no longer exists. Focus moves to
@@ -211,13 +232,14 @@ export function InspectorWorkflow() {
       runTokenRef.current += 1;
       abortRef.current?.abort();
       abortRef.current = null;
+      revokeAllVolatileUrls();
 
       const session = sessionRef.current;
 
       sessionRef.current = null;
       void session?.dispose();
     };
-  }, []);
+  }, [revokeAllVolatileUrls]);
 
   const getSession = useCallback((): C2paSession => {
     const existing = sessionRef.current;
@@ -284,6 +306,9 @@ export function InspectorWorkflow() {
 
       abortRef.current = controller;
 
+      revokeAllVolatileUrls();
+      const previewUrl = createVolatileUrl(file);
+
       setState({
         kind: 'running',
         mode: 'single',
@@ -306,10 +331,12 @@ export function InspectorWorkflow() {
       }
 
       if (result.status === 'ok') {
-        setState({ kind: 'ready', analysis: result.analysis, downloadError: null });
+        setState({ kind: 'ready', analysis: result.analysis, previewUrl, downloadError: null });
 
         return;
       }
+
+      revokeAllVolatileUrls();
 
       if (result.status === 'error') {
         setState({ kind: 'idle', error: result.error });
@@ -324,7 +351,7 @@ export function InspectorWorkflow() {
           'The analysis was cancelled before a fingerprint was available, so no result was recorded.',
       });
     },
-    [analyze, stageHandler],
+    [analyze, createVolatileUrl, revokeAllVolatileUrls, stageHandler],
   );
 
   const compare = useCallback(
@@ -337,6 +364,10 @@ export function InspectorWorkflow() {
       const controller = new AbortController();
 
       abortRef.current = controller;
+
+      revokeAllVolatileUrls();
+      const previewUrlA = createVolatileUrl(firstFile);
+      const previewUrlB = createVolatileUrl(secondFile);
 
       setState({
         kind: 'running',
@@ -361,12 +392,14 @@ export function InspectorWorkflow() {
       }
 
       if (first.status === 'error') {
+        revokeAllVolatileUrls();
         setState({ kind: 'idle', error: first.error });
 
         return;
       }
 
       if (first.status === 'cancelled') {
+        revokeAllVolatileUrls();
         setState({
           kind: 'idle',
           error: null,
@@ -381,6 +414,7 @@ export function InspectorWorkflow() {
         setState({
           kind: 'ready',
           analysis: first.analysis,
+          previewUrl: previewUrlA,
           notice:
             "The comparison was cancelled during File A's checks. File A's completed evidence is shown below. File B was not analysed, and no Provenance Delta was produced.",
           downloadError: null,
@@ -419,6 +453,7 @@ export function InspectorWorkflow() {
         setState({
           kind: 'ready',
           analysis: first.analysis,
+          previewUrl: previewUrlA,
           notice: `File B could not be analysed (${second.error.code}). File A completed independently and is shown below. No Provenance Delta was produced, and File B contributes nothing to this result.`,
           downloadError: null,
         });
@@ -430,6 +465,7 @@ export function InspectorWorkflow() {
         setState({
           kind: 'ready',
           analysis: first.analysis,
+          previewUrl: previewUrlA,
           notice:
             'The comparison was cancelled while File B was being analysed. File A completed independently and is shown below. No Provenance Delta was produced.',
           downloadError: null,
@@ -478,6 +514,7 @@ export function InspectorWorkflow() {
         setState({
           kind: 'ready',
           analysis: first.analysis,
+          previewUrl: previewUrlA,
           notice:
             'The comparison was cancelled before the delta was recorded. File A completed independently and is shown below. No Provenance Delta was produced.',
           downloadError: null,
@@ -499,6 +536,7 @@ export function InspectorWorkflow() {
       }
 
       if (built.status === 'error') {
+        revokeAllVolatileUrls();
         setState({
           kind: 'idle',
           error: null,
@@ -514,6 +552,8 @@ export function InspectorWorkflow() {
               kind: 'readyCompare',
               first: first.analysis,
               second: second.analysis,
+              previewUrlA,
+              previewUrlB,
               comparison: built,
               labelFirst: null,
               labelSecond: null,
@@ -522,7 +562,7 @@ export function InspectorWorkflow() {
           : previous,
       );
     },
-    [analyze, stageHandler],
+    [analyze, createVolatileUrl, revokeAllVolatileUrls, stageHandler],
   );
 
   const cancel = useCallback((): void => {
@@ -537,10 +577,11 @@ export function InspectorWorkflow() {
       runTokenRef.current += 1;
       abortRef.current?.abort();
       abortRef.current = null;
+      revokeAllVolatileUrls();
       setState({ kind: 'idle', error: null, notice });
       void disposeSession();
     },
-    [disposeSession],
+    [disposeSession, revokeAllVolatileUrls],
   );
 
   const download = useCallback((): void => {
@@ -614,6 +655,7 @@ export function InspectorWorkflow() {
 
       {state.kind === 'idle' ? (
         <StartScreen
+          mode={mode}
           onFile={(file) => void inspect(file)}
           onCompare={(first, second) => void compare(first, second)}
           error={state.error}
@@ -655,6 +697,7 @@ export function InspectorWorkflow() {
       {state.kind === 'ready' ? (
         <EvidenceLedger
           analysis={state.analysis}
+          previewUrl={state.previewUrl}
           notice={state.notice}
           downloadError={state.downloadError}
           onDownload={download}
@@ -672,6 +715,8 @@ export function InspectorWorkflow() {
         <CompareScreen
           first={withUserLabel(state.first, state.labelFirst)}
           second={withUserLabel(state.second, state.labelSecond)}
+          previewUrlA={state.previewUrlA}
+          previewUrlB={state.previewUrlB}
           comparison={state.comparison.comparison}
           check={state.comparison.check}
           downloadError={state.downloadError}

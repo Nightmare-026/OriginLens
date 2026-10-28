@@ -5,7 +5,7 @@ import {
   rawModelResponseSchema,
   explainResponseSchema,
 } from './schema';
-import { SYSTEM_PROMPT, buildUserPrompt } from './prompt';
+import { buildSystemPrompt, buildUserPrompt } from './prompt';
 import { validateResponseClaims, validateEvidenceIdCitations } from './claims';
 import { generateDeterministicFallback } from './fallback';
 
@@ -55,12 +55,13 @@ export async function explainReportEvidence(
       timeout: config.timeoutMs,
     });
 
+    const systemPrompt = buildSystemPrompt(request.audience);
     const userPrompt = buildUserPrompt(request);
 
     const completion = await openai.chat.completions.create({
       model: config.modelName,
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.2,

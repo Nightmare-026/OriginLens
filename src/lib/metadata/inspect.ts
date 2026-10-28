@@ -41,6 +41,12 @@ export type MetadataField = Readonly<{
 
 export type GpsPresence = 'present' | 'not_present' | 'unknown';
 
+export type AiGeneratorClue = Readonly<{
+  generator: string;
+  tagSource: string;
+  matchedText: string;
+}>;
+
 export type MetadataInspection =
   | Readonly<{
       status: 'extracted';
@@ -50,6 +56,7 @@ export type MetadataInspection =
       parser: Readonly<{ name: 'exifreader'; version: string }>;
       warnings: readonly string[];
       limitations: readonly string[];
+      aiGeneratorClues?: readonly AiGeneratorClue[];
     }>
   | Readonly<{
       status: 'not_present';
@@ -59,6 +66,7 @@ export type MetadataInspection =
       parser: Readonly<{ name: 'exifreader'; version: string }>;
       warnings: readonly string[];
       limitations: readonly string[];
+      aiGeneratorClues?: readonly [];
     }>
   | Readonly<{
       status: 'failed';
@@ -69,6 +77,7 @@ export type MetadataInspection =
       warnings: readonly string[];
       limitations: readonly string[];
       errorCode: 'METADATA_PARSE_FAILED';
+      aiGeneratorClues?: readonly [];
     }>;
 
 export const METADATA_PARSER = { name: 'exifreader', version: EXIFREADER_VERSION } as const;
@@ -226,6 +235,62 @@ function detectGpsPresence(tags: Record<string, unknown>): GpsPresence {
   return GPS_PRESENCE_KEYS.some((key) => key in tags) ? 'present' : 'not_present';
 }
 
+const AI_GENERATOR_PATTERNS = [
+  {
+    generator: 'Midjourney',
+    regex: /(?:midjourney|job\s*id|--v\s+[4-7]|--ar\s+\d+:\d+|--stylize)/i,
+  },
+  {
+    generator: 'Stable Diffusion',
+    regex: /(?:stable\s*diffusion|automatic1111|comfyui|sdxl|flux(?:\.1)?|fooocus|negative\s*prompt:|sampler:\s*[\w+]|cfg\s*scale:|steps:\s*\d+)/i,
+  },
+  {
+    generator: 'DALL-E',
+    regex: /(?:dall[·\-e]\s*e|openai\s*dall)/i,
+  },
+  {
+    generator: 'Adobe Firefly',
+    regex: /(?:adobe\s*firefly|firefly\s*generative)/i,
+  },
+] as const;
+
+function scanAiGeneratorClues(tags: Record<string, unknown>): AiGeneratorClue[] {
+  const clues: AiGeneratorClue[] = [];
+  const scannedKeys = [
+    'Software',
+    'parameters',
+    'prompt',
+    'workflow',
+    'UserComment',
+    'ImageDescription',
+    'Comment',
+    'Description',
+    'Source',
+    'Artist',
+    'Title',
+  ];
+
+  for (const key of scannedKeys) {
+    const rawTag = tags[key];
+    const text = tagToText(rawTag);
+    if (!text) continue;
+
+    for (const pattern of AI_GENERATOR_PATTERNS) {
+      if (pattern.regex.test(text)) {
+        if (!clues.some((c) => c.generator === pattern.generator)) {
+          clues.push({
+            generator: pattern.generator,
+            tagSource: key,
+            matchedText: text.length > 120 ? `${text.slice(0, 117)}...` : text,
+          });
+        }
+      }
+    }
+  }
+
+  return clues;
+}
+
 /**
  * Parses embedded metadata with the pinned ExifReader version and returns only
  * allowlisted, bounded fields. Parser failures become a typed, non-critical
@@ -248,6 +313,7 @@ export function inspectMetadata(bytes: ArrayBuffer): MetadataInspection {
           'No embedded metadata was found. This does not mean the file has no provenance or was never edited.',
         ],
         limitations: [...METADATA_LIMITATIONS],
+        aiGeneratorClues: [],
       };
     }
 
@@ -260,6 +326,7 @@ export function inspectMetadata(bytes: ArrayBuffer): MetadataInspection {
       warnings: ['Embedded metadata could not be parsed. Independent checks are unaffected.'],
       limitations: [...METADATA_LIMITATIONS],
       errorCode: 'METADATA_PARSE_FAILED',
+      aiGeneratorClues: [],
     };
   }
 
@@ -279,6 +346,14 @@ export function inspectMetadata(bytes: ArrayBuffer): MetadataInspection {
     warnings.push(orientation.warning);
   }
 
+  const aiGeneratorClues = scanAiGeneratorClues(tags);
+  if (aiGeneratorClues.length > 0) {
+    const names = aiGeneratorClues.map((c) => c.generator).join(', ');
+    warnings.push(
+      `Detected textual tags referencing AI software (${names}). Metadata is easily forged or stripped; this is an unverified textual clue, not cryptographic proof.`,
+    );
+  }
+
   if (fields.length === 0) {
     warnings.push('No allowlisted metadata fields were found.');
 
@@ -290,6 +365,7 @@ export function inspectMetadata(bytes: ArrayBuffer): MetadataInspection {
       parser: METADATA_PARSER,
       warnings,
       limitations: [...METADATA_LIMITATIONS],
+      aiGeneratorClues,
     };
   }
 
@@ -301,5 +377,6 @@ export function inspectMetadata(bytes: ArrayBuffer): MetadataInspection {
     parser: METADATA_PARSER,
     warnings,
     limitations: [...METADATA_LIMITATIONS],
+    aiGeneratorClues,
   };
 }

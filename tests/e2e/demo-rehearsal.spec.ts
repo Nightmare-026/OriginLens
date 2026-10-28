@@ -28,10 +28,9 @@ test('complete hackathon judging demo rehearsal', async ({ page }) => {
   page.on('pageerror', (err) => pageErrors.push(err.message));
 
   // --- Beat 0: Hero & Start Screen ---
-  await page.goto('/');
+  await page.goto('/inspect');
   await expect(page.getByTestId('start-screen')).toBeVisible();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('OriginLens');
-  await expect(page.getByTestId('start-screen').getByText('Evidence-first media provenance')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('OriginLens');
   await expect(page.getByText('not a universal AI detector', { exact: false })).toBeVisible();
 
   // --- Beat 1: Known Provenance Credential ---
@@ -88,6 +87,7 @@ test('complete hackathon judging demo rehearsal', async ({ page }) => {
   await expect(page.getByTestId('ledger')).toHaveCount(0);
 
   // --- Beat 5: Two-File Provenance Delta ---
+  await page.goto('/compare');
   await page.getByTestId('compare-file-a').setInputFiles(fixturePath('plain-3x2.png'));
   await page.getByTestId('compare-file-b').setInputFiles(fixturePath('plain-3x2-filtered.png'));
   await page.getByTestId('compare-start').click();

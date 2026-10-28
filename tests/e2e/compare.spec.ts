@@ -92,7 +92,7 @@ async function downloadReport(
 test('V17: comparing a duplicate file reports equal, without a pixel difference', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('/compare');
 
   await compareFixtures(page, 'plain-3x2.png', 'plain-3x2.png');
 
@@ -134,7 +134,7 @@ test('V17: comparing a duplicate file reports equal, without a pixel difference'
 test('V18: a different encoding keeps the byte delta and the preview metric separate', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('/compare');
 
   await compareFixtures(page, 'plain-3x2.png', 'plain-3x2-filtered.png');
 
@@ -170,7 +170,7 @@ test('V18: a different encoding keeps the byte delta and the preview metric sepa
 });
 
 test('V19: different aspect ratios produce no pixel metric', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/compare');
 
   await compareFixtures(page, 'plain-1x1.jpg', 'plain-3x2.png');
 
@@ -190,7 +190,7 @@ test('V48: two files with the same display name stay separate', async ({ page })
   const firstBytes = await readFile(fixturePath('plain-1x1.jpg'));
   const secondBytes = await readFile(fixturePath('adobe-20220124-C.jpg'));
 
-  await page.goto('/');
+  await page.goto('/compare');
 
   await page
     .getByTestId('compare-file-a')
@@ -217,7 +217,7 @@ test('V48: two files with the same display name stay separate', async ({ page })
 });
 
 test('V49: original/edited labels are recorded as the user assertion', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/compare');
 
   await compareFixtures(page, 'plain-3x2.png', 'plain-3x2-filtered.png');
 
@@ -251,7 +251,7 @@ test('V49: original/edited labels are recorded as the user assertion', async ({ 
 });
 
 test('downloads a validated two-file report with the comparison block', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/compare');
 
   await compareFixtures(page, 'plain-3x2.png', 'plain-3x2-filtered.png');
 
@@ -331,7 +331,7 @@ test('V26: cancelling during File A keeps its completed evidence and records no 
     }
   });
 
-  await page.goto('/');
+  await page.goto('/compare');
   await page.getByTestId('compare-file-a').setInputFiles(fixturePath('plain-3x2.png'));
   await page.getByTestId('compare-file-b').setInputFiles(fixturePath('plain-3x2-filtered.png'));
   await page.getByTestId('compare-start').click();
@@ -356,7 +356,7 @@ test('V26: cancelling during File A keeps its completed evidence and records no 
 });
 
 test('keeps File A evidence when File B cannot be analysed', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/compare');
   await page.getByTestId('compare-file-a').setInputFiles(fixturePath('plain-3x2.png'));
   await page.getByTestId('compare-file-b').setInputFiles(fixturePath('truncated.jpg'));
   await page.getByTestId('compare-start').click();
@@ -381,7 +381,7 @@ test('keeps File A evidence when File B cannot be analysed', async ({ page }) =>
 
 test('fits the comparison screen in a 360 px viewport', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
-  await page.goto('/');
+  await page.goto('/compare');
 
   await compareFixtures(page, 'plain-3x2.png', 'plain-3x2-filtered.png');
 
@@ -392,7 +392,7 @@ test('fits the comparison screen in a 360 px viewport', async ({ page }) => {
 test('V20: non-upright EXIF orientation skips pixel preview metric with honest explanation', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('/compare');
   await compareFixtures(page, 'plain-1x1.jpg', 'exif-orientation-6.jpg');
 
   await expect(page.getByTestId('compare-ledger')).toBeVisible({ timeout: 90_000 });

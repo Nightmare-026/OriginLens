@@ -38,7 +38,7 @@ export default function HowToUsePage() {
           </div>
           <div className="step-content">
             <p>
-              On the <Link href="/">Media Explorer</Link> start screen, choose between two primary
+              On the <Link href="/inspect">Media Explorer</Link> start screen, choose between two primary
               workflows depending on your inspection goal:
             </p>
             <div className="workflow-options-grid">
@@ -381,8 +381,8 @@ export default function HowToUsePage() {
       </section>
 
       <div className="page-actions-center">
-        <Link href="/" className="btn-primary">
-          Launch Media Explorer →
+        <Link href="/inspect" className="btn-primary">
+          Launch Media Explorer
         </Link>
       </div>
     </main>

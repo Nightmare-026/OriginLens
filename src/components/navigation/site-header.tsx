@@ -4,6 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  ShieldCheckIcon,
+  SplitIcon,
+  CompassIcon,
+  LockIcon,
+  BookOpenIcon,
+} from '@/components/ui/icons';
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -73,6 +80,50 @@ export function SiteHeader() {
           </span>
         </Link>
 
+        {/* Desktop inline navigation links */}
+        <nav className="desktop-nav-links" aria-label="Desktop navigation">
+          <Link
+            id="nav-home-desktop"
+            data-testid="nav-home-desktop"
+            href="/"
+            className={`desktop-nav-link ${pathname === '/' ? 'nav-link-active' : ''}`}
+          >
+            Home
+          </Link>
+          <Link
+            id="nav-inspect-desktop"
+            data-testid="nav-inspect-desktop"
+            href="/inspect"
+            className={`desktop-nav-link ${pathname === '/inspect' ? 'nav-link-active' : ''}`}
+          >
+            Inspect Image
+          </Link>
+          <Link
+            id="nav-compare-desktop"
+            data-testid="nav-compare-desktop"
+            href="/compare"
+            className={`desktop-nav-link ${pathname === '/compare' ? 'nav-link-active' : ''}`}
+          >
+            Compare Images
+          </Link>
+          <Link
+            id="nav-how-to-use-desktop"
+            data-testid="nav-how-to-use-desktop"
+            href="/how-to-use"
+            className={`desktop-nav-link ${pathname === '/how-to-use' ? 'nav-link-active' : ''}`}
+          >
+            How to Use
+          </Link>
+          <Link
+            id="nav-privacy-desktop"
+            data-testid="nav-privacy-desktop"
+            href="/privacy"
+            className={`desktop-nav-link ${pathname === '/privacy' ? 'nav-link-active' : ''}`}
+          >
+            Privacy Policy
+          </Link>
+        </nav>
+
         {/* Breadboard / Hamburger Dropdown Navigation */}
         <div className="nav-dropdown-wrapper" ref={menuRef}>
           <button
@@ -119,25 +170,43 @@ export function SiteHeader() {
           >
             <div className="nav-dropdown-header">Navigation</div>
             <Link
+              id="nav-home"
+              data-testid="nav-home"
+              href="/"
+              className={`nav-dropdown-link nav-link ${pathname === '/' ? 'nav-link-active' : ''}`}
+              onClick={() => setIsOpen(false)}
+            >
+              <CompassIcon size={18} className="nav-item-icon" />
+              <span>Home</span>
+            </Link>
+            <Link
+              id="nav-inspect"
+              data-testid="nav-inspect"
+              href="/inspect"
+              className={`nav-dropdown-link nav-link ${pathname === '/inspect' ? 'nav-link-active' : ''}`}
+              onClick={() => setIsOpen(false)}
+            >
+              <ShieldCheckIcon size={18} className="nav-item-icon" />
+              <span>Inspect Image</span>
+            </Link>
+            <Link
+              id="nav-compare"
+              data-testid="nav-compare"
+              href="/compare"
+              className={`nav-dropdown-link nav-link ${pathname === '/compare' ? 'nav-link-active' : ''}`}
+              onClick={() => setIsOpen(false)}
+            >
+              <SplitIcon size={18} className="nav-item-icon" />
+              <span>Compare Images</span>
+            </Link>
+            <Link
               id="nav-how-to-use"
               data-testid="nav-how-to-use"
               href="/how-to-use"
               className={`nav-dropdown-link nav-link ${pathname === '/how-to-use' ? 'nav-link-active' : ''}`}
               onClick={() => setIsOpen(false)}
             >
-              <svg
-                className="nav-item-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-              </svg>
+              <BookOpenIcon size={18} className="nav-item-icon" />
               <span>How to Use</span>
             </Link>
             <Link
@@ -147,18 +216,7 @@ export function SiteHeader() {
               className={`nav-dropdown-link nav-link ${pathname === '/privacy' ? 'nav-link-active' : ''}`}
               onClick={() => setIsOpen(false)}
             >
-              <svg
-                className="nav-item-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
+              <LockIcon size={18} className="nav-item-icon" />
               <span>Privacy Policy</span>
             </Link>
           </nav>

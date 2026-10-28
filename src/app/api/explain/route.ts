@@ -5,19 +5,21 @@ import { explainReportEvidence } from '@/lib/model-explainer/service';
 // Maximum body size: 64 KiB (PRD P1-001 §10)
 const MAX_BODY_BYTES = 64 * 1024;
 
-// Simple in-memory rate limiter: max 3 requests per minute per IP/client
+// In-memory rate limiter: max 10 requests per 5 minutes per IP/client
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 10;
 
 function checkRateLimit(clientId: string): boolean {
   const now = Date.now();
   const entry = rateLimitMap.get(clientId);
 
   if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(clientId, { count: 1, resetAt: now + 60_000 });
+    rateLimitMap.set(clientId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     return true;
   }
 
-  if (entry.count >= 3) {
+  if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
     return false;
   }
 
@@ -49,8 +51,8 @@ export async function POST(req: NextRequest) {
   const clientIp = req.headers.get('x-forwarded-for') || 'local-client';
   if (!checkRateLimit(clientIp)) {
     return NextResponse.json(
-      { error: 'Rate limit exceeded (maximum 3 requests per minute)' },
-      { status: 429, headers: { 'Cache-Control': 'no-store', 'Retry-After': '60' } },
+      { error: 'Rate limit exceeded (maximum 10 requests per 5 minutes)' },
+      { status: 429, headers: { 'Cache-Control': 'no-store', 'Retry-After': '300' } },
     );
   }
 

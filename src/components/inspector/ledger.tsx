@@ -1,5 +1,5 @@
 import type { CheckResult, EvidenceItem } from '@/lib/results/schemas';
-import type { Ref } from 'react';
+import { useState, useEffect, type Ref } from 'react';
 import type { FileAnalysis } from '@/lib/pipeline/types';
 import { buildCoverage, SUMMARY_DESCRIPTIONS, SUMMARY_HEADLINES } from '@/lib/pipeline/summary';
 import { C2PA_SDK_VERSION, C2PA_TRUST_POLICY_ID } from '@/lib/c2pa/asset';
@@ -18,6 +18,7 @@ import {
   formatDimensions,
 } from './labels';
 import { ModelExplanationCard } from './model-explanation';
+import { EyeIcon, CheckCircleIcon, AlertTriangleIcon, InfoIcon } from '@/components/ui/icons';
 
 
 /**
@@ -34,6 +35,7 @@ import { ModelExplanationCard } from './model-explanation';
 
 export type LedgerProps = Readonly<{
   analysis: FileAnalysis;
+  previewUrl?: string | null;
   notice?: string;
   downloadError: string | null;
   onDownload: () => void;
@@ -51,6 +53,7 @@ export type FileSectionsProps = Readonly<{
   idPrefix: string;
   /** Comparison heading such as "File A". Omitted for a single-file ledger. */
   title?: string;
+  previewUrl?: string | null;
 }>;
 
 export type ReportActionsProps = Readonly<{
@@ -59,6 +62,7 @@ export type ReportActionsProps = Readonly<{
   onClear: () => void;
   onInspectAnother: () => void;
   compare: boolean;
+  analysis?: FileAnalysis;
 }>;
 
 function EvidenceList({ items }: Readonly<{ items: readonly EvidenceItem[] }>) {
@@ -242,6 +246,56 @@ function CredentialSection({ analysis, idPrefix }: Readonly<{ analysis: FileAnal
         <div>
           <h3>Recorded actions</h3>
           <p className="note">{C2PA_FIELD_HELP.actions}</p>
+          <div
+            className="action-lineage-graph"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap',
+              margin: '10px 0 14px 0',
+              padding: '10px 14px',
+              background: 'var(--surface-sunken, #f8fafc)',
+              borderRadius: '8px',
+              border: '1px solid var(--border, #e2e8f0)',
+            }}
+          >
+            {finding.actions.map((action, idx) => (
+              <div key={action.sourceEvidenceId} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    color: '#1e3a8a',
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <span style={{ color: '#1e3a8a', fontWeight: 700, marginRight: '4px' }}>{idx + 1}.</span>
+                  <code style={{ color: '#1e3a8a' }}>{action.actionCode}</code>
+                </span>
+                {idx < finding.actions.length - 1 && (
+                  <span aria-hidden="true" style={{ color: '#475569', fontWeight: 'bold' }}>──►</span>
+                )}
+              </div>
+            ))}
+            <span aria-hidden="true" style={{ color: '#475569', fontWeight: 'bold' }}>──►</span>
+            <span
+              style={{
+                padding: '4px 10px',
+                borderRadius: '6px',
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                color: '#065f46',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+              }}
+            >
+              Current Version
+            </span>
+          </div>
           <ul>
             {finding.actions.map((action) => (
               <li key={action.sourceEvidenceId}>
@@ -380,11 +434,209 @@ function uniqueLimitations(analysis: FileAnalysis): string[] {
   return limitations;
 }
 
+function MediaPreviewCard({
+  analysis,
+  previewUrl,
+  idPrefix,
+}: {
+  analysis: FileAnalysis;
+  previewUrl?: string | null;
+  idPrefix: string;
+}) {
+  const [lightbox, setLightbox] = useState(false);
+  const tid = (name: string) => (idPrefix ? `${idPrefix}${name}` : name);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setLightbox(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightbox]);
+
+  if (!previewUrl) {
+    return null;
+  }
+
+  return (
+    <section aria-labelledby={tid('media-preview-heading')} className="panel media-preview-panel">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <h2 id={tid('media-preview-heading')}>Inspected Media Preview</h2>
+        <span className="badge badge-privacy" style={{ fontSize: '0.75rem' }}>Volatile Memory Only</span>
+      </div>
+      <div
+        className="preview-img-container"
+        style={{
+          position: 'relative',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          background: 'var(--surface-sunken, #e2e8f0)',
+          maxHeight: '380px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          cursor: 'pointer',
+        }}
+        onClick={() => setLightbox(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setLightbox(true);
+          }
+        }}
+        aria-label="Click to enlarge image preview"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={previewUrl}
+          alt={`Preview of ${analysis.file.displayName}`}
+          style={{ maxWidth: '100%', maxHeight: '380px', objectFit: 'contain' }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '10px',
+            right: '10px',
+            background: 'rgba(15, 23, 42, 0.75)',
+            color: '#ffffff',
+            padding: '4px 8px',
+            borderRadius: '6px',
+            fontSize: '0.75rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
+          <EyeIcon size={13} />
+          <span>Enlarge</span>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+        <span className="badge">{formatDimensions(analysis.file.width, analysis.file.height)}</span>
+        <span className="badge">{analysis.file.detectedMimeType}</span>
+        <span className="badge">{formatByteSize(analysis.file.byteSize)}</span>
+      </div>
+
+      {lightbox && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Enlarged media preview"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '20px',
+          }}
+          onClick={() => setLightbox(false)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={previewUrl}
+            alt={`Full size preview of ${analysis.file.displayName}`}
+            style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '8px' }}
+          />
+          <button
+            type="button"
+            className="button-ghost"
+            style={{ marginTop: '14px', color: '#ffffff', borderColor: '#ffffff' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightbox(false);
+            }}
+          >
+            Close Lightbox (Esc)
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ExecutiveStatusBadges({
+  analysis,
+  idPrefix,
+}: {
+  analysis: FileAnalysis;
+  idPrefix: string;
+}) {
+  const tid = (name: string) => (idPrefix ? `${idPrefix}${name}` : name);
+  const finding = analysis.finding;
+  const c2paPresent = finding && finding.manifestPresence === 'present';
+  const bindingValid = finding && finding.contentBindingValidation === 'valid';
+  const bindingInvalid = finding && finding.contentBindingValidation === 'invalid';
+  const sigValid = finding && finding.signatureValidation === 'valid';
+
+  return (
+    <div
+      className="executive-status-row"
+      data-testid={tid('executive-status-row')}
+      style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '0 0 16px 0' }}
+    >
+      {c2paPresent ? (
+        <>
+          <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <CheckCircleIcon size={13} />
+            <span>Manifest Present</span>
+          </span>
+          {sigValid ? (
+            <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <CheckCircleIcon size={13} />
+              <span>Signature Valid</span>
+            </span>
+          ) : (
+            <span className="badge badge-warning" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <AlertTriangleIcon size={13} />
+              <span>Signature Issues</span>
+            </span>
+          )}
+          {bindingValid ? (
+            <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <CheckCircleIcon size={13} />
+              <span>Asset Binding Valid</span>
+            </span>
+          ) : bindingInvalid ? (
+            <span className="badge badge-warning" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <AlertTriangleIcon size={13} />
+              <span>Binding Mismatch</span>
+            </span>
+          ) : null}
+          <span className="badge badge-neutral" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <InfoIcon size={13} />
+            <span>Signer: Unanchored</span>
+          </span>
+        </>
+      ) : (
+        <>
+          <span className="badge badge-neutral" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <InfoIcon size={13} />
+            <span>No Embedded C2PA Manifest</span>
+          </span>
+          <span className="badge badge-neutral" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <InfoIcon size={13} />
+            <span>Unverified Clues Only</span>
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
 /**
  * The Evidence Ledger body for one analyzed file. `idPrefix` is empty for the
  * single-file ledger, and `a-` or `b-` inside a comparison.
  */
-export function FileEvidenceSections({ analysis, idPrefix, title }: FileSectionsProps) {
+export function FileEvidenceSections({ analysis, idPrefix, title, previewUrl }: FileSectionsProps) {
   const coverage = buildCoverage(analysis.checks);
   const headlineCode = analysis.summaryCodes[0];
   const limitations = uniqueLimitations(analysis);
@@ -404,6 +656,12 @@ export function FileEvidenceSections({ analysis, idPrefix, title }: FileSections
           </p>
         </header>
       )}
+
+      {/* Volatile Preview Card */}
+      <MediaPreviewCard analysis={analysis} previewUrl={previewUrl} idPrefix={idPrefix} />
+
+      {/* Executive Status Badge Row */}
+      <ExecutiveStatusBadges analysis={analysis} idPrefix={idPrefix} />
 
       {analysis.cancelled ? (
         <p className="notice" role="status">
@@ -521,6 +779,49 @@ export function FileEvidenceSections({ analysis, idPrefix, title }: FileSections
         <MetadataSection analysis={analysis} idPrefix={idPrefix} />
       </section>
 
+      {analysis.metadata?.aiGeneratorClues && analysis.metadata.aiGeneratorClues.length > 0 ? (
+        <section
+          aria-labelledby={tid('ai-clues-heading')}
+          className="panel ai-clues-panel"
+          style={{ borderLeft: '4px solid #7c3aed' }}
+          data-testid={tid('ai-clues-section')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <h2 id={tid('ai-clues-heading')}>Unverified AI Generator Clues</h2>
+            <span className="badge" style={{ background: '#f5f3ff', color: '#7c3aed', fontWeight: 600 }}>
+              Heuristic Tag Scan
+            </span>
+          </div>
+          <p className="note" style={{ marginTop: '4px', marginBottom: '12px' }}>
+            Detected textual tags referencing generative AI software. Metadata is easily forged or
+            stripped; this is an unverified textual clue, not cryptographic proof.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {analysis.metadata.aiGeneratorClues.map((clue, idx) => (
+              <div
+                key={idx}
+                style={{
+                  padding: '8px 12px',
+                  background: 'var(--surface, #ffffff)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border, #e2e8f0)',
+                }}
+              >
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
+                  <strong style={{ color: '#7c3aed' }}>{clue.generator}</strong>
+                  <span className="badge" style={{ fontSize: '0.75rem' }}>
+                    Tag: {clue.tagSource}
+                  </span>
+                </div>
+                <p className="note" style={{ margin: 0, fontSize: '0.8125rem' }}>
+                  Matched text: <code>{clue.matchedText}</code>
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section aria-labelledby={tid('explanation-heading')} className="panel">
         <h2 id={tid('explanation-heading')}>Evidence explanation</h2>
         <p data-testid={tid('explanation')}>{analysis.explanation}</p>
@@ -567,7 +868,24 @@ export function ReportActions({
   onClear,
   onInspectAnother,
   compare,
+  analysis,
 }: ReportActionsProps) {
+  const [exportingCard, setExportingCard] = useState(false);
+
+  const handleExportCard = async () => {
+    if (!analysis) return;
+    setExportingCard(true);
+    try {
+      const { generateSocialCardBlob, downloadSocialCard } = await import('@/lib/report/card');
+      const blob = await generateSocialCardBlob(analysis);
+      downloadSocialCard(blob, analysis.file.displayName);
+    } catch (err) {
+      console.error('Failed to export social card:', err);
+    } finally {
+      setExportingCard(false);
+    }
+  };
+
   return (
     <section aria-labelledby="actions-heading" className="panel">
       <h2 id="actions-heading">Actions</h2>
@@ -583,6 +901,17 @@ export function ReportActions({
         <button type="button" onClick={onDownload} data-testid="download-report">
           Download JSON report
         </button>
+        {analysis ? (
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={() => void handleExportCard()}
+            disabled={exportingCard}
+            data-testid="export-social-card"
+          >
+            {exportingCard ? 'Generating card...' : 'Export Social Card (PNG)'}
+          </button>
+        ) : null}
         <button type="button" onClick={onInspectAnother} data-testid="inspect-another">
           {compare ? 'Start a new comparison' : 'Inspect another file'}
         </button>
@@ -605,6 +934,7 @@ export function ReportActions({
 
 export function EvidenceLedger({
   analysis,
+  previewUrl,
   notice,
   downloadError,
   onDownload,
@@ -631,7 +961,7 @@ export function EvidenceLedger({
         </p>
       )}
 
-      <FileEvidenceSections analysis={analysis} idPrefix="" />
+      <FileEvidenceSections analysis={analysis} idPrefix="" previewUrl={previewUrl} />
 
       <ReportActions
         downloadError={downloadError}
@@ -639,6 +969,7 @@ export function EvidenceLedger({
         onClear={onClear}
         onInspectAnother={onInspectAnother}
         compare={false}
+        analysis={analysis}
       />
     </div>
   );

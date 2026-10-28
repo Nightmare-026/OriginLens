@@ -12,7 +12,7 @@ test.describe('P1-001 Meta Model Explainer Flow', () => {
   test('displays consent dialog and executes explanation flow with accessibility', async ({
     page,
   }) => {
-    await page.goto('/');
+    await page.goto('/inspect');
 
     // Upload an image to start inspection
     const fileInput = page.getByTestId('inspect-file');

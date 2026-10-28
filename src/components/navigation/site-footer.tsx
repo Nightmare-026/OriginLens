@@ -3,10 +3,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { ExternalLinkIcon } from '@/components/ui/icons';
 
 export function SiteFooter() {
   const pathname = usePathname();
-  const isHome = pathname === '/';
 
   return (
     <footer role="contentinfo" className="site-footer">
@@ -32,58 +32,86 @@ export function SiteFooter() {
           </p>
         </div>
 
-        {!isHome ? (
-          <>
-            <div className="footer-nav-col">
-              <h2 className="footer-heading">Navigation</h2>
-              <ul className="footer-links" role="list">
-                <li>
-                  <Link id="footer-explorer" href="/" className="footer-link">
-                    Media Explorer
-                  </Link>
-                </li>
-                <li>
-                  <Link id="footer-how-to-use" href="/how-to-use" className="footer-link">
-                    How to Use Guide
-                  </Link>
-                </li>
-                <li>
-                  <Link id="footer-privacy" href="/privacy" className="footer-link">
-                    Privacy Policy
-                  </Link>
-                </li>
-              </ul>
-            </div>
+        <div className="footer-nav-col">
+          <h2 className="footer-heading">Navigation</h2>
+          <ul className="footer-links" role="list">
+            <li>
+              <Link
+                id="footer-home"
+                href="/"
+                className={`footer-link ${pathname === '/' ? 'footer-link-active' : ''}`}
+              >
+                Home
+              </Link>
+            </li>
+            <li>
+              <Link
+                id="footer-inspect"
+                href="/inspect"
+                className={`footer-link ${pathname === '/inspect' ? 'footer-link-active' : ''}`}
+              >
+                Inspect Image
+              </Link>
+            </li>
+            <li>
+              <Link
+                id="footer-compare"
+                href="/compare"
+                className={`footer-link ${pathname === '/compare' ? 'footer-link-active' : ''}`}
+              >
+                Compare Images
+              </Link>
+            </li>
+            <li>
+              <Link
+                id="footer-how-to-use"
+                href="/how-to-use"
+                className={`footer-link ${pathname === '/how-to-use' ? 'footer-link-active' : ''}`}
+              >
+                How to Use Guide
+              </Link>
+            </li>
+            <li>
+              <Link
+                id="footer-privacy"
+                href="/privacy"
+                className={`footer-link ${pathname === '/privacy' ? 'footer-link-active' : ''}`}
+              >
+                Privacy Policy
+              </Link>
+            </li>
+          </ul>
+        </div>
 
-            <div className="footer-nav-col">
-              <h2 className="footer-heading">Standards</h2>
-              <ul className="footer-links" role="list">
-                <li>
-                  <a
-                    id="footer-c2pa"
-                    href="https://c2pa.org"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="footer-link"
-                  >
-                    C2PA Specification ↗
-                  </a>
-                </li>
-                <li>
-                  <a
-                    id="footer-cai"
-                    href="https://contentauthenticity.org"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="footer-link"
-                  >
-                    CAI Initiative ↗
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </>
-        ) : null}
+        <div className="footer-nav-col">
+          <h2 className="footer-heading">Standards</h2>
+          <ul className="footer-links" role="list">
+            <li>
+              <a
+                id="footer-c2pa"
+                href="https://c2pa.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-link footer-ext-link"
+              >
+                <span>C2PA Specification</span>
+                <ExternalLinkIcon size={12} />
+              </a>
+            </li>
+            <li>
+              <a
+                id="footer-cai"
+                href="https://contentauthenticity.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-link footer-ext-link"
+              >
+                <span>CAI Initiative</span>
+                <ExternalLinkIcon size={12} />
+              </a>
+            </li>
+          </ul>
+        </div>
 
         <div className="footer-nav-col">
           <h2 className="footer-heading">Open Source</h2>
@@ -94,9 +122,10 @@ export function SiteFooter() {
                 href="https://github.com/Nightmare-026/OriginLens"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="footer-link"
+                className="footer-link footer-ext-link"
               >
-                GitHub Repository ↗
+                <span>GitHub Repository</span>
+                <ExternalLinkIcon size={12} />
               </a>
             </li>
           </ul>

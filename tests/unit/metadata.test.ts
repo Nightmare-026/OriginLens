@@ -107,6 +107,35 @@ describe('metadata allowlist', () => {
 
     expect(EXIFREADER_VERSION).toBe(installed.version);
   });
+
+  it('scans and reports unverified AI generator metadata clues with disclaimer', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const samplePath = path.resolve(__dirname, '../../public/samples/ai-generated-sd.png');
+    if (fs.existsSync(samplePath)) {
+      const bytes = fs.readFileSync(samplePath);
+      const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      const result = inspectMetadata(buffer);
+      expect(result.status).toBe('extracted');
+      expect(result.aiGeneratorClues?.length).toBeGreaterThan(0);
+      expect(result.aiGeneratorClues?.some((c) => c.generator === 'Stable Diffusion')).toBe(true);
+      expect(
+        result.warnings.some((w) => w.includes('Detected textual tags referencing AI software')),
+      ).toBe(true);
+    }
+  });
+
+  it('correctly matches Midjourney v7, FLUX, SDXL, and Fooocus in AI generator patterns', () => {
+    const mjPattern = /(?:midjourney|job\s*id|--v\s+[4-7]|--ar\s+\d+:\d+|--stylize)/i;
+    expect(mjPattern.test('cyberpunk city --v 7 --ar 16:9')).toBe(true);
+    expect(mjPattern.test('job id: 123456')).toBe(true);
+
+    const sdPattern =
+      /(?:stable\s*diffusion|automatic1111|comfyui|sdxl|flux(?:\.1)?|fooocus|negative\s*prompt:|sampler:\s*[\w+]|cfg\s*scale:|steps:\s*\d+)/i;
+    expect(sdPattern.test('rendered with FLUX.1 dev')).toBe(true);
+    expect(sdPattern.test('Fooocus v2.5.5 prompt')).toBe(true);
+    expect(sdPattern.test('SDXL 1.0 base model')).toBe(true);
+  });
 });
 
 describe('metadata text sanitization', () => {

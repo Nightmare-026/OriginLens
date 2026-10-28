@@ -38,7 +38,7 @@ test('inspects the verified credential fixture and keeps trust unevaluated', asy
 
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
-  await page.goto('/');
+  await page.goto('/inspect');
 
   await expect(page.getByTestId('start-screen')).toBeVisible();
   await expect(page.getByText('JPEG and PNG only')).toBeVisible();
@@ -69,7 +69,7 @@ test('inspects the verified credential fixture and keeps trust unevaluated', asy
 });
 
 test('reports a missing manifest without turning absence into a verdict', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/inspect');
   await analyze(page, 'plain-1x1.jpg');
 
   await expect(page.getByTestId('summary-headline')).toHaveText(
@@ -89,7 +89,7 @@ test('reports a missing manifest without turning absence into a verdict', async 
 test('inspects a valid PNG with no embedded credential and keeps local evidence complete', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('/inspect');
   await analyze(page, 'plain-3x2.png');
 
   await expect(page.getByTestId('summary-headline')).toHaveText(
@@ -104,7 +104,7 @@ test('inspects a valid PNG with no embedded credential and keeps local evidence 
 });
 
 test('recovers from a malformed file and keeps the session usable', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/inspect');
 
   await page
     .getByTestId('inspect-file')
@@ -121,7 +121,7 @@ test('recovers from a malformed file and keeps the session usable', async ({ pag
 });
 
 test('downloads a validated JSON report without image bytes or GPS', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/inspect');
   await analyze(page, 'adobe-20220124-C.jpg');
 
   const downloadPromise = page.waitForEvent('download');
@@ -168,7 +168,7 @@ test('keeps the result usable and retryable when the report download fails', asy
     };
   });
 
-  await page.goto('/');
+  await page.goto('/inspect');
   await analyze(page, 'adobe-20220124-C.jpg');
 
   await page.getByTestId('download-report').click();
@@ -188,7 +188,7 @@ test('keeps local evidence when the browser is offline for the credential runtim
   page,
   context,
 }) => {
-  await page.goto('/');
+  await page.goto('/inspect');
   // The app shell and decoder are local; only the same-origin WASM fetch can
   // fail. That must degrade to a failed check, never to a fabricated result.
   await context.setOffline(true);
@@ -206,7 +206,7 @@ test('keeps local evidence when the browser is offline for the credential runtim
 });
 
 test('discards the previous result when another file is inspected', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/inspect');
   await analyze(page, 'adobe-20220124-C.jpg');
 
   await page.getByTestId('inspect-another').click();
@@ -222,7 +222,7 @@ test('discards the previous result when another file is inspected', async ({ pag
 });
 
 test('clears the session and returns to an honest start screen', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/inspect');
   await analyze(page, 'adobe-20220124-C.jpg');
 
   await page.getByTestId('clear-session').click();
@@ -233,9 +233,7 @@ test('clears the session and returns to an honest start screen', async ({ page }
 });
 
 test('keeps the workflow keyboard reachable', async ({ page }) => {
-  await page.goto('/');
-
-  await expect(page.getByTestId('compare-start')).toBeDisabled();
+  await page.goto('/inspect');
 
   let reachedFileInput = false;
 
@@ -261,7 +259,7 @@ test('keeps the workflow keyboard reachable', async ({ page }) => {
 
 test('fits a 360 px viewport without horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
-  await page.goto('/');
+  await page.goto('/inspect');
 
   await expectNoHorizontalOverflow(page);
 
@@ -273,7 +271,7 @@ test('fits a 360 px viewport without horizontal overflow', async ({ page }) => {
 test('V04: inspects a mutated credential fixture and reports invalid validation truthfully', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('/inspect');
   await analyze(page, 'adobe-20220124-C-tampered.jpg');
 
   await expect(page.getByTestId('summary-headline')).toHaveText(

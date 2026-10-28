@@ -11,6 +11,8 @@ export const explainRequestSchema = z
     schemaVersion: z.literal('2.0'),
     consent: z.literal(true),
     model: z.string().min(1).max(120),
+    audience: z.enum(['general', 'newsroom', 'forensic']).optional(),
+    userQuery: z.string().max(300).optional(),
     report: z.object({
       reportId: z.string().regex(/^rpt_[A-Za-z0-9_-]{6,64}$/),
       summaryCodes: z.array(z.enum(SUMMARY_CODES)).max(8),

@@ -13,6 +13,7 @@ import type { ExplainRequest } from './schema';
 export function projectReportToExplainPayload(
   report: OriginLensReport,
   model: string = 'meta/llama-3.2-11b-vision-instruct',
+  audience?: 'general' | 'newsroom' | 'forensic',
 ): ExplainRequest {
   const allowedSummaryCodes = report.summaryCodes.slice(0, 8);
 
@@ -49,6 +50,7 @@ export function projectReportToExplainPayload(
     schemaVersion: '2.0',
     consent: true,
     model,
+    audience,
     report: {
       reportId: report.reportId,
       summaryCodes: allowedSummaryCodes,
