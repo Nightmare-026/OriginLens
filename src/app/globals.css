@@ -2359,34 +2359,78 @@ button:disabled {
 .pipeline-stage-tab {
   display: flex !important;
   align-items: center !important;
-  gap: 0.6rem !important;
-  padding: 0.6rem 0.85rem !important;
+  gap: 0.65rem !important;
+  padding: 0.65rem 0.95rem !important;
   border-radius: var(--rounded-md) !important;
-  background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(16, 185, 129, 0.12) 100%) !important;
+  border: 1px solid #a7f3d0 !important;
   cursor: pointer !important;
   text-align: left !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
-  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.08) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
   width: 100% !important;
 }
 
 .pipeline-stage-tab:hover {
-  border-color: #cbd5e1 !important;
-  background: #f1f5f9 !important;
+  background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45), 0 3px 8px rgba(14, 165, 233, 0.25) !important;
+  transform: translateY(-2px) !important;
+}
+
+.pipeline-stage-tab:hover .stage-tab-title,
+.pipeline-stage-tab:hover .stage-tab-sub {
+  color: #ffffff !important;
+}
+
+.pipeline-stage-tab svg {
+  color: #059669;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.pipeline-stage-tab:hover svg,
+.pipeline-stage-tab.stage-tab-active svg {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+.pipeline-stage-tab:hover .stage-tab-num {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
 }
 
 .pipeline-stage-tab.stage-tab-active {
-  background: #ecfdf5 !important;
-  border-color: #10b981 !important;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2), 0 2px 4px rgba(16, 185, 129, 0.1) !important;
+  background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4), 0 0 0 2px rgba(16, 185, 129, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+.pipeline-stage-tab.stage-tab-active .stage-tab-title,
+.pipeline-stage-tab.stage-tab-active .stage-tab-sub {
+  color: #ffffff !important;
+}
+
+.pipeline-stage-tab.stage-tab-active .stage-tab-num {
+  background: rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+}
+
+.pipeline-stage-tab.stage-tab-active:hover {
+  background: linear-gradient(135deg, #0284c7 0%, #059669 100%) !important;
+  box-shadow: 0 6px 22px rgba(16, 185, 129, 0.55), 0 3px 10px rgba(14, 165, 233, 0.35) !important;
+  transform: translateY(-2.5px) !important;
 }
 
 .stage-tab-num {
   font-size: 0.75rem;
   font-weight: 800;
-  color: #0f172a;
-  background: #e2e8f0;
+  color: #065f46;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 50%;
@@ -2394,11 +2438,7 @@ button:disabled {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-.pipeline-stage-tab.stage-tab-active .stage-tab-num {
-  background: #065f46;
-  color: #ffffff;
+  transition: all 0.2s ease;
 }
 
 .stage-tab-meta {
