@@ -28,6 +28,12 @@ import {
   LayersIcon,
   CpuIcon,
   FileCheckIcon,
+  PrinterIcon,
+  FileTextIcon,
+  LayoutGridIcon,
+  CameraIcon,
+  DownloadIcon,
+  SplitIcon,
 } from '@/components/ui/icons';
 
 
@@ -759,15 +765,250 @@ function ExecutiveStatusBadges({
   );
 }
 
+type InspectorTabKey = 'overview' | 'c2pa' | 'metadata' | 'ai' | 'audit' | 'all';
+
+interface TabItem {
+  id: InspectorTabKey;
+  label: string;
+  icon: typeof FileTextIcon;
+}
+
+const INSPECTOR_TABS: readonly TabItem[] = [
+  { id: 'overview', label: 'Executive Overview', icon: FileTextIcon },
+  { id: 'c2pa', label: 'C2PA Credentials', icon: ShieldCheckIcon },
+  { id: 'metadata', label: 'Camera & EXIF', icon: CameraIcon },
+  { id: 'ai', label: 'AI Clues & Co-Pilot', icon: CpuIcon },
+  { id: 'audit', label: 'Technical Audit', icon: LayersIcon },
+  { id: 'all', label: 'Complete View', icon: LayoutGridIcon },
+];
+
 /**
  * The Evidence Ledger body for one analyzed file. `idPrefix` is empty for the
  * single-file ledger, and `a-` or `b-` inside a comparison.
  */
 export function FileEvidenceSections({ analysis, idPrefix, title, previewUrl }: FileSectionsProps) {
+  const [activeTab, setActiveTab] = useState<InspectorTabKey>('overview');
   const coverage = buildCoverage(analysis.checks);
   const headlineCode = analysis.summaryCodes[0];
   const limitations = uniqueLimitations(analysis);
   const tid = (suffix: string): string => `${idPrefix}${suffix}`;
+
+  const renderSummaryPanel = () => (
+    <section aria-labelledby={tid('summary-heading')} className="panel">
+      <h2 id={tid('summary-heading')}>Summary</h2>
+      {headlineCode === undefined ? (
+        <p className="note">No summary code was recorded for this analysis.</p>
+      ) : (
+        <>
+          <p className="headline" data-testid={tid('summary-headline')}>
+            {SUMMARY_HEADLINES[headlineCode]}
+          </p>
+          <p>{SUMMARY_DESCRIPTIONS[headlineCode]}</p>
+        </>
+      )}
+
+      <h3>Coverage</h3>
+      <p data-testid={tid('coverage-summary')}>
+        {coverage.completed} of {coverage.total} checks completed · {coverage.failed} failed ·{' '}
+        {coverage.timedOut} timed out · {coverage.cancelled} cancelled · {coverage.skipped}{' '}
+        skipped
+        {coverage.unsupported === 0 ? '' : ` · ${coverage.unsupported} unsupported`}
+        {coverage.inconclusive === 0 ? '' : ` · ${coverage.inconclusive} inconclusive`}
+      </p>
+      <p className="note">
+        Coverage counts checks, not verdicts. A check that did not complete is incomplete
+        coverage, not a negative finding about the image.
+      </p>
+
+      {analysis.summaryCodes.length > 1 ? (
+        <ul className="note-list" data-testid={tid('summary-codes')}>
+          {analysis.summaryCodes.slice(1).map((code) => (
+            <li key={code}>{SUMMARY_HEADLINES[code]}</li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+
+  const renderFingerprintPanel = () => (
+    <section aria-labelledby={tid('fingerprint-heading')} className="panel">
+      <h2 id={tid('fingerprint-heading')}>File fingerprint</h2>
+      <dl className="kv">
+        <div>
+          <dt>SHA-256 of the original bytes</dt>
+          <dd>
+            <code className="hash" data-testid={tid('file-sha256')}>
+              {analysis.file.sha256}
+            </code>
+          </dd>
+        </div>
+        <div>
+          <dt>Byte size</dt>
+          <dd>{formatByteSize(analysis.file.byteSize)}</dd>
+        </div>
+        <div>
+          <dt>Detected format</dt>
+          <dd>{analysis.file.detectedMimeType}</dd>
+        </div>
+        <div>
+          <dt>Dimensions</dt>
+          <dd>{formatDimensions(analysis.file.width, analysis.file.height)}</dd>
+        </div>
+        <div>
+          <dt>Decode pipeline</dt>
+          <dd>
+            <code>{analysis.file.decodePipelineVersion}</code>
+          </dd>
+        </div>
+        <div>
+          <dt>File ID</dt>
+          <dd>
+            <code data-testid={tid('file-id')}>{analysis.file.fileId}</code>
+          </dd>
+        </div>
+        {analysis.file.userLabel === undefined ? null : (
+          <div>
+            <dt>User-supplied label</dt>
+            <dd data-testid={tid('user-label')}>
+              {analysis.file.userLabel === 'original' ? 'Original' : 'Edited'}
+            </dd>
+          </div>
+        )}
+        <div>
+          <dt>App version</dt>
+          <dd>{APP_VERSION}</dd>
+        </div>
+      </dl>
+      {analysis.file.userLabel === undefined ? null : (
+        <p className="note" data-testid={tid('user-label-note')}>
+          This label is the user&apos;s own assertion. It was not measured, verified, or inferred
+          from the files, and it does not establish which file came first.
+        </p>
+      )}
+      <p className="note">
+        The fingerprint identifies this exact byte version. It does not establish who created the
+        file, when an event occurred, or whether the content is true.
+      </p>
+    </section>
+  );
+
+  const renderC2paPanel = () => (
+    <section aria-labelledby={tid('credential-heading')} className="panel">
+      <h2 id={tid('credential-heading')}>C2PA credential findings</h2>
+      <CredentialSection analysis={analysis} idPrefix={idPrefix} />
+    </section>
+  );
+
+  const renderMetadataPanel = () => (
+    <section aria-labelledby={tid('metadata-heading')} className="panel">
+      <h2 id={tid('metadata-heading')}>Metadata clues</h2>
+      <p className="note">
+        Metadata is unverified. It is shown only from a bounded allowlist and is never treated as
+        cryptographic provenance.
+      </p>
+      <MetadataSection analysis={analysis} idPrefix={idPrefix} />
+    </section>
+  );
+
+  const renderAiCluesPanel = () => {
+    const hasClues = analysis.metadata?.aiGeneratorClues && analysis.metadata.aiGeneratorClues.length > 0;
+    return (
+      <>
+        {hasClues ? (
+          <section
+            aria-labelledby={tid('ai-clues-heading')}
+            className="panel ai-clues-panel"
+            style={{ borderLeft: '4px solid #7c3aed' }}
+            data-testid={tid('ai-clues-section')}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <h2 id={tid('ai-clues-heading')}>Metadata text matching AI-tool patterns</h2>
+              <span className="badge" style={{ background: '#f5f3ff', color: '#7c3aed', fontWeight: 600 }}>
+                String match, not detection
+              </span>
+            </div>
+            <p className="note" style={{ marginTop: '4px', marginBottom: '12px' }}>
+              These metadata fields contain text that matches a known generative-AI tool pattern.
+              Metadata is easily forged or stripped, and a match can be wrong; it is not evidence that
+              this image was generated.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {analysis.metadata?.aiGeneratorClues?.map((clue, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    padding: '8px 12px',
+                    background: 'var(--surface, #ffffff)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border, #e2e8f0)',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
+                    <strong style={{ color: '#7c3aed' }}>{clue.generator}</strong>
+                    <span className="badge" style={{ fontSize: '0.75rem' }}>
+                      Tag: {clue.tagSource}
+                    </span>
+                  </div>
+                  <p className="note" style={{ margin: 0, fontSize: '0.8125rem' }}>
+                    Matched text (verbatim): <code>{clue.matchedText}</code>
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section aria-labelledby={tid('ai-clues-heading')} className="panel">
+            <h2 id={tid('ai-clues-heading')}>Metadata text matching AI-tool patterns</h2>
+            <p className="note">
+              No known generative AI tool string patterns (such as Midjourney parameters, ComfyUI graphs, or DALL-E tags)
+              were observed in this image&apos;s allowlisted metadata.
+            </p>
+          </section>
+        )}
+
+        <section aria-labelledby={tid('explanation-heading')} className="panel">
+          <h2 id={tid('explanation-heading')}>Evidence explanation</h2>
+          <p data-testid={tid('explanation')}>{analysis.explanation}</p>
+          <p className="note">
+            Deterministic template generated from the typed results above. No model was called, and no
+            finding was added.
+          </p>
+          <ModelExplanationCard analysis={analysis} idPrefix={idPrefix} />
+        </section>
+      </>
+    );
+  };
+
+  const renderAuditPanel = () => (
+    <>
+      <section aria-labelledby={tid('checks-heading')} className="panel">
+        <h2 id={tid('checks-heading')}>Checks and evidence</h2>
+        <p className="note">
+          Every displayed finding belongs to one of these checks and is backed by the structured
+          evidence items listed with it.
+        </p>
+        <ol className="check-list">
+          {analysis.checks.map((check) => (
+            <CheckRow key={check.checkId} check={check} idPrefix={idPrefix} />
+          ))}
+        </ol>
+      </section>
+
+      <section aria-labelledby={tid('limitations-heading')} className="panel">
+        <h2 id={tid('limitations-heading')}>Limitations</h2>
+        <ul data-testid={tid('limitations')}>
+          {limitations.map((limitation) => (
+            <li key={limitation}>{limitation}</li>
+          ))}
+          <li>Only the checks listed above ran. Anything not listed was not evaluated.</li>
+          <li>
+            This is not a real-or-fake verdict, a forensic certificate, or proof of origin,
+            authorship, chronology, intent, or scene truth.
+          </li>
+        </ul>
+      </section>
+    </>
+  );
 
   return (
     <div data-testid={tid('file-ledger')}>
@@ -797,195 +1038,155 @@ export function FileEvidenceSections({ analysis, idPrefix, title, previewUrl }: 
         </p>
       ) : null}
 
-      <section aria-labelledby={tid('summary-heading')} className="panel">
-        <h2 id={tid('summary-heading')}>Summary</h2>
-        {headlineCode === undefined ? (
-          <p className="note">No summary code was recorded for this analysis.</p>
-        ) : (
-          <>
-            <p className="headline" data-testid={tid('summary-headline')}>
-              {SUMMARY_HEADLINES[headlineCode]}
-            </p>
-            <p>{SUMMARY_DESCRIPTIONS[headlineCode]}</p>
-          </>
-        )}
-
-        <h3>Coverage</h3>
-        <p data-testid={tid('coverage-summary')}>
-          {coverage.completed} of {coverage.total} checks completed · {coverage.failed} failed ·{' '}
-          {coverage.timedOut} timed out · {coverage.cancelled} cancelled · {coverage.skipped}{' '}
-          skipped
-          {coverage.unsupported === 0 ? '' : ` · ${coverage.unsupported} unsupported`}
-          {coverage.inconclusive === 0 ? '' : ` · ${coverage.inconclusive} inconclusive`}
-        </p>
-        <p className="note">
-          Coverage counts checks, not verdicts. A check that did not complete is incomplete
-          coverage, not a negative finding about the image.
-        </p>
-
-        {analysis.summaryCodes.length > 1 ? (
-          <ul className="note-list" data-testid={tid('summary-codes')}>
-            {analysis.summaryCodes.slice(1).map((code) => (
-              <li key={code}>{SUMMARY_HEADLINES[code]}</li>
-            ))}
-          </ul>
-        ) : null}
-      </section>
-
-      <section aria-labelledby={tid('fingerprint-heading')} className="panel">
-        <h2 id={tid('fingerprint-heading')}>File fingerprint</h2>
-        <dl className="kv">
-          <div>
-            <dt>SHA-256 of the original bytes</dt>
-            <dd>
-              <code className="hash" data-testid={tid('file-sha256')}>
-                {analysis.file.sha256}
-              </code>
-            </dd>
-          </div>
-          <div>
-            <dt>Byte size</dt>
-            <dd>{formatByteSize(analysis.file.byteSize)}</dd>
-          </div>
-          <div>
-            <dt>Detected format</dt>
-            <dd>{analysis.file.detectedMimeType}</dd>
-          </div>
-          <div>
-            <dt>Dimensions</dt>
-            <dd>{formatDimensions(analysis.file.width, analysis.file.height)}</dd>
-          </div>
-          <div>
-            <dt>Decode pipeline</dt>
-            <dd>
-              <code>{analysis.file.decodePipelineVersion}</code>
-            </dd>
-          </div>
-          <div>
-            <dt>File ID</dt>
-            <dd>
-              <code data-testid={tid('file-id')}>{analysis.file.fileId}</code>
-            </dd>
-          </div>
-          {analysis.file.userLabel === undefined ? null : (
-            <div>
-              <dt>User-supplied label</dt>
-              <dd data-testid={tid('user-label')}>
-                {analysis.file.userLabel === 'original' ? 'Original' : 'Edited'}
-              </dd>
-            </div>
-          )}
-          <div>
-            <dt>App version</dt>
-            <dd>{APP_VERSION}</dd>
-          </div>
-        </dl>
-        {analysis.file.userLabel === undefined ? null : (
-          <p className="note" data-testid={tid('user-label-note')}>
-            This label is the user&apos;s own assertion. It was not measured, verified, or inferred
-            from the files, and it does not establish which file came first.
-          </p>
-        )}
-        <p className="note">
-          The fingerprint identifies this exact byte version. It does not establish who created the
-          file, when an event occurred, or whether the content is true.
-        </p>
-      </section>
-
-      <section aria-labelledby={tid('credential-heading')} className="panel">
-        <h2 id={tid('credential-heading')}>C2PA credential findings</h2>
-        <CredentialSection analysis={analysis} idPrefix={idPrefix} />
-      </section>
-
-      <section aria-labelledby={tid('metadata-heading')} className="panel">
-        <h2 id={tid('metadata-heading')}>Metadata clues</h2>
-        <p className="note">
-          Metadata is unverified. It is shown only from a bounded allowlist and is never treated as
-          cryptographic provenance.
-        </p>
-        <MetadataSection analysis={analysis} idPrefix={idPrefix} />
-      </section>
-
-      {analysis.metadata?.aiGeneratorClues && analysis.metadata.aiGeneratorClues.length > 0 ? (
-        <section
-          aria-labelledby={tid('ai-clues-heading')}
-          className="panel ai-clues-panel"
-          style={{ borderLeft: '4px solid #7c3aed' }}
-          data-testid={tid('ai-clues-section')}
+      {/* Category Tab Navigation Bar */}
+      <div className="category-tabs-wrapper">
+        <div
+          className="category-tabs-nav"
+          role="tablist"
+          aria-label={`Evidence categories for ${title ?? analysis.file.displayName}`}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <h2 id={tid('ai-clues-heading')}>Metadata text matching AI-tool patterns</h2>
-            <span className="badge" style={{ background: '#f5f3ff', color: '#7c3aed', fontWeight: 600 }}>
-              String match, not detection
-            </span>
-          </div>
-          <p className="note" style={{ marginTop: '4px', marginBottom: '12px' }}>
-            These metadata fields contain text that matches a known generative-AI tool pattern.
-            Metadata is easily forged or stripped, and a match can be wrong; it is not evidence that
-            this image was generated.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {analysis.metadata.aiGeneratorClues.map((clue, idx) => (
-              <div
-                key={idx}
-                style={{
-                  padding: '8px 12px',
-                  background: 'var(--surface, #ffffff)',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border, #e2e8f0)',
+          {INSPECTOR_TABS.map((tab, idx) => {
+            const TabIcon = tab.icon;
+            const isSelected = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                id={`tab-${tid(tab.id)}`}
+                aria-selected={isSelected}
+                aria-controls={`panel-${tid(tab.id)}`}
+                tabIndex={isSelected ? 0 : -1}
+                className={`category-tab-btn ${isSelected ? 'tab-active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    const next = (idx + 1) % INSPECTOR_TABS.length;
+                    const nextTab = INSPECTOR_TABS[next];
+                    if (nextTab) {
+                      setActiveTab(nextTab.id);
+                      document.getElementById(`tab-${tid(nextTab.id)}`)?.focus();
+                    }
+                  } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    const prev = (idx - 1 + INSPECTOR_TABS.length) % INSPECTOR_TABS.length;
+                    const prevTab = INSPECTOR_TABS[prev];
+                    if (prevTab) {
+                      setActiveTab(prevTab.id);
+                      document.getElementById(`tab-${tid(prevTab.id)}`)?.focus();
+                    }
+                  } else if (e.key === 'Home') {
+                    e.preventDefault();
+                    const firstTab = INSPECTOR_TABS[0];
+                    if (firstTab) {
+                      setActiveTab(firstTab.id);
+                      document.getElementById(`tab-${tid(firstTab.id)}`)?.focus();
+                    }
+                  } else if (e.key === 'End') {
+                    e.preventDefault();
+                    const lastTab = INSPECTOR_TABS[INSPECTOR_TABS.length - 1];
+                    if (lastTab) {
+                      setActiveTab(lastTab.id);
+                      document.getElementById(`tab-${tid(lastTab.id)}`)?.focus();
+                    }
+                  }
                 }}
               >
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
-                  <strong style={{ color: '#7c3aed' }}>{clue.generator}</strong>
-                  <span className="badge" style={{ fontSize: '0.75rem' }}>
-                    Tag: {clue.tagSource}
-                  </span>
-                </div>
-                <p className="note" style={{ margin: 0, fontSize: '0.8125rem' }}>
-                  Matched text (verbatim): <code>{clue.matchedText}</code>
-                </p>
-              </div>
-            ))}
+                <TabIcon size={14} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab 1: Executive Overview */}
+        <div
+          role="tabpanel"
+          id={`panel-${tid('overview')}`}
+          aria-labelledby={`tab-${tid('overview')}`}
+          className="category-tabpanel"
+          hidden={activeTab !== 'overview' && activeTab !== 'all'}
+        >
+          {renderSummaryPanel()}
+          {renderFingerprintPanel()}
+          {renderC2paPanel()}
+          {renderMetadataPanel()}
+          <section aria-labelledby={tid('explanation-heading')} className="panel">
+            <h2 id={tid('explanation-heading')}>Evidence explanation</h2>
+            <p data-testid={tid('explanation')}>{analysis.explanation}</p>
+            <p className="note">
+              Deterministic template generated from the typed results above. No model was called, and no
+              finding was added.
+            </p>
+            <ModelExplanationCard analysis={analysis} idPrefix={idPrefix} />
+          </section>
+          {renderAuditPanel()}
+        </div>
+
+        {/* Tab 2: C2PA Credentials */}
+        {activeTab === 'c2pa' && (
+          <div
+            role="tabpanel"
+            id={`panel-${tid('c2pa')}`}
+            aria-labelledby={`tab-${tid('c2pa')}`}
+            className="category-tabpanel"
+          >
+            {renderC2paPanel()}
           </div>
-        </section>
-      ) : null}
+        )}
 
-      <section aria-labelledby={tid('explanation-heading')} className="panel">
-        <h2 id={tid('explanation-heading')}>Evidence explanation</h2>
-        <p data-testid={tid('explanation')}>{analysis.explanation}</p>
-        <p className="note">
-          Deterministic template generated from the typed results above. No model was called, and no
-          finding was added.
-        </p>
-        <ModelExplanationCard analysis={analysis} idPrefix={idPrefix} />
-      </section>
+        {/* Tab 3: Camera & EXIF Metadata */}
+        {activeTab === 'metadata' && (
+          <div
+            role="tabpanel"
+            id={`panel-${tid('metadata')}`}
+            aria-labelledby={`tab-${tid('metadata')}`}
+            className="category-tabpanel"
+          >
+            {renderMetadataPanel()}
+          </div>
+        )}
 
-      <section aria-labelledby={tid('checks-heading')} className="panel">
-        <h2 id={tid('checks-heading')}>Checks and evidence</h2>
-        <p className="note">
-          Every displayed finding belongs to one of these checks and is backed by the structured
-          evidence items listed with it.
-        </p>
-        <ol className="check-list">
-          {analysis.checks.map((check) => (
-            <CheckRow key={check.checkId} check={check} idPrefix={idPrefix} />
-          ))}
-        </ol>
-      </section>
+        {/* Tab 4: AI Clues & Co-Pilot */}
+        {activeTab === 'ai' && (
+          <div
+            role="tabpanel"
+            id={`panel-${tid('ai')}`}
+            aria-labelledby={`tab-${tid('ai')}`}
+            className="category-tabpanel"
+          >
+            {renderAiCluesPanel()}
+          </div>
+        )}
 
-      <section aria-labelledby={tid('limitations-heading')} className="panel">
-        <h2 id={tid('limitations-heading')}>Limitations</h2>
-        <ul data-testid={tid('limitations')}>
-          {limitations.map((limitation) => (
-            <li key={limitation}>{limitation}</li>
-          ))}
-          <li>Only the checks listed above ran. Anything not listed was not evaluated.</li>
-          <li>
-            This is not a real-or-fake verdict, a forensic certificate, or proof of origin,
-            authorship, chronology, intent, or scene truth.
-          </li>
-        </ul>
-      </section>
+        {/* Tab 5: Technical Audit */}
+        {activeTab === 'audit' && (
+          <div
+            role="tabpanel"
+            id={`panel-${tid('audit')}`}
+            aria-labelledby={`tab-${tid('audit')}`}
+            className="category-tabpanel"
+          >
+            {renderAuditPanel()}
+          </div>
+        )}
+
+        {/* Tab 6: Complete View Extra Deep Panels */}
+        {activeTab === 'all' && (
+          <div
+            role="tabpanel"
+            id={`panel-${tid('all')}`}
+            aria-labelledby={`tab-${tid('all')}`}
+            className="category-tabpanel"
+          >
+            {analysis.metadata?.aiGeneratorClues && analysis.metadata.aiGeneratorClues.length > 0
+              ? renderAiCluesPanel()
+              : null}
+            {renderAuditPanel()}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1017,19 +1218,32 @@ export function ReportActions({
   };
 
   return (
-    <section aria-labelledby="actions-heading" className="panel">
-      <h2 id="actions-heading">Actions</h2>
+    <section aria-labelledby="actions-heading" className="panel report-actions-panel">
+      <h2 id="actions-heading">Export & Session Actions</h2>
       <p className="note">
-        The JSON report keeps check states, outcomes, evidence references, coverage gaps, and
-        limitations. It excludes image bytes and precise GPS coordinates, and it is not digitally
-        signed.
-        {compare
-          ? ' A two-file report also records the Provenance Delta block and excludes image bytes from it.'
-          : ''}
+        Multi-format export hub: print an audited PDF report, download a visual social card, or export
+        the complete machine-readable Schema 2.0 JSON report. Image bytes and precise GPS coordinates
+        are never included in exports.
       </p>
-      <div className="actions">
-        <button type="button" onClick={onDownload} data-testid="download-report">
-          Download JSON report
+      <div className="actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          className="button-primary"
+          onClick={() => window.print()}
+          data-testid="print-report"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+        >
+          <PrinterIcon size={16} />
+          <span>Print / Save PDF Report</span>
+        </button>
+        <button
+          type="button"
+          onClick={onDownload}
+          data-testid="download-report"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+        >
+          <DownloadIcon size={16} />
+          <span>Download Audit JSON</span>
         </button>
         {analysis ? (
           <button
@@ -1038,8 +1252,10 @@ export function ReportActions({
             onClick={() => void handleExportCard()}
             disabled={exportingCard}
             data-testid="export-social-card"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            {exportingCard ? 'Generating card...' : 'Export Social Card (PNG)'}
+            <EyeIcon size={16} />
+            <span>{exportingCard ? 'Generating card...' : 'Export Social Card (PNG)'}</span>
           </button>
         ) : null}
         {compare && onExportComparisonCard ? (
@@ -1049,8 +1265,10 @@ export function ReportActions({
             onClick={onExportComparisonCard}
             disabled={exportingComparisonCard}
             data-testid="export-comparison-card"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            {exportingComparisonCard ? 'Generating card...' : 'Export Comparison Card (PNG)'}
+            <SplitIcon size={16} />
+            <span>{exportingComparisonCard ? 'Generating card...' : 'Export Comparison Card (PNG)'}</span>
           </button>
         ) : null}
         <button type="button" onClick={onInspectAnother} data-testid="inspect-another">
@@ -1085,6 +1303,16 @@ export function EvidenceLedger({
 }: LedgerProps) {
   return (
     <div data-testid="ledger">
+      <div className="print-only-header">
+        <div style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>OriginLens — Audited Media Provenance Report</div>
+        <p style={{ margin: '4px 0', fontSize: '0.875rem', color: '#475569' }}>
+          Strict In-Browser WebAssembly C2PA Verification · Zero Cloud Media Storage · SHA-256 Byte Fingerprinting
+        </p>
+        <p style={{ margin: '4px 0', fontSize: '0.8125rem', color: '#64748b' }}>
+          File: <strong>{analysis.file.displayName}</strong> · SHA-256: <code>{analysis.file.sha256}</code>
+        </p>
+      </div>
+
       <header className="hero">
         <p className="eyebrow">Evidence Ledger</p>
         <h1 id="ledger-heading" ref={headingRef} tabIndex={-1} data-testid="ledger-heading">

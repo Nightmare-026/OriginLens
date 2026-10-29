@@ -463,3 +463,44 @@ current result. Current-tree results are recorded in the 2026-10-29 entry of `ve
 - Next.js production build (`next build`) succeeded at that time.
 - ESLint (`next lint`) passed with 0 errors and 0 warnings at that time.
 - TypeScript (`tsc --noEmit`) passed with 0 errors at that time.
+
+
+---
+
+## ADR-014 — Categorized Tabbed Dashboard, Multi-Format Export Hub & Unified Comparison
+
+**Date:** 2026-10-29  
+**Status:** **ACCEPTED & IMPLEMENTED**  
+**Deciders:** project owner + implementation agent  
+
+### Context
+
+Users inspecting single files or comparing two images requested a well-structured, user-friendly, categorized, clean, complete, and accurate presentation of all provenance findings, alongside multi-format export capabilities (including printable / save-as-PDF executive reports). Additionally, interactive pipeline cards needed visual unification with the primary CTA gradient, eliminating jarring selection borders.
+
+### Decision
+
+1. **Categorized Tabbed Dashboard (`/inspect`):**
+   - Main dashboard organized into an accessible ARIA tablist (`role="tablist"` / `role="tab"` / `role="tabpanel"`) with keyboard navigation (ArrowLeft/ArrowRight/Home/End).
+   - Six structured views:
+     - `overview`: Executive Overview with Summary Headline, Status Badges, Coverage, Fingerprint, C2PA Summary, EXIF Summary, Limitations, and Checks & Evidence.
+     - `c2pa`: Deep C2PA Credentials & Manifest Details.
+     - `metadata`: Camera Hardware, Exposure Settings & GPS Status.
+     - `ai`: AI Clues (pattern matches) & Meta Llama Co-Pilot.
+     - `audit`: Technical Audit (complete check rows, evidence IDs, runtime timestamps, checkers).
+     - `all`: Complete sequential view of all panels.
+2. **Multi-Format Export Hub:**
+   - **Printable / Save-as-PDF Executive Report:** Native `window.print()` integration backed by dedicated `@media print` CSS rules: removes navigation and interactive controls, hides volatile preview canvas (to prevent memory leaks or blank prints), unrolls all tabs sequentially, and inserts an audited corporate header with file name and SHA-256 fingerprint.
+   - **Visual Social Card PNG:** 1200x630 pixel snapshot via Canvas.
+   - **Audit Evidence JSON:** Machine-readable Schema 2.0 contract with zero image bytes and zero GPS coordinates.
+3. **Unified Categorized Comparison Tabs (`/compare`):**
+   - Categorized tabs dividing comparison results into `overview`, `c2pa`, `metadata`, `visual` (interactive swipe slider + difference heatmap), `audit`, and `all`.
+4. **Interactive Pipeline Cards Styling:**
+   - Unselected cards use a clean white surface with subtle neutral borders (`#e2e8f0`) and dark/muted typography—no green outlines.
+   - Active cards use the brand gradient (`linear-gradient(135deg, #0ea5e9 0%, #10b981 100%)`) with white typography, white badges, white icons, and glowing shadows matching the primary CTA button.
+
+### Verification Record
+
+- 282 unit tests passing in Vitest (`npm test`).
+- 49 Playwright E2E tests passing across all suites (`npm run test:e2e`).
+- TypeScript strict typecheck passing with 0 errors (`npm run typecheck`).
+- Zero automated WCAG A/AA accessibility violations.

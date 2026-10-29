@@ -311,3 +311,19 @@ Next.js 16.4.3; `@contentauth/c2pa-web@0.15.4`; Vitest 5.0.5; ESLint 9.39.5; Pla
 **Current gate summary:** `typecheck` PASS, `lint` PASS, unit 282/282 PASS, E2E 49/49 PASS, production
 build PASS, dependency audit PASS. This is a code-quality gate, not a claim that every PRD acceptance row
 or compliance precondition is satisfied.
+
+## 2026-10-29 — Categorized Tabbed Dashboard, Multi-Format Export Hub & Pipeline Card Polish
+
+**Environment:** Windows PowerShell; working dir `D:\Projects\OriginLens`; Node v24.22.1; npm 12.2.1; Next.js 16.4.3; `@contentauth/c2pa-web@0.15.4`; Vitest 5.0.5; ESLint 9.39.5; Playwright 1.64.1 (Chromium 1248).
+
+| # | Command / action | Result | Evidence |
+|---|---|---|---|
+| 168 | Interactive Pipeline Cards Gradient Unification | PASS — styled the 4 interactive pipeline cards on `/` with brand cyan-to-emerald gradient (`linear-gradient(135deg, #0ea5e9 0%, #10b981 100%)`), crisp `#ffffff` text, translucent badge circles, and glowing drop-shadows matching the primary CTA button; removed light-green border on unselected and active states | `src/app/globals.css`, Playwright screenshots |
+| 169 | Categorized Tabbed Dashboard on `/inspect` | PASS — implemented accessible ARIA tabs (`overview`, `c2pa`, `metadata`, `ai`, `audit`, `all`) with full keyboard navigation (ArrowLeft/ArrowRight/Home/End); executive overview presents summary, badges, coverage, fingerprint, C2PA, EXIF, AI clues, explanation, limitations, and check audit rows | `src/components/inspector/ledger.tsx`, `src/app/globals.css` |
+| 170 | Multi-Format Export Hub | PASS — implemented Printable/Save-as-PDF executive report via `window.print()` with dedicated `@media print` unrolling and header watermark, visual social card PNG generator (1200x630 via Canvas), and Schema 2.0 JSON audit export with zero-knowledge privacy guarantees | `src/components/inspector/ledger.tsx`, `src/app/globals.css` |
+| 171 | Unified Categorized Comparison Tabs on `/compare` | PASS — implemented categorized tabs dividing comparison results into `overview`, `c2pa`, `metadata`, `visual` (swipe slider + diff heatmap), `audit`, and `all` | `src/components/inspector/compare-screen.tsx` |
+| 172 | WCAG Single-H1 Invariant Enforcement | PASS — replaced nested `<h1>` in print-only headers with styled heading blocks, ensuring exactly one `<h1>` per page across inspect and compare views | `src/components/inspector/ledger.tsx`, `src/components/inspector/compare-screen.tsx`, `tests/e2e/accessibility.spec.ts:92` |
+| 173 | `npm run typecheck` | PASS — `tsc --noEmit` passed with 0 errors | command output |
+| 174 | `npm test` (Vitest) | PASS — 18 test files, 282 tests passed in 1.16s | Vitest output |
+| 175 | `npx playwright test` | PASS — 49 of 49 Playwright E2E tests passed across all suites in 1.7m | Playwright output |
+| 176 | Nightmare Image Verification (`media_...5ae5c6e4.jpg`) | PASS — inspected 250,712 byte JPEG with SHA-256 `31a29c78...`; correctly identified stripped EXIF/C2PA without false claims or fabricated verdicts; rendered cleanly across all categorized tabs and export actions | Playwright automated probe & screenshots |

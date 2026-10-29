@@ -2362,51 +2362,49 @@ button:disabled {
   gap: 0.65rem !important;
   padding: 0.65rem 0.95rem !important;
   border-radius: var(--rounded-md) !important;
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(16, 185, 129, 0.12) 100%) !important;
-  border: 1px solid #a7f3d0 !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
   cursor: pointer !important;
   text-align: left !important;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.08) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
   width: 100% !important;
+  outline: none !important;
 }
 
-.pipeline-stage-tab:hover {
-  background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%) !important;
-  border-color: transparent !important;
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45), 0 3px 8px rgba(14, 165, 233, 0.25) !important;
-  transform: translateY(-2px) !important;
+.pipeline-stage-tab:hover:not(.stage-tab-active) {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+  transform: translateY(-1px) !important;
 }
 
-.pipeline-stage-tab:hover .stage-tab-title,
-.pipeline-stage-tab:hover .stage-tab-sub {
-  color: #ffffff !important;
+.pipeline-stage-tab:hover:not(.stage-tab-active) .stage-tab-num {
+  background: #e2e8f0 !important;
+  color: #1e293b !important;
 }
 
 .pipeline-stage-tab svg {
-  color: #059669;
+  color: #94a3b8;
   flex-shrink: 0;
   transition: all 0.2s ease;
 }
 
-.pipeline-stage-tab:hover svg,
-.pipeline-stage-tab.stage-tab-active svg {
-  color: #ffffff !important;
-  opacity: 1 !important;
-}
-
-.pipeline-stage-tab:hover .stage-tab-num {
-  background: rgba(255, 255, 255, 0.25) !important;
-  color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.6) !important;
+.pipeline-stage-tab:hover:not(.stage-tab-active) svg {
+  color: #0284c7;
 }
 
 .pipeline-stage-tab.stage-tab-active {
   background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%) !important;
-  border-color: transparent !important;
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35), 0 2px 6px rgba(14, 165, 233, 0.2) !important;
   transform: translateY(-1px) !important;
   outline: none !important;
+}
+
+.pipeline-stage-tab.stage-tab-active svg {
+  color: #ffffff !important;
+  opacity: 1 !important;
 }
 
 .pipeline-stage-tab.stage-tab-active .stage-tab-title,
@@ -2415,24 +2413,29 @@ button:disabled {
 }
 
 .pipeline-stage-tab.stage-tab-active .stage-tab-num {
-  background: rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 255, 255, 0.25) !important;
   color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.7) !important;
 }
 
 .pipeline-stage-tab.stage-tab-active:hover {
   background: linear-gradient(135deg, #0284c7 0%, #059669 100%) !important;
-  border-color: transparent !important;
-  box-shadow: 0 6px 22px rgba(16, 185, 129, 0.55), 0 3px 10px rgba(14, 165, 233, 0.35) !important;
-  transform: translateY(-2.5px) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45), 0 3px 8px rgba(14, 165, 233, 0.3) !important;
+  transform: translateY(-2px) !important;
+}
+
+.pipeline-stage-tab:focus-visible {
+  outline: 2px solid #0ea5e9 !important;
+  outline-offset: 2px !important;
 }
 
 .stage-tab-num {
   font-size: 0.75rem;
-  font-weight: 800;
-  color: #065f46;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
+  font-weight: 700;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 50%;
@@ -2979,6 +2982,99 @@ button:disabled {
 }
 
 /* ==========================================================================
+   Categorized Tabbed Dashboard & Export Hub Styles
+   ========================================================================== */
+
+.category-tabs-wrapper {
+  margin: 1.5rem 0 1rem 0;
+}
+
+.category-tabs-nav {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.4rem;
+  background: var(--surface-sunken, #f1f5f9);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--rounded-md, 10px);
+  margin-bottom: 1.25rem;
+}
+
+.category-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--rounded-sm, 8px);
+  background: transparent;
+  color: var(--text-body, #334155);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+}
+
+.category-tab-btn svg {
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  color: var(--muted, #64748b);
+}
+
+.category-tab-btn:hover {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.category-tab-btn:hover svg {
+  color: #0f172a;
+}
+
+.category-tab-btn.tab-active {
+  background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+  transform: translateY(-1px);
+}
+
+.category-tab-btn.tab-active svg {
+  color: #ffffff !important;
+}
+
+.category-tab-badge {
+  font-size: 0.6875rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+.category-tab-btn.tab-active .category-tab-badge {
+  background: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.category-tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  animation: panel-fade-in 0.25s ease-out;
+}
+
+.category-tabpanel[hidden] {
+  display: none !important;
+}
+
+.print-only-header {
+  display: none;
+}
+
+/* ==========================================================================
    Print Stylesheet for Audited Provenance Reports
    ========================================================================== */
 
@@ -2986,12 +3082,26 @@ button:disabled {
   .site-header,
   .site-footer,
   .quick-demo-rail,
+  .category-tabs-nav,
   .report-actions,
+  .actions,
   .model-explainer-panel button,
   .audience-tab,
   .pill-chip,
+  .slider-viewport,
   button {
     display: none !important;
+  }
+
+  .print-only-header {
+    display: block !important;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #0f172a;
+  }
+
+  .category-tabpanel[hidden] {
+    display: flex !important;
   }
 
   body,
@@ -3004,6 +3114,7 @@ button:disabled {
     box-shadow: none !important;
     border: 1px solid #cccccc !important;
     break-inside: avoid;
+    margin-bottom: 1rem !important;
   }
 }
 
