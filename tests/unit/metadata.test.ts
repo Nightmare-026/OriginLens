@@ -74,6 +74,7 @@ describe('metadata allowlist', () => {
     const gps = extractGpsDetails(buffer);
 
     expect(gps).not.toBeNull();
+    expect(gps?.hasCoordinates).toBe(true);
     expect(gps?.latitude).toBeCloseTo(37.775, 3);
     expect(gps?.dmsLatitude).toContain('37° 46\'');
     expect(gps?.dmsLatitude).toContain('N');

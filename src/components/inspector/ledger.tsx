@@ -528,96 +528,127 @@ function GpsLocationCard({
               {fetchError}
             </p>
           ) : gpsData ? (
-            <>
-              <div className="gps-controls-row">
-                <span style={{ color: '#475569', fontWeight: 600, fontSize: '0.8125rem' }}>Precision:</span>
-                <div className="precision-toggle">
+            gpsData.hasCoordinates ? (
+              <>
+                <div className="gps-controls-row">
+                  <span style={{ color: '#475569', fontWeight: 600, fontSize: '0.8125rem' }}>Precision:</span>
+                  <div className="precision-toggle">
+                    <button
+                      type="button"
+                      className={precision === 'precise' ? 'toggle-active' : ''}
+                      onClick={() => setPrecision('precise')}
+                    >
+                      Precise (Exact)
+                    </button>
+                    <button
+                      type="button"
+                      className={precision === 'coarse' ? 'toggle-active' : ''}
+                      onClick={() => setPrecision('coarse')}
+                    >
+                      Coarse (~10 km Safe Region)
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    className={precision === 'precise' ? 'toggle-active' : ''}
-                    onClick={() => setPrecision('precise')}
+                    className="btn-hide-gps"
+                    onClick={() => setRevealed(false)}
                   >
-                    Precise (Exact)
+                    <EyeOffIcon size={12} />
+                    <span>Hide Coordinates</span>
                   </button>
+                </div>
+
+                <div className="gps-coords-grid">
+                  <div className="gps-coord-box">
+                    <span className="coord-label">Latitude</span>
+                    <span className="coord-value">
+                      {precision === 'precise'
+                        ? `${gpsData.latitude}° (${gpsData.dmsLatitude})`
+                        : gpsData.coarseLocation?.split(',')[0]}
+                    </span>
+                  </div>
+
+                  <div className="gps-coord-box">
+                    <span className="coord-label">Longitude</span>
+                    <span className="coord-value">
+                      {precision === 'precise'
+                        ? `${gpsData.longitude}° (${gpsData.dmsLongitude})`
+                        : gpsData.coarseLocation?.split(',')[1]}
+                    </span>
+                  </div>
+
+                  {gpsData.altitude !== undefined && precision === 'precise' ? (
+                    <div className="gps-coord-box">
+                      <span className="coord-label">Altitude</span>
+                      <span className="coord-value">{gpsData.altitude} m MSL</span>
+                    </div>
+                  ) : null}
+
+                  {gpsData.gpsTimestamp && precision === 'precise' ? (
+                    <div className="gps-coord-box">
+                      <span className="coord-label">GPS Fix Time</span>
+                      <span className="coord-value">{gpsData.gpsTimestamp}</span>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="gps-external-map-notice">
+                  <div className="gps-map-links">
+                    <a
+                      href={`https://www.openstreetmap.org/?mlat=${gpsData.latitude}&mlon=${gpsData.longitude}#map=16/${gpsData.latitude}/${gpsData.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="external-map-link"
+                    >
+                      <ExternalLinkIcon size={12} />
+                      <span>View on OpenStreetMap ↗</span>
+                    </a>
+
+                    <a
+                      href={`https://maps.google.com/?q=${gpsData.latitude},${gpsData.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="external-map-link"
+                    >
+                      <ExternalLinkIcon size={12} />
+                      <span>View on Google Maps ↗</span>
+                    </a>
+                  </div>
+                  <p className="note" style={{ margin: '6px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                    Privacy & Legal Notice: Clicking an external map link opens a new tab and transmits coordinates directly to that external map provider. Zero tracking requests are made by OriginLens.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#334155' }}>
+                    No Geographic Coordinates Recorded
+                  </span>
                   <button
                     type="button"
-                    className={precision === 'coarse' ? 'toggle-active' : ''}
-                    onClick={() => setPrecision('coarse')}
+                    className="btn-hide-gps"
+                    onClick={() => setRevealed(false)}
                   >
-                    Coarse (~10 km Safe Region)
+                    <EyeOffIcon size={12} />
+                    <span>Dismiss</span>
                   </button>
                 </div>
-                <button
-                  type="button"
-                  className="btn-hide-gps"
-                  onClick={() => setRevealed(false)}
-                >
-                  <EyeOffIcon size={12} />
-                  <span>Hide Coordinates</span>
-                </button>
-              </div>
-
-              <div className="gps-coords-grid">
-                <div className="gps-coord-box">
-                  <span className="coord-label">Latitude</span>
-                  <span className="coord-value">
-                    {precision === 'precise'
-                      ? `${gpsData.latitude}° (${gpsData.dmsLatitude})`
-                      : gpsData.coarseLocation.split(',')[0]}
-                  </span>
-                </div>
-
-                <div className="gps-coord-box">
-                  <span className="coord-label">Longitude</span>
-                  <span className="coord-value">
-                    {precision === 'precise'
-                      ? `${gpsData.longitude}° (${gpsData.dmsLongitude})`
-                      : gpsData.coarseLocation.split(',')[1]}
-                  </span>
-                </div>
-
-                {gpsData.altitude !== undefined && precision === 'precise' ? (
-                  <div className="gps-coord-box">
-                    <span className="coord-label">Altitude</span>
-                    <span className="coord-value">{gpsData.altitude} m MSL</span>
-                  </div>
-                ) : null}
-
-                {gpsData.gpsTimestamp && precision === 'precise' ? (
-                  <div className="gps-coord-box">
-                    <span className="coord-label">GPS Fix Time</span>
-                    <span className="coord-value">{gpsData.gpsTimestamp}</span>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="gps-external-map-notice">
-                <div className="gps-map-links">
-                  <a
-                    href={`https://www.openstreetmap.org/?mlat=${gpsData.latitude}&mlon=${gpsData.longitude}#map=16/${gpsData.latitude}/${gpsData.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="external-map-link"
-                  >
-                    <ExternalLinkIcon size={12} />
-                    <span>View on OpenStreetMap ↗</span>
-                  </a>
-
-                  <a
-                    href={`https://maps.google.com/?q=${gpsData.latitude},${gpsData.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="external-map-link"
-                  >
-                    <ExternalLinkIcon size={12} />
-                    <span>View on Google Maps ↗</span>
-                  </a>
-                </div>
-                <p className="note" style={{ margin: '6px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                  Privacy & Legal Notice: Clicking an external map link opens a new tab and transmits coordinates directly to that external map provider. Zero tracking requests are made by OriginLens.
+                <p className="note" style={{ margin: 0, fontSize: '0.8125rem', color: '#64748b' }}>
+                  {gpsData.note || 'GPS metadata directory was detected in the file header, but physical latitude/longitude coordinates were not recorded or were stripped.'}
                 </p>
+                {gpsData.gpsTimestamp ? (
+                  <p className="note" style={{ margin: 0, fontSize: '0.8125rem', color: '#334155' }}>
+                    <strong>GPS Satellite Fix Time:</strong> {gpsData.gpsTimestamp}
+                  </p>
+                ) : null}
+                {gpsData.altitude !== undefined ? (
+                  <p className="note" style={{ margin: 0, fontSize: '0.8125rem', color: '#334155' }}>
+                    <strong>Altitude:</strong> {gpsData.altitude} m MSL
+                  </p>
+                ) : null}
               </div>
-            </>
+            )
           ) : null}
 
           <p className="note" style={{ margin: 0, fontSize: '0.75rem' }}>

@@ -236,15 +236,17 @@ function detectGpsPresence(tags: Record<string, unknown>): GpsPresence {
 }
 
 export type GpsCoordinates = Readonly<{
-  latitude: number;
-  longitude: number;
-  latitudeRef: 'N' | 'S';
-  longitudeRef: 'E' | 'W';
+  hasCoordinates: boolean;
+  latitude?: number;
+  longitude?: number;
+  latitudeRef?: 'N' | 'S';
+  longitudeRef?: 'E' | 'W';
   altitude?: number;
-  dmsLatitude: string;
-  dmsLongitude: string;
-  coarseLocation: string;
+  dmsLatitude?: string;
+  dmsLongitude?: string;
+  coarseLocation?: string;
   gpsTimestamp?: string;
+  note?: string;
 }>;
 
 function toDms(coordinate: number, type: 'lat' | 'lon'): string {
@@ -257,116 +259,284 @@ function toDms(coordinate: number, type: 'lat' | 'lon'): string {
   return `${degrees}° ${minutes}' ${seconds.toFixed(1)}" ${direction}`;
 }
 
+function parseCoordinateNumber(tag: unknown): number | null {
+  if (tag === null || tag === undefined) {
+    return null;
+  }
+  if (typeof tag === 'number' && Number.isFinite(tag)) {
+    return tag;
+  }
+  if (typeof tag === 'object') {
+    if (isRecord(tag)) {
+      if (tag['description'] !== undefined) {
+        const descResult = parseCoordinateNumber(tag['description']);
+        if (descResult !== null) return descResult;
+      }
+      if (tag['value'] !== undefined) {
+        const valResult = parseCoordinateNumber(tag['value']);
+        if (valResult !== null) return valResult;
+      }
+    }
+    if (Array.isArray(tag)) {
+      if (tag.length === 3 && Array.isArray(tag[0]) && Array.isArray(tag[1]) && Array.isArray(tag[2])) {
+        const d = (Number(tag[0][0]) || 0) / (Number(tag[0][1]) || 1);
+        const m = (Number(tag[1][0]) || 0) / (Number(tag[1][1]) || 1);
+        const s = (Number(tag[2][0]) || 0) / (Number(tag[2][1]) || 1);
+        const res = d + m / 60 + s / 3600;
+        return Number.isFinite(res) ? res : null;
+      }
+      if (tag.length === 3 && typeof tag[0] === 'number') {
+        const res = (tag[0] || 0) + (Number(tag[1]) || 0) / 60 + (Number(tag[2]) || 0) / 3600;
+        return Number.isFinite(res) ? res : null;
+      }
+      if (tag.length === 6 && typeof tag[0] === 'number') {
+        const d = (tag[0] || 0) / (tag[1] || 1);
+        const m = (tag[2] || 0) / (tag[3] || 1);
+        const s = (tag[4] || 0) / (tag[5] || 1);
+        const res = d + m / 60 + s / 3600;
+        return Number.isFinite(res) ? res : null;
+      }
+      if (tag.length === 1 && typeof tag[0] === 'number') {
+        return Number.isFinite(tag[0]) ? tag[0] : null;
+      }
+    }
+  }
+  if (typeof tag === 'string') {
+    const s = tag.trim();
+    if (!s) return null;
+    const dmsMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:°|deg|d)\s*(\d+(?:\.\d+)?)\s*(?:'|min|m)\s*(\d+(?:\.\d+)?)/i);
+    if (dmsMatch && dmsMatch[1] && dmsMatch[2] && dmsMatch[3]) {
+      const res = parseFloat(dmsMatch[1]) + parseFloat(dmsMatch[2]) / 60 + parseFloat(dmsMatch[3]) / 3600;
+      return Number.isFinite(res) ? res : null;
+    }
+    const xmpMatch = s.match(/^(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)/);
+    if (xmpMatch && xmpMatch[1] && xmpMatch[2]) {
+      const res = parseFloat(xmpMatch[1]) + parseFloat(xmpMatch[2]) / 60;
+      return Number.isFinite(res) ? res : null;
+    }
+    const parts = s.split(/[\s,]+/).filter(Boolean);
+    if (parts.length === 3 && parts.every((p) => !Number.isNaN(parseFloat(p)))) {
+      const res = parseFloat(parts[0]!) + parseFloat(parts[1]!) / 60 + parseFloat(parts[2]!) / 3600;
+      return Number.isFinite(res) ? res : null;
+    }
+    const num = parseFloat(s);
+    if (!Number.isNaN(num) && Number.isFinite(num)) {
+      return num;
+    }
+  }
+  return null;
+}
+
+function parseRef(refTag: unknown, coordTag: unknown, type: 'lat'): 'N' | 'S';
+function parseRef(refTag: unknown, coordTag: unknown, type: 'lon'): 'E' | 'W';
+function parseRef(
+  refTag: unknown,
+  coordTag: unknown,
+  type: 'lat' | 'lon',
+): 'N' | 'S' | 'E' | 'W' {
+  const defaultRef = type === 'lat' ? 'N' : 'E';
+  const oppositeRef = type === 'lat' ? 'S' : 'W';
+
+  if (refTag !== undefined && refTag !== null) {
+    let str = '';
+    if (typeof refTag === 'string') {
+      str = refTag;
+    } else if (isRecord(refTag)) {
+      str = String(refTag['value'] ?? refTag['description'] ?? '');
+    } else if (Array.isArray(refTag)) {
+      str = refTag.join('');
+    }
+    str = str.toUpperCase();
+    if (str.includes(oppositeRef)) return oppositeRef;
+    if (str.includes(defaultRef)) return defaultRef;
+  }
+
+  if (coordTag !== undefined && coordTag !== null) {
+    let str = '';
+    if (typeof coordTag === 'string') {
+      str = coordTag;
+    } else if (isRecord(coordTag)) {
+      str = String(coordTag['description'] ?? coordTag['value'] ?? '');
+    }
+    str = str.toUpperCase();
+    if (str.includes(oppositeRef)) return oppositeRef;
+    if (str.includes(defaultRef)) return defaultRef;
+  }
+
+  return defaultRef;
+}
+
 /**
  * On-demand client-side extraction of GPS coordinates from volatile in-memory image bytes.
  * This runs ONLY when the user explicitly triggers an unmask action, preserving
  * the default privacy and anti-doxxing invariants of OriginLens.
  */
 export function extractGpsDetails(bytes: ArrayBuffer): GpsCoordinates | null {
-  let rawTags: Tags;
+  let expandedTags: Record<string, unknown> | null = null;
+  let rawTags: Tags | null = null;
+
+  try {
+    expandedTags = load(bytes, { expanded: true }) as unknown as Record<string, unknown>;
+  } catch {
+    // expanded mode may throw on partial data
+  }
+
   try {
     rawTags = load(bytes);
   } catch {
+    // standard mode may throw
+  }
+
+  if (!expandedTags && !rawTags) {
     return null;
   }
 
-  const tags = rawTags as unknown as Record<string, unknown>;
-  const latTag = tags['GPSLatitude'];
-  const lonTag = tags['GPSLongitude'];
+  const allTags: Record<string, unknown> = {
+    ...(rawTags as unknown as Record<string, unknown> || {}),
+  };
 
-  if (!isRecord(latTag) && !isRecord(lonTag)) {
-    return null;
+  if (expandedTags) {
+    if (isRecord(expandedTags['exif'])) {
+      Object.assign(allTags, expandedTags['exif']);
+    }
+    if (isRecord(expandedTags['xmp'])) {
+      Object.assign(allTags, expandedTags['xmp']);
+    }
+    if (isRecord(expandedTags['gps'])) {
+      Object.assign(allTags, expandedTags['gps']);
+    }
   }
 
-  let lat = Number.NaN;
-  if (isRecord(latTag)) {
-    const desc = latTag['description'];
-    lat = typeof desc === 'number' ? desc : parseFloat(String(desc));
+  // 1. Direct parsed values from ExifReader expanded.gps if available
+  let directLat: number | null = null;
+  let directLon: number | null = null;
+  let directAlt: number | null = null;
+
+  if (expandedTags && isRecord(expandedTags['gps'])) {
+    const gpsObj = expandedTags['gps'];
+    if (typeof gpsObj['Latitude'] === 'number' && Number.isFinite(gpsObj['Latitude'])) {
+      directLat = gpsObj['Latitude'];
+    }
+    if (typeof gpsObj['Longitude'] === 'number' && Number.isFinite(gpsObj['Longitude'])) {
+      directLon = gpsObj['Longitude'];
+    }
+    if (typeof gpsObj['Altitude'] === 'number' && Number.isFinite(gpsObj['Altitude'])) {
+      directAlt = gpsObj['Altitude'];
+    }
   }
 
-  let lon = Number.NaN;
-  if (isRecord(lonTag)) {
-    const desc = lonTag['description'];
-    lon = typeof desc === 'number' ? desc : parseFloat(String(desc));
-  }
+  // 2. Tag lookup fallbacks across EXIF and XMP naming variants
+  const latTag = allTags['GPSLatitude'] ?? allTags['exif:GPSLatitude'] ?? allTags['xmp:GPSLatitude'] ?? allTags['GPS Latitude'] ?? allTags['Latitude'];
+  const lonTag = allTags['GPSLongitude'] ?? allTags['exif:GPSLongitude'] ?? allTags['xmp:GPSLongitude'] ?? allTags['GPS Longitude'] ?? allTags['Longitude'];
+  const latRefTag = allTags['GPSLatitudeRef'] ?? allTags['exif:GPSLatitudeRef'] ?? allTags['xmp:GPSLatitudeRef'];
+  const lonRefTag = allTags['GPSLongitudeRef'] ?? allTags['exif:GPSLongitudeRef'] ?? allTags['xmp:GPSLongitudeRef'];
+  const altTag = allTags['GPSAltitude'] ?? allTags['exif:GPSAltitude'] ?? allTags['Altitude'];
+  const altRefTag = allTags['GPSAltitudeRef'] ?? allTags['exif:GPSAltitudeRef'];
+  const dateTag = allTags['GPSDateStamp'] ?? allTags['exif:GPSDateStamp'];
+  const timeTag = allTags['GPSTimeStamp'] ?? allTags['exif:GPSTimeStamp'];
 
-  if (Number.isNaN(lat) && Number.isNaN(lon)) {
-    return null;
-  }
+  let lat = directLat ?? parseCoordinateNumber(latTag);
+  let lon = directLon ?? parseCoordinateNumber(lonTag);
 
-  let latRef: 'N' | 'S' = 'N';
-  const latRefTag = tags['GPSLatitudeRef'];
-  if (isRecord(latRefTag)) {
-    const refStr = String(latRefTag['value'] ?? latRefTag['description'] ?? '').toUpperCase();
-    if (refStr.includes('S')) {
+  let latRef = parseRef(latRefTag, latTag, 'lat');
+  let lonRef = parseRef(lonRefTag, lonTag, 'lon');
+
+  if (lat !== null) {
+    if (lat < 0) {
       latRef = 'S';
-      if (!Number.isNaN(lat)) lat = -Math.abs(lat);
+    } else if (latRef === 'S') {
+      lat = -Math.abs(lat);
     } else {
-      latRef = 'N';
-      if (!Number.isNaN(lat)) lat = Math.abs(lat);
+      lat = Math.abs(lat);
     }
   }
 
-  let lonRef: 'E' | 'W' = 'E';
-  const lonRefTag = tags['GPSLongitudeRef'];
-  if (isRecord(lonRefTag)) {
-    const refStr = String(lonRefTag['value'] ?? lonRefTag['description'] ?? '').toUpperCase();
-    if (refStr.includes('W')) {
+  if (lon !== null) {
+    if (lon < 0) {
       lonRef = 'W';
-      if (!Number.isNaN(lon)) lon = -Math.abs(lon);
+    } else if (lonRef === 'W') {
+      lon = -Math.abs(lon);
     } else {
-      lonRef = 'E';
-      if (!Number.isNaN(lon)) lon = Math.abs(lon);
+      lon = Math.abs(lon);
     }
   }
 
-  const safeLat = Number.isNaN(lat) ? 0 : lat;
-  const safeLon = Number.isNaN(lon) ? 0 : lon;
-
-  if (safeLat < -90 || safeLat > 90 || safeLon < -180 || safeLon > 180) {
-    return null;
-  }
-
-  let altitude: number | undefined;
-  const altTag = tags['GPSAltitude'];
-  if (isRecord(altTag)) {
-    const desc = altTag['description'];
-    const parsedAlt = typeof desc === 'number' ? desc : parseFloat(String(desc));
-    if (!Number.isNaN(parsedAlt) && Number.isFinite(parsedAlt) && parsedAlt >= -500 && parsedAlt <= 50000) {
-      const altRefTag = tags['GPSAltitudeRef'];
-      const altRef = isRecord(altRefTag) ? Number(altRefTag['value']) : 0;
+  // Parse altitude
+  let altitude: number | undefined = directAlt ?? undefined;
+  if (altitude === undefined && altTag !== undefined && altTag !== null) {
+    const parsedAlt = parseCoordinateNumber(altTag);
+    if (parsedAlt !== null && Number.isFinite(parsedAlt) && parsedAlt >= -500 && parsedAlt <= 50000) {
+      let altRef = 0;
+      if (isRecord(altRefTag)) {
+        altRef = Number(altRefTag['value'] ?? altRefTag['description'] ?? 0);
+      } else if (typeof altRefTag === 'number') {
+        altRef = altRefTag;
+      }
       altitude = altRef === 1 ? -Math.abs(parsedAlt) : Math.abs(parsedAlt);
     }
   }
 
+  // Parse GPS Timestamp
   let gpsTimestamp: string | undefined;
-  const dateTag = tags['GPSDateStamp'];
-  const timeTag = tags['GPSTimeStamp'];
-  if (isRecord(dateTag) && isRecord(timeTag)) {
-    const d = String(dateTag['description'] ?? dateTag['value'] ?? '');
-    const t = String(timeTag['description'] ?? timeTag['value'] ?? '');
+  if (dateTag !== undefined || timeTag !== undefined) {
+    const d = tagToText(dateTag) || (typeof dateTag === 'string' ? dateTag : '');
+    const t = tagToText(timeTag) || (typeof timeTag === 'string' ? timeTag : '');
     if (d && t) {
       gpsTimestamp = `${d} ${t} UTC`;
+    } else if (d || t) {
+      gpsTimestamp = `${d || t} UTC`;
     }
   }
 
-  const dmsLatitude = toDms(safeLat, 'lat');
-  const dmsLongitude = toDms(safeLon, 'lon');
-  const coarseLat = `${Math.abs(Math.round(safeLat * 10) / 10).toFixed(1)}° ${safeLat >= 0 ? 'N' : 'S'}`;
-  const coarseLon = `${Math.abs(Math.round(safeLon * 10) / 10).toFixed(1)}° ${safeLon >= 0 ? 'E' : 'W'}`;
-  const coarseLocation = `~${coarseLat}, ~${coarseLon} (approx. ±10 km region)`;
+  const hasCoordinates = lat !== null || lon !== null;
 
-  return {
-    latitude: Math.round(safeLat * 1000000) / 1000000,
-    longitude: Math.round(safeLon * 1000000) / 1000000,
-    latitudeRef: latRef,
-    longitudeRef: lonRef,
-    altitude: altitude !== undefined ? Math.round(altitude * 10) / 10 : undefined,
-    dmsLatitude,
-    dmsLongitude,
-    coarseLocation,
-    gpsTimestamp,
-  };
+  if (hasCoordinates) {
+    const safeLat = lat ?? 0;
+    const safeLon = lon ?? 0;
+
+    if (safeLat >= -90 && safeLat <= 90 && safeLon >= -180 && safeLon <= 180) {
+      const dmsLatitude = toDms(safeLat, 'lat');
+      const dmsLongitude = toDms(safeLon, 'lon');
+      const coarseLat = `${Math.abs(Math.round(safeLat * 10) / 10).toFixed(1)}° ${safeLat >= 0 ? 'N' : 'S'}`;
+      const coarseLon = `${Math.abs(Math.round(safeLon * 10) / 10).toFixed(1)}° ${safeLon >= 0 ? 'E' : 'W'}`;
+      const coarseLocation = `~${coarseLat}, ~${coarseLon} (approx. ±10 km region)`;
+
+      return {
+        hasCoordinates: true,
+        latitude: Math.round(safeLat * 1000000) / 1000000,
+        longitude: Math.round(safeLon * 1000000) / 1000000,
+        latitudeRef: latRef,
+        longitudeRef: lonRef,
+        altitude: altitude !== undefined ? Math.round(altitude * 10) / 10 : undefined,
+        dmsLatitude,
+        dmsLongitude,
+        coarseLocation,
+        gpsTimestamp,
+      };
+    }
+  }
+
+  // Check if any GPS tags exist in the file at all
+  const hasGpsTags =
+    GPS_PRESENCE_KEYS.some((key) => key in allTags) ||
+    'exif:GPSLatitude' in allTags ||
+    'exif:GPSLongitude' in allTags ||
+    'xmp:GPSLatitude' in allTags ||
+    'xmp:GPSLongitude' in allTags ||
+    (expandedTags && isRecord(expandedTags['gps']) && Object.keys(expandedTags['gps']).length > 0);
+
+  if (hasGpsTags) {
+    return {
+      hasCoordinates: false,
+      altitude: altitude !== undefined ? Math.round(altitude * 10) / 10 : undefined,
+      gpsTimestamp,
+      note: gpsTimestamp
+        ? `GPS satellite timestamp (${gpsTimestamp}) was detected, but physical latitude/longitude coordinates were not recorded by the camera.`
+        : 'GPS metadata directory was detected in the file header, but physical latitude/longitude coordinates were not recorded or were stripped.',
+    };
+  }
+
+  return null;
 }
 
 const AI_GENERATOR_PATTERNS = [
