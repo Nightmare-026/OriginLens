@@ -3,8 +3,6 @@
 > **Evidence-First Media Provenance Explorer**  
 > Inspect supported image provenance evidence and compare two independent files without guessing origin, chronology, authorship, or scene truth.
 
-[![CI](https://github.com/Nightmare-026/OriginLens/actions/workflows/ci.yml/badge.svg)](https://github.com/Nightmare-026/OriginLens/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![C2PA](https://img.shields.io/badge/C2PA-0.15.4-green.svg)](https://contentauthenticity.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 
@@ -18,17 +16,17 @@ In an era of generative AI and manipulated media, most "AI detection" or "authen
 1. **Evidence Ledger:** Every finding traces directly to a real check, evidence ID, and validation standard.
 2. **Provenance Delta:** Compare two images side-by-side without presuming an "original" or inferring intent.
 3. **Honest Uncertainty:** Never convert absent evidence into a claim of authenticity; distinguish between signature validity and signer trust; explicitly disclose what was not checked.
-4. **Zero-Knowledge Privacy:** 100% of processing, hashing, EXIF extraction, and C2PA cryptographic validation occurs in the user's browser in volatile memory. No images, hashes, or GPS coordinates are ever transmitted to a server.
+4. **Local-First Privacy:** File intake, hashing, EXIF extraction, and C2PA reading run in the browser in volatile memory. Image bytes are not uploaded. The only outbound feature is the optional model explanation, which sends bounded check data after explicit consent and never sends image bytes or metadata values.
 
 ---
 
 ## Key Features
 
 ### 🔍 Single-File Evidence Ledger
-- **C2PA Cryptographic Validation:** Inspects Content Credentials via the official `@contentauth/c2pa-web` WebAssembly SDK. Validates manifest structure, claim signatures, asset bindings (`assertion.dataHash`), and signing credentials.
+- **C2PA Credential Inspection:** Reads Content Credentials via the pinned official `@contentauth/c2pa-web` WebAssembly SDK. Reports manifest presence, manifest validation, claim-signature validation, and content binding as separate states. Signer trust is reported as `Not evaluated` because this build configures no trust anchors.
 - **EXIF & Metadata Clues:** Extracts camera, lens, timestamp, and copyright fields while treating them as non-cryptographic clues.
 - **Privacy Masking:** Precise GPS coordinates are masked by default and excluded from exported reports.
-- **Deterministic SHA-256:** Fingerprints the exact original uncompressed bytes.
+- **Deterministic SHA-256:** Fingerprints the exact uploaded file bytes before any decode or preview transform.
 
 ### ⚖️ Provenance Delta (Comparison)
 - **Independent Analysis:** Analyzes File A and File B separately with isolated session contexts.
@@ -36,12 +34,13 @@ In an era of generative AI and manipulated media, most "AI detection" or "authen
 - **Normalized Preview Metric:** Computes peak channel difference and percentage of differing pixels across normalized previews (skipped if aspect ratios differ or EXIF orientation is not normalized).
 - **User Assertions:** Allows user to label candidates (e.g. "original" vs "edited") while explicitly marking them as user assertions—never endorsed as system fact.
 
-### 🤖 Meta Llama 3.2 Evidence Explainer (Phase 8 / P1-001)
-- **Plain-Language Evidence Synthesis:** Translates dense cryptographic findings and validation statuses into clear, accessible prose powered by **Meta Llama 3.2 11B Vision Instruct**.
-- **Evidence ID Traceability:** All AI assertions cite concrete Evidence IDs (`ev_...`) verified against an allowlist.
-- **Anti-Hallucination & Anti-Injection Guards:** Enforces strict server-side Zod validation and a forbidden-claim scanner rejecting claims of authenticity, forgery, or tampering.
-- **Zero-Knowledge Privacy:** Only structured check summaries are transmitted—**never** image bytes, previews, GPS, or raw metadata.
-- **Deterministic Fallback:** Automatically reverts to a deterministic rule-based template if offline, rate-limited, or unconfigured.
+### 🤖 Optional Model Explanation (P1-001, disabled by default)
+- **Plain-Language Explanation:** When a deployment enables a model, the server can explain recorded check states in clear prose. With no model configured, a deterministic template is returned.
+- **Evidence ID Traceability:** Explanations may only cite evidence IDs that exist in the request, and every citation is checked before display.
+- **Anti-Hallucination & Anti-Injection Guards:** Strict server-side Zod validation plus a forbidden-claim scanner rejecting authenticity, forgery, tampering, and "verified by Meta" style assertions.
+- **Bounded Data:** The request contains check states, evidence identifiers and keys, the SHA-256 fingerprint, byte size, dimensions, and the user's question. It excludes image bytes, previews, GPS, filenames, metadata values, and manifest text.
+- **Deterministic Fallback:** Reverts to a rule-based template if the model is disabled, unconfigured, slow, malformed, or returns a forbidden claim.
+- **Provider status:** The live provider path is unverified and must not be claimed as working. See `docs/implementation/compliance-checklist.md`.
 
 ### 🛡️ Defensive Engineering
 - **Strict Intake Guardrails:** Rejects files exceeding 20 MiB or 20 megapixels; validates magic bytes (JPEG/PNG); rejects SVGs and animated formats.
@@ -52,25 +51,25 @@ In an era of generative AI and manipulated media, most "AI detection" or "authen
 
 ## Architecture
 
-OriginLens is built on **Next.js (App Router)** with **TypeScript** and runs client-side with a privacy-preserving serverless model explainer:
+OriginLens is built on **Next.js (App Router)** with **TypeScript**. File inspection is client-side; an optional, server-side model-explanation route is disabled by default:
 
 ```
 src/
 ├── app/
-│   ├── api/explain/      # Serverless route handler for Meta Llama explainer
+│   ├── api/explain/      # Optional server-side model explanation (disabled by default)
 │   ├── how-to-use/       # Step-by-step user guide & FAQ
-│   ├── privacy/          # Zero-knowledge privacy policy
+│   ├── privacy/          # Local-first privacy policy
 │   ├── globals.css       # Unified design system & responsive styling
 │   └── layout.tsx        # App shell with SiteHeader and SiteFooter
 ├── components/
 │   ├── navigation/       # SiteHeader, SiteFooter, and responsive navigation
 │   └── inspector/        # UI components (Ledger, CompareScreen, ModelExplanationCard)
 ├── lib/
-│   ├── c2pa/             # C2PA WebAssembly SDK adapter and worker management
+│   ├── c2pa/             # C2PA WebAssembly SDK adapter and session lifecycle
 │   ├── compare/          # Provenance Delta normalization & difference metrics
 │   ├── intake/           # Magic byte validation, preflight bounds, and SHA-256
 │   ├── metadata/         # EXIF parser and privacy redactor
-│   ├── model-explainer/  # Meta Llama prompts, claims scanner, Zod schemas, fallback
+│   ├── model-explainer/  # Optional prompts, claims scanner, Zod schemas, fallback
 │   ├── pipeline/         # Deterministic execution coordinator & Provenance Delta
 │   └── results/          # Domain types, Zod schemas, and report builders
 ```
@@ -103,28 +102,30 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Testing & Quality Gates
 
-The project enforces strict quality gates across unit, integration, accessibility, and E2E browser tests:
+The project's quality gates cover unit, integration, accessibility, and E2E browser tests. Do not rely on
+hard-coded counts in documentation — run the commands and record the real output in
+[`docs/implementation/verification-log.md`](docs/implementation/verification-log.md):
 
 ```bash
-# Run unit & integration tests (270 tests across 17 test suites)
+# Unit & integration tests (Vitest)
 npm test
 
-# Run end-to-end browser tests in Playwright (43 tests against production build)
+# End-to-end browser tests against a production build (Playwright)
 npm run test:e2e
 
-# Run the 3-minute hackathon judging demo rehearsal
+# Demo rehearsal
 npx playwright test tests/e2e/demo-rehearsal.spec.ts
 
-# Type-check TypeScript codebase
+# Type-check TypeScript
 npm run typecheck
 
 # Lint with ESLint
 npm run lint
 
-# Security audit of dependencies (0 vulnerabilities)
+# Dependency audit
 npm run audit
 
-# Build production bundle
+# Production build
 npm run build
 ```
 
@@ -132,14 +133,15 @@ npm run build
 
 ## Audit & Verification Package
 
-In response to the external audit report (`OriginLens_Audit_Report.md`), the team has prepared a full, reproducible verification package:
-- [`docs/AUDIT_RESPONSE.md`](file:///d:/Projects/OriginLens/docs/AUDIT_RESPONSE.md) — Comprehensive item-by-item resolution and test logs.
-- [`DEMO.md`](file:///d:/Projects/OriginLens/DEMO.md) — 3-minute hackathon judging walkthrough with pre-configured fixtures.
-- [`docs/implementation/plan.md`](file:///d:/Projects/OriginLens/docs/implementation/plan.md) — Phased engineering plan and compliance sign-offs.
+- [`docs/implementation/verification-log.md`](docs/implementation/verification-log.md) — commands actually run, with results and dates.
+- [`docs/implementation/plan.md`](docs/implementation/plan.md) — phase status, including `BLOCKED` and `PARTIAL` items.
+- [`docs/AUDIT_RESPONSE.md`](docs/AUDIT_RESPONSE.md) — response to the earlier external audit; its pre-audit claims are superseded and marked as such.
+- [`DEMO.md`](DEMO.md) — demo walkthrough with the committed fixtures.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+No license file is present in this repository. Do not assume an open-source license; add one before
+distributing or submitting under terms that require it.
 

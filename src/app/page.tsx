@@ -8,7 +8,7 @@ import { CtaSection } from '@/components/landing/cta-section';
 export const metadata: Metadata = {
   title: 'OriginLens — Evidence-First Media Provenance Explorer',
   description:
-    'Move beyond fragile AI detectors. Inspect cryptographic Content Credentials (C2PA), calculate byte-level fingerprints, and compare media with Meta Llama 3.2 Vision.',
+    'Inspect embedded Content Credentials (C2PA), compute exact-byte SHA-256 fingerprints, and compare two images without guessing which is original.',
 };
 
 export default function HomePage() {

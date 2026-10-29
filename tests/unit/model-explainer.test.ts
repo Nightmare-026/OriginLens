@@ -81,7 +81,7 @@ describe('Model Explainer (P1-001) Unit Tests', () => {
   };
 
 
-  it('projects report into safe payload without original client filenames or image bytes', () => {
+  it('projects report into safe payload without original client filenames, image bytes, or evidence values', () => {
     const payload = projectReportToExplainPayload(sampleReport);
     expect(payload.schemaVersion).toBe('2.0');
     expect(payload.consent).toBe(true);
@@ -89,6 +89,10 @@ describe('Model Explainer (P1-001) Unit Tests', () => {
     // Verify displayName is excluded
     expect((payload.report.files[0] as Record<string, unknown>).displayName).toBeUndefined();
 
+    // Verify evidence values (which may contain metadata or manifest text) are excluded
+    for (const item of payload.report.evidence) {
+      expect((item as Record<string, unknown>).value).toBeUndefined();
+    }
 
     // Verify strict schema validation passes
     const result = explainRequestSchema.safeParse(payload);
@@ -144,9 +148,17 @@ describe('Model Explainer (P1-001) Unit Tests', () => {
 
     expect(fallback.mode).toBe('deterministic_fallback');
     expect(fallback.modelUsed).toBe('rule-based-deterministic-template');
-    expect(fallback.plainLanguageSummary).toContain('No embedded C2PA Content Credentials');
+    expect(fallback.plainLanguageSummary).toContain('No supported embedded C2PA credential');
     expect(fallback.whatThisSupports.length).toBeGreaterThan(0);
     expect(fallback.whatRemainsUnknown.length).toBeGreaterThan(0);
+
+    // Every cited evidence ID must exist in the request; no synthetic IDs.
+    const known = new Set(request.report.evidence.map((e) => e.evidenceId));
+    for (const item of [...fallback.whatThisSupports, ...fallback.whatRemainsUnknown]) {
+      for (const id of item.evidenceIds) {
+        expect(known.has(id)).toBe(true);
+      }
+    }
   });
 
   it('falls back deterministically when model explanation is disabled', async () => {
@@ -163,5 +175,18 @@ describe('Model Explainer (P1-001) Unit Tests', () => {
 
     expect(result.mode).toBe('deterministic_fallback');
     expect(result.reason).toContain('No Model API key');
+  });
+
+  it('does not assume a provider endpoint or model', async () => {
+    const request = projectReportToExplainPayload(sampleReport);
+    const result = await explainReportEvidence(request, {
+      enabled: true,
+      apiKey: 'test-only-key',
+      baseURL: undefined,
+      modelName: undefined,
+    });
+
+    expect(result.mode).toBe('deterministic_fallback');
+    expect(result.reason).toContain('No model endpoint configured');
   });
 });

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { FileAnalysis } from '@/lib/pipeline/types';
+import { C2PA_TRUST_POLICY_ID } from '@/lib/c2pa/asset';
 import type { ExplainRequest, ExplainResponse } from '@/lib/model-explainer/schema';
 
 export type ModelExplanationProps = Readonly<{
@@ -40,13 +41,13 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
       const payload: ExplainRequest = {
         schemaVersion: '2.0',
         consent: true,
-        model: 'meta/llama-3.2-11b-vision-instruct',
+        model: 'server-configured',
         audience,
         userQuery: queryToSend.trim() ? queryToSend.trim() : undefined,
         report: {
           reportId: `rpt_${analysis.file.fileId}`,
           summaryCodes: allowedSummaryCodes as ExplainRequest['report']['summaryCodes'],
-          trustPolicyId: 'c2pa_default_v1',
+          trustPolicyId: C2PA_TRUST_POLICY_ID,
           files: [
             {
               fileId: analysis.file.fileId,
@@ -71,12 +72,11 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
             sourceCheckId: ev.sourceCheckId,
             key: ev.key,
             valueType: ev.valueType,
-            value: ev.value,
             authority: ev.authority,
           })),
           disclaimers: [
             'Absence of an embedded credential is not evidence that an image is unedited or human-made.',
-            'AI-generated explanation is non-authoritative and does not alter check outcomes.',
+            'An AI-generated explanation is non-authoritative and does not alter check outcomes.',
           ],
         },
       };
@@ -118,7 +118,7 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
           <div className="explainer-skeleton-header">
             <span className="badge badge-meta badge-pulse">
               <span className="pulse-dot" aria-hidden="true" />
-              Synthesizing cryptographic evidence with Meta Llama 3.2...
+              Requesting an optional model explanation...
             </span>
           </div>
           <div className="skeleton-shimmer-box" aria-hidden="true">
@@ -133,10 +133,12 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
             <div className="explainer-trigger-row">
               <div>
                 <p className="note" style={{ margin: 0 }}>
-                  Optional plain-language synthesis powered by <strong>Meta Llama 3.2 Vision Co-Pilot</strong>.
+                  Optional plain-language explanation using a language model configured on the
+                  server. If no model is enabled, a deterministic template is shown instead.
                 </p>
                 <p className="note" style={{ margin: '4px 0 0 0', fontSize: '0.8125rem' }}>
-                  Choose your audience persona (General, Newsroom, Forensic) and interrogate specific evidence points.
+                  Choose an audience style (General, Newsroom, Technical) and optionally add a
+                  question about the recorded evidence.
                 </p>
               </div>
               <button
@@ -145,16 +147,22 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
                 onClick={() => setShowConsent(true)}
                 data-testid={tid('btn-open-explainer')}
               >
-                Explain with Meta Llama AI
+                Explain evidence with a model
               </button>
             </div>
           ) : (
             <div className="consent-card" data-testid={tid('consent-dialog')}>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', color: 'var(--foreground)' }}>
-                Evidence Interrogation with Meta Llama 3.2
+                Optional model explanation
               </h3>
               <p className="note" style={{ margin: '0 0 12px 0' }}>
-                This request sends <strong>only</strong> the structured check summary and evidence IDs. It does <strong>not</strong> send your image bytes, pixel previews, GPS location, or raw metadata.
+                If a model is enabled on this deployment, this request sends: report, file, check and
+                evidence identifiers, check states, outcomes, bounded warnings and limitation codes,
+                the SHA-256 fingerprint, file type, byte size and dimensions, audience mode, and any
+                question you typed below. It does not send your image bytes, pixel previews, GPS
+                location, filenames, or metadata values. The server forwards it to the inference
+                provider configured by the operator; if none is configured, a deterministic template
+                is returned.
               </p>
 
               {/* Audience Mode Selector */}
@@ -191,7 +199,7 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
                     onClick={() => setAudience('forensic')}
                     data-testid={tid('audience-forensic')}
                   >
-                    Forensic Technical
+                    Technical
                   </button>
                 </div>
               </div>
@@ -199,7 +207,7 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
               {/* Curated High-Impact Question Pills */}
               <div style={{ marginBottom: '14px' }}>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '6px' }}>
-                  Curated Inquiry Pills (Click to ask)
+                  Suggested questions (click to fill)
                 </label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {CURATED_QUESTIONS.map((q) => (
@@ -223,15 +231,15 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
 
               {/* Optional Custom Inquiry Input */}
               <div style={{ marginBottom: '14px' }}>
-                <label htmlFor="custom-inquiry" style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '4px' }}>
+                <label htmlFor={tid('custom-inquiry')} style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '4px' }}>
                   Custom Evidence Question (Optional)
                 </label>
                 <input
-                  id="custom-inquiry"
+                  id={tid('custom-inquiry')}
                   type="text"
                   value={userQuery}
                   onChange={(e) => setUserQuery(e.target.value)}
-                  placeholder="e.g. What does signer unanchored mean for this image?"
+                  placeholder="e.g. What does signer trust not evaluated mean for this image?"
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -245,8 +253,8 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
               </div>
 
               <div className="consent-meta-box">
-                <span className="badge badge-meta">Meta Llama 3.2 11B Vision</span>
-                <span className="badge badge-privacy">Privacy Preserved: No Image Upload</span>
+                <span className="badge badge-meta">Server-configured model</span>
+                <span className="badge badge-privacy">No image or metadata values sent</span>
               </div>
 
               <div className="actions" style={{ marginTop: '14px' }}>
@@ -256,7 +264,7 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
                   disabled={loading}
                   data-testid={tid('btn-confirm-explain')}
                 >
-                  {loading ? 'Interrogating evidence...' : 'Confirm & Explain'}
+                  {loading ? 'Requesting explanation...' : 'Confirm & Explain'}
                 </button>
                 <button
                   type="button"
@@ -286,15 +294,16 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
                 data-testid={tid('explanation-mode-badge')}
               >
                 {explanation.mode === 'ai_generated'
-                  ? 'Meta Llama 3.2 Co-Pilot'
-                  : 'Deterministic Fallback'}
+                  ? 'Model explanation'
+                  : 'Deterministic fallback'}
               </span>
               <span className="badge badge-neutral" style={{ fontSize: '0.75rem', textTransform: 'capitalize' }}>
                 Mode: {audience}
               </span>
             </div>
             <span className="note" style={{ fontSize: '0.75rem' }}>
-              {explanation.evidenceAttribution}
+              {explanation.evidenceAttribution}. This explanation is non-authoritative and does not
+              change any check result above.
             </span>
           </div>
 

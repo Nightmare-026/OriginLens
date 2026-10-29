@@ -103,6 +103,23 @@ test('inspects a valid PNG with no embedded credential and keeps local evidence 
   await expect(page.getByText('No selected metadata fields were found by the configured parser.')).toBeVisible();
 });
 
+test('loads a bundled demo sample without inventing a provenance finding', async ({ page }) => {
+  await page.goto('/inspect');
+
+  await page.getByTestId('preset-unsigned-photo').click();
+
+  await expect(page.getByTestId('ledger')).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByTestId('summary-headline')).toHaveText(
+    'No supported embedded credentials found',
+  );
+  await expect(page.getByTestId('c2pa-presence')).toHaveText('Not present');
+  await expect(page.getByTestId('file-facts')).toContainText('image/jpeg');
+  await expect(page.getByTestId('file-sha256')).toHaveText(
+    '9b4921fa1cd3aef906bc6acb6a6d0e5d65bf28f0631b848676b8ea0a249405bd',
+  );
+  await expect(page.getByText(/Every field above is an unverified clue/)).toBeVisible();
+});
+
 test('recovers from a malformed file and keeps the session usable', async ({ page }) => {
   await page.goto('/inspect');
 

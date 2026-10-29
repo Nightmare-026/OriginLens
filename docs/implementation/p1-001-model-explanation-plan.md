@@ -1,8 +1,24 @@
-# P1-001 — Meta-Model Evidence Explanation: Integration Plan
+# P1-001 — Model Evidence Explanation: Integration Plan
 
-**Status:** **PASS — UNBLOCKED, IMPLEMENTED, AND VERIFIED** (Participant age 18+ confirmed; official Meta Llama 3.2 11B Vision Instruct model running server-side with strict Zod validation, zero image bytes, anti-injection scanners, Evidence ID citation whitelisting, 3 audience modes (`general`, `legal`, `technical`), and deterministic fallback. Verified by 10 unit tests and Playwright E2E).
+> **2026-10-29 correction — this plan was not executed as written.**
+> - P1-001 is **BLOCKED**. No source-backed eligibility record, accepted Official Rules, authorized
+>   Model API access, or successful authorized runtime smoke test exists in this repository.
+> - No Meta Model API integration exists. The shipped adapter is a generic OpenAI-compatible
+>   server-side route, disabled by default; its default endpoint and model ID are unverified.
+> - Therefore the `api.meta.ai`, `muse-spark-1.3`, Meta-retention, and "Meta Model API" consent text
+>   below is **design intent only**. It is not what the code does and must not be shown as a provider
+>   disclosure.
+> - The request contract also changed: `evidence.value` is omitted from the request; only evidence IDs
+>   and keys are sent. The UI/route tests cover schema, privacy projection, claim rejection, and
+>   fallback — not a live model call.
+> - Current status is tracked in `plan.md`, `requirements-traceability.md`, and
+>   `compliance-checklist.md`.
+
+**Status (design document):** superseded; implementation exists but the provider path is blocked.
 **Decision record:** `decisions.md` ADR-001.
-**API facts verified 2026-10-27:** base URL `https://api.meta.ai/v1`; OpenAI-compatible Responses API; default model ID `muse-spark-1.3`; `MODEL_API_KEY`; Standard tier $1.25/1M input, $4.25/1M output; 3,000 RPM / 4M TPM; 429 backoff with `Retry-After` (Meta quickstart + pricing pages). Re-verify model ID and limits at implementation time.
+**API facts recorded 2026-10-27 (not relied upon):** base URL `https://api.meta.ai/v1`; default model ID
+`muse-spark-1.3`; Standard tier pricing and rate limits. These were never verified against an authorized
+account and are not used by this build.
 
 ## 1. Purpose and non-goals
 

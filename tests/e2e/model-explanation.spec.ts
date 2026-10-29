@@ -8,7 +8,7 @@ function fixturePath(name: string): string {
   return path.join(projectRoot, 'tests', 'fixtures', 'c2pa', name);
 }
 
-test.describe('P1-001 Meta Model Explainer Flow', () => {
+test.describe('P1-001 Model Explanation Flow (local fallback)', () => {
   test('displays consent dialog and executes explanation flow with accessibility', async ({
     page,
   }) => {
@@ -33,7 +33,7 @@ test.describe('P1-001 Meta Model Explainer Flow', () => {
 
     // Verify privacy disclosure text
     await expect(consentDialog).toContainText('does not send your image bytes');
-    await expect(consentDialog).toContainText('Meta Llama 3.2 11B');
+    await expect(consentDialog).toContainText('inference provider configured by the operator');
 
     // Run axe audit on consent dialog
     const axeConsent = await new AxeBuilder({ page }).analyze();
@@ -43,7 +43,8 @@ test.describe('P1-001 Meta Model Explainer Flow', () => {
     const confirmBtn = page.getByTestId('btn-confirm-explain');
     await confirmBtn.click();
 
-    // Wait for explanation result card (allow up to 90s for cloud inference)
+    // Wait for explanation result card. The E2E server disables the external
+    // provider, so this exercises the deterministic local fallback.
     const resultCard = page.getByTestId('explanation-card');
     await expect(resultCard).toBeVisible({ timeout: 90_000 });
 

@@ -41,9 +41,9 @@ describe('Social Card Export and ActionLineageGraph', () => {
       expect(html).toContain('Original Raw Photo.cr3');
       expect(html).toContain('evidence ev_000001');
       expect(html).toContain('lineage-connector');
-      expect(html).toContain('Terminal');
-      expect(html).toContain('Audited');
-      expect(html).toContain('Active Manifest State');
+      expect(html).toContain('Inspected');
+      expect(html).not.toContain('Audited');
+      expect(html).toContain('exact bytes supplied to this check');
     });
 
     it('renders sequential action nodes with step numbers, categories, and tool markers', () => {
@@ -60,8 +60,8 @@ describe('Social Card Export and ActionLineageGraph', () => {
           ingredients: [],
         }),
       );
-      expect(html).toContain('Step 1');
-      expect(html).toContain('SEQ-1');
+      expect(html).toContain('Recorded 1');
+      expect(html).toContain('Order 1');
       expect(html).toContain('c2pa.created');
       expect(html).toContain('Geometry Crop');
       expect(html).toContain('Resample Geometry');
@@ -69,7 +69,7 @@ describe('Social Card Export and ActionLineageGraph', () => {
       expect(html).toContain('Composite Layer');
       expect(html).toContain('Image Modification');
       expect(html).toContain('evidence ev_000010');
-      expect(html).toContain('Terminal');
+      expect(html).toContain('Inspected');
     });
   });
 

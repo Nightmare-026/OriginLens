@@ -15,7 +15,7 @@ const PIPELINE_STEPS = [
     icon: UploadCloudIcon,
     tag: 'Stage 1 & 2',
     delayClass: 'reveal-delay-1' as const,
-    desc: 'Validates magic bytes, strict MIME types (JPEG & PNG only), enforces 20 MiB memory bounds, and verifies that the file stays 100% inside your browser.',
+    desc: 'Validates magic bytes, strict MIME types (JPEG & PNG only), enforces 20 MiB memory bounds, and keeps the file in browser memory.',
     metric: 'Zero bytes uploaded',
   },
   {
@@ -24,7 +24,7 @@ const PIPELINE_STEPS = [
     icon: FingerprintIcon,
     tag: 'Stage 3',
     delayClass: 'reveal-delay-2' as const,
-    desc: 'Computes a cryptographic hash directly from raw bytes before any canvas or browser decoder mutation, ensuring an indisputable forensic baseline.',
+    desc: 'Computes a cryptographic hash directly from the original uploaded bytes before any canvas or browser-decoder transform, giving a stable byte-level baseline.',
     metric: 'Sub-millisecond hashing',
   },
   {
@@ -38,12 +38,12 @@ const PIPELINE_STEPS = [
   },
   {
     step: '04',
-    name: 'Meta Llama Multimodal Co-Pilot',
+    name: 'Optional Model Explanation',
     icon: SparklesIcon,
     tag: 'P1 Stage',
     delayClass: 'reveal-delay-4' as const,
-    desc: 'Synthesizes validated structured evidence into concise explanations for newsroom, legal, or general audiences without overriding verification state.',
-    metric: 'Meta Llama 3.2 Vision',
+    desc: 'Explains recorded check states in plain language for different audiences when a model is enabled and the user consents. It never overrides a verification state.',
+    metric: 'Disabled by default',
   },
 ];
 
@@ -54,11 +54,11 @@ export function PipelineSection() {
         <div className="landing-section-header">
           <p className="eyebrow">Deterministic Architecture</p>
           <h2 id="pipeline-heading" className="landing-section-title">
-            How OriginLens <span className="text-emerald">Verifies Integrity</span>
+            How OriginLens <span className="text-emerald">Checks Provenance</span>
           </h2>
           <p className="landing-section-subtitle">
-            Every finding traces to an explicit, isolated pipeline check. No black boxes,
-            no hidden cloud relays, and no made-up percentages.
+            Every finding traces to an explicit, isolated pipeline check. No black boxes and no
+            made-up percentages.
           </p>
         </div>
       </ScrollReveal>
@@ -79,7 +79,7 @@ export function PipelineSection() {
                 <h3 className="pipeline-title">{item.name}</h3>
                 <p className="pipeline-desc">{item.desc}</p>
                 <div className="pipeline-metric-footer">
-                  <span className="metric-label">Benchmark:</span>
+                  <span className="metric-label">Detail:</span>
                   <span className="metric-val">{item.metric}</span>
                 </div>
                 {index < PIPELINE_STEPS.length - 1 && (

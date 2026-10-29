@@ -106,6 +106,7 @@ function hasValidationIssue(finding: C2paFinding): boolean {
     finding.manifestValidation === 'invalid' ||
     finding.signatureValidation === 'invalid' ||
     finding.contentBindingValidation === 'invalid' ||
+    finding.timestampValidation === 'invalid' ||
     finding.revocationStatus === 'revoked'
   );
 }

@@ -13,15 +13,18 @@ export interface ModelExplainerConfig {
   enabled: boolean;
   apiKey?: string;
   baseURL?: string;
-  modelName: string;
+  modelName?: string;
   timeoutMs: number;
 }
 
 export function getExplainerConfig(): ModelExplainerConfig {
   const enabled = process.env.MODEL_EXPLANATION_ENABLED === 'true';
   const apiKey = process.env.MODEL_API_KEY;
-  const baseURL = process.env.MODEL_API_BASE_URL || 'https://integrate.api.nvidia.com/v1';
-  const modelName = process.env.MODEL_NAME || 'meta/llama-3.2-11b-vision-instruct';
+  // No provider endpoint or model is assumed. An operator must set both
+  // explicitly; otherwise the route returns the deterministic template and
+  // never sends data to a third party by default.
+  const baseURL = process.env.MODEL_API_BASE_URL?.trim() || undefined;
+  const modelName = process.env.MODEL_NAME?.trim() || undefined;
   const timeoutMs = 20_000;
 
   return { enabled, apiKey, baseURL, modelName, timeoutMs };
@@ -44,6 +47,13 @@ export async function explainReportEvidence(
 
   if (!config.apiKey) {
     return generateDeterministicFallback(request, 'No Model API key configured.');
+  }
+
+  if (!config.baseURL || !config.modelName) {
+    return generateDeterministicFallback(
+      request,
+      'No model endpoint configured. Set MODEL_API_BASE_URL and MODEL_NAME explicitly to enable a provider.',
+    );
   }
 
   const knownEvidenceIds = new Set(request.report.evidence.map((e) => e.evidenceId));

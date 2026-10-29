@@ -121,6 +121,20 @@ describe('summarize - precedence matrix', () => {
     ).toEqual(['validation_issues_require_attention']);
   });
 
+  it('treats an invalid timestamp validation as a validation issue', () => {
+    const verified = findingFrom({ status: 'present', store: verifiedStore() });
+    if (verified.finding === null) throw new Error('Expected a finding');
+
+    const finding = { ...verified.finding, timestampValidation: 'invalid' as const };
+
+    expect(
+      summarize({
+        checks: [...baseChecks(), verified.check],
+        findings: [finding],
+      }),
+    ).toEqual(['validation_issues_require_attention', 'verified_provenance_evidence_found']);
+  });
+
   it('keeps verified evidence visible next to incomplete coverage', () => {
     const verified = findingFrom({ status: 'present', store: verifiedStore() });
     const checks = [

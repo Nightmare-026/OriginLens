@@ -26,6 +26,14 @@ export default defineConfig({
     url: `http://127.0.0.1:${PORT}`,
     reuseExistingServer: false,
     timeout: 300_000,
+    // E2E must be deterministic and must not contact an external inference
+    // provider. The explanation UI is exercised through the local fallback.
+    env: {
+      MODEL_EXPLANATION_ENABLED: 'false',
+      MODEL_API_KEY: '',
+      MODEL_API_BASE_URL: '',
+      MODEL_NAME: '',
+    },
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 });

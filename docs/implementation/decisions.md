@@ -27,22 +27,31 @@ A comprehensive live UX and accessibility audit revealed several polish opportun
 
 ---
 
-## ADR-011 — Multi-Audience Meta Llama 3.2 Explainer and Deterministic AI Generator Clues Scanner
+## ADR-011 — Multi-Audience Model Explainer and Deterministic AI Generator Clues Scanner
 
 **Date:** 2026-10-28  
-**Status:** ACCEPTED  
+**Status:** PARTIAL — the metadata clue scanner is implemented; the model explanation is **BLOCKED** (no
+authorized provider access is evidenced, and no endpoint or model is assumed — both must be set explicitly
+by an operator). "Zero-knowledge"
+is not an accurate description: the optional request sends bounded check data after consent. Evidence
+values and filenames are excluded.
 **Deciders:** project owner (participant) + lead AI/backend team
 
 ### Context
-PRD Phase 8 (P1-001) specifies that AI explanations must serve different stakeholders while strictly obeying zero-knowledge privacy and never hallucinating beyond the verified Evidence Ledger. Additionally, users need transparent insight when images contain generator metadata (e.g., Midjourney prompt parameters or ComfyUI workflows) that are not cryptographic C2PA manifests.
+PRD Phase 8 (P1-001) specifies that AI explanations must serve different stakeholders while obeying the
+privacy boundary and never hallucinating beyond the Evidence Ledger. Additionally, users need transparent
+insight when images contain generator metadata (e.g., Midjourney prompt parameters or ComfyUI workflows)
+that are not cryptographic C2PA manifests.
 
 ### Decision
-1. **Multi-Audience Meta Llama 3.2 11B Vision Instruct:**
-   - Expanded `/api/explain` to accept an `audience` parameter with three distinct prompt engineering schemas:
+1. **Multi-Audience Model Explanation (provider path BLOCKED):**
+   - `/api/explain` accepts an `audience` parameter with three prompt variants:
      - `general`: Accessible, non-technical plain English for journalists, educators, and everyday users.
      - `legal`: Evidentiary rigor, chain-of-custody language, and precise statutory/admissibility framing.
      - `technical`: Cryptographic hashes, byte offsets, schema versions, and validation code breakdowns.
-   - Preserved zero-knowledge privacy: **zero image bytes, GPS, or raw metadata are transmitted**; only an allowlisted summary of verified Evidence IDs (`ev_...`) is sent.
+   - Request minimisation: **no image bytes, GPS, filenames, or metadata values** are transmitted; the
+     projection sends check states, evidence IDs and keys, summary codes, the SHA-256 fingerprint, byte
+     size, dimensions, audience, and the user's typed question after explicit consent.
    - Enforced server-side Zod validation, forbidden-claims filter (`claims.ts`), citation whitelisting, explicit user consent dialog, and a deterministic rule-based fallback (`fallback.ts`).
 2. **Deterministic AI Generator Clues Scanner:**
    - Implemented `src/lib/metadata/ai-clues.ts` to scan non-cryptographic metadata allowlists for known generator signatures:
@@ -411,7 +420,10 @@ Feature flag `MODEL_EXPLANATION_ENABLED` (default `false`); deleting the route a
 ## ADR-013 — Category 1 & Category 2 Forensic Extensions Architecture
 
 **Date:** 2026-10-29
-**Status:** ACCEPTED / IMPLEMENTED
+**Status:** **SUPERSEDED / REVERTED (2026-10-29 audit)** — the features in this ADR were removed because
+they fabricated or over-interpreted evidence. PKI trust anchors, remote manifest recovery, web provenance
+lookup, spectral/watermark analysis, edit-history tree, and chronology are not part of the product. The
+text below is retained as a historical record only; do not cite it as current behaviour.
 **Deciders:** project owner + implementation agent
 
 ### Context
@@ -443,8 +455,11 @@ To provide deep, production-grade provenance inspection and forensic evaluation 
 
 ### Verification Record
 
-- 321 unit tests passed across 26 test files (100% pass).
-- 48 Playwright E2E tests passed across 7 test suites with 0 automated WCAG A/AA violations.
-- Next.js production build (`next build`) succeeded with all static and dynamic API routes compiled.
-- ESLint (`next lint`) passed with 0 errors and 0 warnings.
-- TypeScript (`tsc --noEmit`) passed with 0 errors.
+**Superseded 2026-10-29.** The counts below belonged to the removed Category 1/2 feature set and are not a
+current result. Current-tree results are recorded in the 2026-10-29 entry of `verification-log.md`.
+
+- ~~321 unit tests passed across 26 test files (100% pass).~~
+- ~~48 Playwright E2E tests passed across 7 test suites with 0 automated WCAG A/AA violations.~~
+- Next.js production build (`next build`) succeeded at that time.
+- ESLint (`next lint`) passed with 0 errors and 0 warnings at that time.
+- TypeScript (`tsc --noEmit`) passed with 0 errors at that time.

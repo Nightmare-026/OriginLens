@@ -2,6 +2,11 @@
 
 Honest record of commands/checks actually executed. `NOT RUN` and `PARTIAL` rows are never counted as `PASS`.
 
+> **Reading this log.** Entries dated before 2026-10-29 record what was run at that time, including
+> claims that were later found unsupported. The 2026-10-29 audit entry at the end of this file is the
+> current gate. Earlier "all gates PASS", "100% matrix", zero-knowledge, and Meta/NVIDIA claims are
+> historical and must not be quoted as current evidence.
+
 ## 2026-10-27 — Phase 0/1 bootstrap
 
 **Environment:** Windows, PowerShell; working dir `D:\Projects\OriginLens`; no git repository.
@@ -233,6 +238,10 @@ Final rerun immediately before commit (2026-10-27): `npm test` 102/102 PASS, `np
 
 ## 2026-10-29 — Category 1 & Category 2 Forensic & Provenance Extensions
 
+> **Superseded later on 2026-10-29.** A source audit found that these features fabricated or
+> over-interpreted evidence. They and their tests were removed; see the audit entry below. The rows here
+> are retained as a historical record and must not be counted in the current gate.
+
 **Environment:** Windows PowerShell; working dir `D:\Projects\OriginLens`; Node v24.22.1; npm 12.2.1; Next.js 16.4.3; `@contentauth/c2pa-web@0.15.4`; Chromium 1248 via Playwright 1.64.1; Vitest 5.0.5; ESLint 9.39.5.
 
 | # | Command / action | Result | Evidence |
@@ -256,4 +265,49 @@ Final rerun immediately before commit (2026-10-27): `npm test` 102/102 PASS, `np
 | 147 | Web Provenance Outbound Link Privacy Guard | PASS — guarded external reverse search query links (Google Lens, TinEye, Bing, Wayback) in `web-provenance-card.tsx` behind the privacy consent checkbox | `src/components/inspector/web-provenance-card.tsx` |
 | 148 | Full Remediation Regression Verification | PASS — 321 unit tests passed across 26 test files in 2.9s (`npm test`); ESLint clean (`npm run lint`); TypeScript clean (`npm run typecheck`); Next.js production build clean (`npm run build`) | Vitest, ESLint, Next build |
 
-**Status:** Category 1 & Category 2 forensic and provenance extensions are fully implemented, verified, tested, accessible, and compliant with all project engineering standards.
+**Status (superseded):** the Category 1 & Category 2 extensions described above were removed on
+2026-10-29. See the audit entry below for the current tree.
+
+## 2026-10-29 — Source audit, unsupported-feature removal, and current gate
+
+**Scope:** correctness, claim accuracy, evidence/state semantics, privacy boundaries, and the current
+production build. The audit was performed against the working tree, not a clean clone.
+
+**Environment:** Windows PowerShell; working dir `D:\Projects\OriginLens`; Node v24.22.1; npm 12.2.1;
+Next.js 16.4.3; `@contentauth/c2pa-web@0.15.4`; Vitest 5.0.5; ESLint 9.39.5; Playwright 1.64.1
+(Chromium 1248). E2E runs against a real `next build` + `next start` on port 3100.
+
+| # | Command / action | Result | Evidence |
+|---|---|---|---|
+| 149 | Removed unsupported PKI trust-anchor, remote manifest recovery, web provenance, spectral/watermark, edit-history tree, and chronology features | PASS — source modules, API routes, UI cards, and their unit/E2E tests deleted; no production import remains. These features had fabricated anchors, synthetic signals, or unsupported chronology/lineage semantics. | `git status`, repo-wide search |
+| 150 | Evidence-state rendering corrections | PASS — manifest presence no longer implies success; `unknown` is not rendered as `invalid`; signer trust is derived from the configured policy and stays `not_evaluated`; timestamp/revocation warnings are surfaced; lineage wording is neutral (`Inspected`, `Recorded N`, `Order N`). | `src/components/inspector/ledger.tsx` |
+| 151 | Lightbox accessibility | PASS — focus trap, Escape handling, and focus restoration added. | `src/components/inspector/ledger.tsx` |
+| 152 | Summary precedence for invalid timestamps | PASS — `timestampValidation === 'invalid'` now produces a validation issue rather than being ignored. | `src/lib/pipeline/summary.ts` |
+| 153 | Model-request privacy projection | PASS — evidence `value` omitted; filenames excluded; only bounded check/evidence identifiers, keys, states, summary codes, SHA-256, MIME, byte size, dimensions, audience, and the typed question are sent after consent. | `src/lib/model-explainer/payload.ts`, `src/components/inspector/model-explanation.tsx` |
+| 154 | Removed assumed provider defaults | PASS — `MODEL_API_BASE_URL` and `MODEL_NAME` no longer default to a third-party endpoint/model. Without both explicitly set, the route returns the deterministic template and makes no external call. Added a unit test. | `src/lib/model-explainer/service.ts`, `tests/unit/model-explainer.test.ts` |
+| 155 | E2E provider isolation | PASS — the Playwright web server sets `MODEL_EXPLANATION_ENABLED=false` and clears provider variables, so the explanation UI is tested through the local fallback and no external inference call is made. | `playwright.config.ts`, `tests/e2e/model-explanation.spec.ts` |
+| 156 | Public claim corrections | PASS — landing, how-to-use, privacy, metadata copy, report card footer, README, DEMO, and docs no longer claim 100% client-side processing, "zero-knowledge", custom trust anchors, Meta/NVIDIA integration, all-50 coverage, or a MIT license. Links use relative paths. | `src/app`, `src/components/landing`, `README.md`, `DEMO.md`, `docs/**` |
+| 157 | `npm run typecheck` | PASS — exit 0 | command output |
+| 158 | `npm run lint` | PASS — exit 0, no errors/warnings | command output |
+| 159 | `npm test` | PASS — 18 test files, 282 tests passed in 2.71s | Vitest output |
+| 160 | `npm run test:e2e` | PASS — 49 tests passed against the production build (1.7m, then 1.6m on re-run); the explanation test completed in ~4.0s on the local fallback | Playwright output |
+| 161 | `npm run build` | PASS — exit 0; routes `/`, `/compare`, `/inspect`, `/how-to-use`, `/privacy`, `/api/explain`, `/dev/c2pa-smoke`, `robots.txt`, `sitemap.xml` | build output |
+| 162 | `npm run audit` | PASS — `found 0 vulnerabilities` (`--audit-level=high`) | command output |
+| 163 | V04 re-verification on current build | PASS — the mutated Adobe fixture reports `manifestValidation: invalid`, `signatureValidation: valid`, `contentBindingValidation: invalid`; E2E asserts the invalid state without a tampering/intent conclusion. | `tests/e2e/c2pa-smoke.spec.ts:238`, `tests/e2e/inspect.spec.ts:271` |
+| 164 | V20 re-verification on current build | PASS — EXIF orientation 6 skips the pixel-preview metric with an explicit "orientation could not be normalized" explanation. | `tests/e2e/compare.spec.ts:392` |
+| 165 | Secret and dependency spot-check | PASS — no `NEXT_PUBLIC_*` key use; model key read server-side only; dependency audit clean. Bundle/source-map secret scan not repeated in this pass. | source search, `npm run audit` |
+| 166 | Demo sample naming and synthetic EXIF | PASS — `public/samples/unsigned-real.jpg` renamed to `unsigned-photo.jpg`; the preset id/test id are `unsigned-photo`; the sample's embedded `Software` tag was changed from `OriginLens Real Capture v1.0` to `OriginLens synthetic sample` (equal byte length, file re-parsed with ExifReader 4.52.0). No test expected the old string. | `src/components/inspector/start-screen.tsx`, `public/samples/unsigned-photo.jpg`, ExifReader probe |
+| 167 | Sample-gallery E2E guard | PASS — new test loads the bundled camera sample and asserts `Not present`, `image/jpeg`, the exact SHA-256 of the served bytes, and the "unverified clue" note. It guards the gallery wiring that the rename could have broken. | `tests/e2e/inspect.spec.ts:106` |
+| 168 | Gate re-run after rows 166–167 | PASS — `typecheck` exit 0; `lint` exit 0; `npm test` 282/282; `npm run test:e2e` 49/49 in 1.7m, then 49/49 in 1.6m after a landing-copy edit; `npm run build` exit 0; `npm run audit` 0 vulnerabilities. | command output |
+
+**Not run / still open:**
+- Manual screen-reader walkthrough (automated axe only).
+- The Cerebral Valley waiver page previously returned a JavaScript-only shell; its content is still
+  unverified.
+- P1-001 live provider access and Phase 1 compliance remain **BLOCKED**. No Meta/NVIDIA integration,
+  eligibility, or partner-credit claim is made.
+- The V01–V50 matrix is not claimed complete; only rows with current evidence count as `PASS`.
+
+**Current gate summary:** `typecheck` PASS, `lint` PASS, unit 282/282 PASS, E2E 49/49 PASS, production
+build PASS, dependency audit PASS. This is a code-quality gate, not a claim that every PRD acceptance row
+or compliance precondition is satisfied.

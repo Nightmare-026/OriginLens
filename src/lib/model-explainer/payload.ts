@@ -8,11 +8,13 @@ import type { ExplainRequest } from './schema';
  * 1. NEVER contains original file names or file system paths.
  * 2. NEVER contains image bytes, canvas pixels, or preview data URLs.
  * 3. NEVER contains precise GPS coordinates.
- * 4. Only contains structured check results, evidence IDs, and allowed metadata keys.
+ * 4. Only contains structured check results, evidence identifiers and keys,
+ *    and no evidence values (which may contain unverified metadata or
+ *    manifest text).
  */
 export function projectReportToExplainPayload(
   report: OriginLensReport,
-  model: string = 'meta/llama-3.2-11b-vision-instruct',
+  model: string = 'server-configured',
   audience?: 'general' | 'newsroom' | 'forensic',
 ): ExplainRequest {
   const allowedSummaryCodes = report.summaryCodes.slice(0, 8);
@@ -42,7 +44,6 @@ export function projectReportToExplainPayload(
     sourceCheckId: ev.sourceCheckId,
     key: ev.key,
     valueType: ev.valueType,
-    value: ev.value,
     authority: ev.authority,
   }));
 

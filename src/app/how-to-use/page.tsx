@@ -132,7 +132,7 @@ export default function HowToUsePage() {
               <div className="breakdown-item">
                 <h4>1. File Identity</h4>
                 <p>
-                  Shows verified byte size, MIME type, dimensions, and the cryptographic{' '}
+                  Shows the measured byte size, MIME type, dimensions, and the{' '}
                   <strong>SHA-256 fingerprint</strong> calculated over the exact original uploaded file bytes.
                 </p>
               </div>
@@ -146,16 +146,17 @@ export default function HowToUsePage() {
               <div className="breakdown-item">
                 <h4>3. Signature & Binding</h4>
                 <p>
-                  Verifies whether the digital signature is valid and whether the asset binding
-                  hash matches the image pixel data (detecting post-signing tampering).
+                  Reports whether the claim signature validates and whether the content binding
+                  matches the covered bytes. A mismatch is a finding about the credential, not proof
+                  that someone acted with intent.
                 </p>
               </div>
               <div className="breakdown-item">
                 <h4>4. Signer Trust</h4>
                 <p>
-                  Distinguishes between cryptographic validity and organizational trust. If no
-                  custom trust anchor is configured, it reports <code>Not evaluated</code> rather than
-                  falsely certifying trustworthiness.
+                  Distinguishes between cryptographic validity and organizational trust. This build
+                  configures no trust anchors, so it reports <code>Not evaluated</code> rather than
+                  treating signature validity as trustworthiness.
                 </p>
               </div>
               <div className="breakdown-item">
@@ -219,8 +220,8 @@ export default function HowToUsePage() {
               5
             </span>
             <div>
-              <h3>Download & Share Audit Reports</h3>
-              <p className="step-subtitle">Export a versioned JSON inspection report conforming to PRD v2.0</p>
+              <h3>Download Inspection Reports</h3>
+              <p className="step-subtitle">Export a versioned JSON inspection report (schema v2.0)</p>
             </div>
           </div>
           <div className="step-content">
@@ -239,9 +240,9 @@ export default function HowToUsePage() {
                 <code>includedPreciseGps: false</code>).
               </li>
               <li>
-                <strong>Shareable Evidence:</strong> Ideal for journalists, researchers, and
-                compliance officers who need verifiable provenance records without transmitting
-                heavy media files.
+                <strong>Shareable Evidence:</strong> Useful for journalists, researchers, and
+                compliance officers who need a structured provenance record without transmitting
+                heavy media files. The report is not a signed certificate.
               </li>
             </ul>
           </div>
@@ -295,12 +296,12 @@ export default function HowToUsePage() {
                   <strong>Verified provenance evidence found</strong>
                 </td>
                 <td>
-                  An authentic C2PA manifest container is embedded, with a valid signature and
-                  unaltered content binding.
+                  The configured validator reports an embedded manifest whose manifest, claim
+                  signature, and content binding validate for this exact file version.
                 </td>
                 <td>
-                  Does NOT prove the depicted scene is real, or that the person holding the camera was
-                  telling the truth.
+                  Does NOT establish signer trust, that the depicted scene is real, or that the
+                  person who signed was telling the truth.
                 </td>
               </tr>
               <tr>
@@ -320,12 +321,12 @@ export default function HowToUsePage() {
                   <strong>One or more validation issues require attention</strong>
                 </td>
                 <td>
-                  A manifest exists, but the image pixels differ from the hash recorded at signing
-                  time (e.g. <code>assertion.dataHash.mismatch</code>).
+                  At least one credential component did not validate: the manifest, claim signature,
+                  content binding, timestamp, or revocation status.
                 </td>
                 <td>
-                  Does NOT identify who made the change or whether it was malicious vs. an innocent
-                  compression step.
+                  Does NOT identify who made the change, why, or whether it was malicious rather than
+                  an ordinary re-encode.
                 </td>
               </tr>
               <tr>
@@ -333,12 +334,11 @@ export default function HowToUsePage() {
                   <strong>Signer trust: Not evaluated</strong>
                 </td>
                 <td>
-                  The signature is mathematically valid, but no custom corporate or government trust
-                  anchor was configured.
+                  Signature validity was checked, but this build configures no trust anchors, so no
+                  trust policy was applied to the signing certificate.
                 </td>
                 <td>
-                  Does NOT mean the signer is fraudulent; it honestly states that trust policy was
-                  not evaluated.
+                  Does NOT mean the signer is fraudulent; it means trust was not evaluated.
                 </td>
               </tr>
             </tbody>
@@ -363,26 +363,28 @@ export default function HowToUsePage() {
           <div className="faq-item">
             <h3>Are my photos uploaded to a cloud server?</h3>
             <p>
-              No. All operations (hashing, EXIF parsing, C2PA validation, and visual difference
-              calculations) run 100% inside your browser using WebAssembly. Your photos never leave
-              your device.
+              No image bytes are uploaded. Hashing uses the browser Web Crypto API, metadata parsing
+              runs locally, and C2PA reading uses a locally bundled WebAssembly module. If you
+              explicitly opt in to a model explanation, only bounded check states, evidence
+              identifiers and keys, and the SHA-256 fingerprint are sent to the configured model
+              endpoint — never image bytes, previews, GPS, filenames, or metadata values.
             </p>
           </div>
 
           <div className="faq-item">
             <h3>Why are SVG and WebP images rejected?</h3>
             <p>
-              In accordance with PRD v2.0 security specifications, OriginLens accepts JPEG and PNG to
-              prevent SVG script injection (XSS) and maintain strict cryptographic C2PA compatibility.
+              OriginLens accepts JPEG and PNG to avoid SVG script injection and to stay inside the
+              formats the pinned C2PA reader is verified against in this build.
             </p>
           </div>
 
           <div className="faq-item">
             <h3>Where can I get sample test images with C2PA credentials?</h3>
             <p>
-              You can test OriginLens using official sample fixtures from the Content Authenticity
-              Initiative (CAI), Adobe, or Sony, or by creating credentials with Content Credentials
-              tools like Photoshop, Leica, or Truepic.
+              The start screen includes a demo gallery of committed sample files drawn from public
+              Content Authenticity Initiative test fixtures and locally generated comparison images.
+              Each entry states what that sample is expected to demonstrate.
             </p>
           </div>
         </div>

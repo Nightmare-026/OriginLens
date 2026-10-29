@@ -24,7 +24,7 @@ const PIPELINE_STAGES = [
     icon: UploadCloudIcon,
     summary: 'Strict magic-byte validation, format allowlisting, and decompression memory caps.',
     invariants: [
-      '100% in-browser processing: zero network image uploads or server relays',
+      'Browser-side file inspection: no image uploads or server image relays',
       'Format allowlist: strict JPEG (.jpg, .jpeg) and PNG (.png) magic-byte inspection',
       'Resource bounds: <= 20 MiB compressed file size, <= 20 MP decoded dimensions',
     ],
@@ -34,7 +34,7 @@ const PIPELINE_STAGES = [
       { key: 'intake.dimensions', val: '1920 x 1080 (2.07 MP <= 20 MP ceiling)' },
       { key: 'intake.sandbox', val: 'volatile RAM buffer, zero disk persistence' },
     ],
-    badge: '100% Client-Side',
+    badge: 'Client-Side',
   },
   {
     id: 'stage-2',
@@ -48,15 +48,15 @@ const PIPELINE_STAGES = [
     invariants: [
       'Computed directly over the exact original uploaded file bytes',
       'Calculated prior to browser canvas decoding, avoiding pixel mutations',
-      'Tamper-evident cryptographic baseline for Provenance Delta comparison',
+      'Fingerprint of this exact byte version for Provenance Delta comparison',
     ],
     codeEntries: [
-      { key: 'sha256.digest', val: '75a8da33f6eaf1e16bf3b42cd78913b22b2e6a671fda805d76182c16263... (256-bit)', highlight: true },
+      { key: 'sha256.digest', val: '64 hexadecimal characters (256-bit digest)', highlight: true },
       { key: 'sha256.engine', val: 'Web Crypto API (crypto.subtle.digest)' },
       { key: 'sha256.scope', val: 'exact original file byte stream (not canvas buffer)' },
-      { key: 'sha256.binding', val: 'immutable cryptographic reference' },
+      { key: 'sha256.binding', val: 'identifier for this byte version only' },
     ],
-    badge: 'Sub-Millisecond',
+    badge: 'Web Crypto API',
   },
   {
     id: 'stage-3',
@@ -69,39 +69,38 @@ const PIPELINE_STAGES = [
     summary: 'Client-side JUMBF box extraction, signature validity, and content binding.',
     invariants: [
       'Extracts JUMBF manifest boxes locally using pinned @contentauth/c2pa-web',
-      'Validates X.509 digital signature certificates and signing timestamp assertions',
-      'Checks content binding hash to mathematically detect pixel alteration after signing',
+      'Reads the signing certificate and reports claim-signature validation separately',
+      'Checks whether the file bytes match the signed content hash (asset binding)',
     ],
     codeEntries: [
       { key: 'c2pa.manifest', val: 'present (JUMBF container extracted)', highlight: true },
-      { key: 'c2pa.signature', val: 'valid (Adobe Creative Cloud certificate)' },
-      { key: 'c2pa.binding', val: 'valid (pixel data matches signed hash)' },
-      { key: 'c2pa.signer_trust', val: 'not_evaluated (honest policy boundary)' },
+      { key: 'c2pa.signature', val: 'valid under the signing credential (signer trust not evaluated)' },
+      { key: 'c2pa.binding', val: 'valid (bytes match the signed content hash)' },
+      { key: 'c2pa.signer_trust', val: 'not_evaluated (no trust anchors configured)' },
     ],
     badge: 'WASM In-Browser',
   },
   {
     id: 'stage-4',
     step: '04',
-    label: 'Meta Llama Co-Pilot',
-    shortTitle: 'Multimodal AI',
-    title: 'Stage 04: Meta Llama Multimodal Interrogation',
-    tag: 'Optional Co-Pilot',
+    label: 'Optional Model Explanation',
+    shortTitle: 'Plain Language',
+    title: 'Stage 04: Optional Model Explanation',
+    tag: 'Optional Layer',
     icon: SparklesIcon,
-    summary: 'Objective structured plain-language synthesis without hallucinated certainty.',
+    summary: 'Explains recorded check states in plain language without changing any result.',
     invariants: [
-      'Explicit opt-in required: never transmits data without affirmative user consent',
-      'Transmits only bounded evidence codes, warnings, and SHA-256 (never image bytes or GPS)',
-      'Multi-audience synthesis: tailored for General, Newsroom, or Forensic readers',
-      'Strictly sandboxed: model cannot alter cryptographic verification outcomes',
+      'Explicit opt-in required: no request without affirmative user consent',
+      'Sends bounded check states, evidence identifiers, and the SHA-256 digest; never image bytes, metadata values, or GPS',
+      'Non-authoritative: the model cannot add findings or change validation, binding, or trust states',
     ],
     codeEntries: [
-      { key: 'llama.payload', val: '{"sha256": "...", "codes": ["c2pa.valid"], "audience": "newsroom"}' },
-      { key: 'llama.synthesis', val: '"Verified Adobe CC credential. Pixels unaltered since signing. Signer trust unevaluated."', highlight: true },
-      { key: 'llama.sandbox', val: 'strictly non-authoritative: cannot modify cryptographic ledger' },
-      { key: 'llama.privacy', val: 'zero image bytes transmitted, ephemeral stateless retention' },
+      { key: 'model.payload', val: '{"sha256": "...", "summaryCodes": ["..."], "audience": "newsroom"}' },
+      { key: 'model.synthesis', val: '"Embedded manifest present; signature valid; signer trust not evaluated."', highlight: true },
+      { key: 'model.sandbox', val: 'cannot modify the Evidence Ledger or any check outcome' },
+      { key: 'model.privacy', val: 'no image bytes or metadata values transmitted' },
     ],
-    badge: 'Meta Llama 3.2 Vision',
+    badge: 'Disabled by default',
   },
 ];
 
@@ -123,8 +122,9 @@ export function LandingHero() {
 
         {/* Subtitle */}
         <p className="landing-hero-subtitle">
-          Move beyond fragile, statistical AI detectors that guess. Inspect cryptographic
-          Content Credentials, verify original-byte integrity, and explore media provenance with Meta AI.
+          Move beyond fragile, statistical AI detectors that guess. Inspect embedded Content
+          Credentials, fingerprint the exact bytes, and compare two files without guessing origin or
+          intent.
         </p>
 
         {/* Primary Action Buttons */}
@@ -150,11 +150,11 @@ export function LandingHero() {
           </Link>
         </div>
 
-        {/* Trust Guarantees Row */}
-        <div className="landing-trust-grid" role="list" aria-label="Core system guarantees">
+        {/* Trust indicators row */}
+        <div className="landing-trust-grid" role="list" aria-label="Core system properties">
           <div className="trust-item" role="listitem">
             <LockIcon size={16} className="trust-icon" />
-            <span>100% Client-Side Inspection by Default</span>
+            <span>Local Checks by Default</span>
           </div>
           <div className="trust-item" role="listitem">
             <ShieldCheckIcon size={16} className="trust-icon" />
@@ -162,7 +162,7 @@ export function LandingHero() {
           </div>
           <div className="trust-item" role="listitem">
             <SparklesIcon size={16} className="trust-icon" />
-            <span>Meta Llama 3.2 Multimodal</span>
+            <span>Optional Model Explanation</span>
           </div>
           <div className="trust-item" role="listitem">
             <CheckCircleIcon size={16} className="trust-icon" />
@@ -267,7 +267,7 @@ export function LandingHero() {
             <div className="pipeline-stage-detail-grid">
               {/* Left Column: Invariants */}
               <div className="stage-invariants-box">
-                <p className="stage-invariants-title">Core Invariants &amp; Guarantees</p>
+                <p className="stage-invariants-title">Core Properties &amp; Boundaries</p>
                 <ul className="stage-invariants-list" role="list">
                   {activeStage.invariants.map((inv) => (
                     <li key={inv} className="stage-invariant-item">

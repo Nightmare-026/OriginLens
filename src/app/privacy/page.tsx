@@ -5,14 +5,14 @@ import { ExternalLinkIcon } from '@/components/ui/icons';
 export const metadata: Metadata = {
   title: 'Privacy Policy — OriginLens',
   description:
-    'Our core architectural guarantee: 100% in-browser media analysis, zero image uploads, zero cookies, zero telemetry, and GPS masking by default.',
+    'Local file inspection: image bytes stay in the browser, no cookies or telemetry, and GPS is hidden by default. The optional model explanation sends bounded check data only after opt-in.',
   alternates: {
     canonical: '/privacy',
   },
   openGraph: {
     title: 'Privacy Policy — OriginLens',
     description:
-      'Our core architectural guarantee: 100% in-browser media analysis, zero image uploads, zero cookies, zero telemetry, and GPS masking by default.',
+      'Local file inspection: image bytes stay in the browser, no cookies or telemetry, and GPS is hidden by default. The optional model explanation sends bounded check data only after opt-in.',
     url: 'https://originlens.org/privacy',
   },
 };
@@ -21,11 +21,12 @@ export default function PrivacyPolicyPage() {
   return (
     <main className="page page-doc">
       <header className="hero">
-        <p className="eyebrow">Zero-Knowledge Architecture</p>
+        <p className="eyebrow">Local-First Architecture</p>
         <h1>Privacy Policy</h1>
         <p className="lede">
-          Our core architectural guarantee: your media never leaves your device. OriginLens runs
-          entirely inside your browser using WebAssembly.
+          Image bytes stay in your browser during inspection. OriginLens reads embedded C2PA
+          credentials with a bundled WebAssembly module, and only the optional model explanation
+          sends bounded check data off-device after you opt in.
         </p>
       </header>
 
@@ -34,10 +35,10 @@ export default function PrivacyPolicyPage() {
         <h2 id="privacy-matrix-heading">Privacy Invariants at a Glance</h2>
         <div className="privacy-matrix-grid">
           <div className="privacy-matrix-card">
-            <h3>Zero Image Uploads</h3>
+            <h3>No Image Uploads</h3>
             <p>
-              100% of hashing, EXIF parsing, and C2PA cryptographic signature verification occurs
-              locally in your browser session. No media bytes are ever transmitted over the network.
+              Hashing, metadata parsing, and C2PA reading happen locally in your browser session.
+              Image bytes are not transmitted during inspection.
             </p>
           </div>
 
@@ -61,8 +62,10 @@ export default function PrivacyPolicyPage() {
           <div className="privacy-matrix-card">
             <h3>Zero Telemetry or Ads</h3>
             <p>
-              No Google Analytics, tracking pixels, user profiling, or third-party ad networks. We do
-              not log your IP address, device fingerprints, or filenames.
+              This build includes no analytics, tracking pixels, or ad networks, and sets no cookies
+              or persistent identifiers. The hosting infrastructure may process standard request
+              metadata such as an IP address to deliver responses and enforce rate limits; the app
+              itself does not record it.
             </p>
           </div>
         </div>
@@ -73,23 +76,22 @@ export default function PrivacyPolicyPage() {
         <h2 id="in-browser-heading">1. How In-Browser Processing Works</h2>
         <p>
           Traditional media verification websites require uploading your photos to remote cloud
-          servers where files can be stored, analyzed, or shared. OriginLens uses a radically
-          different model:
+          servers where files can be stored, analysed, or shared. OriginLens takes a different
+          approach:
         </p>
         <ul>
           <li>
-            <strong>WebAssembly C2PA Engine:</strong> We compile the open-source C2PA standard
-            library (<code>@contentauth/c2pa-web</code>) to WebAssembly that runs directly in your
-            browser tab.
+            <strong>WebAssembly C2PA Engine:</strong> OriginLens loads a browser build of the
+            open-source C2PA library (<code>@contentauth/c2pa-web</code>) as a locally served
+            WebAssembly module.
           </li>
           <li>
-            <strong>Local Web Worker:</strong> Processing happens inside an isolated local Web Worker
-            thread, keeping your interface smooth without any remote network requests.
+            <strong>No remote inspection calls:</strong> The C2PA runtime is served from this origin,
+            not a third-party CDN. Inspection does not call a remote verification service.
           </li>
           <li>
-            <strong>Offline Capability:</strong> Once loaded, you can disconnect your internet
-            connection entirely and OriginLens will continue to inspect files and compute
-            Provenance Deltas.
+            <strong>Network use is limited and optional:</strong> The only outbound feature is the
+            optional model explanation described in section 4. Inspection itself does not require it.
           </li>
         </ul>
       </section>
@@ -97,16 +99,17 @@ export default function PrivacyPolicyPage() {
       <section aria-labelledby="data-collection-heading" className="doc-section">
         <h2 id="data-collection-heading">2. What Data We Collect</h2>
         <p>
-          <strong>We collect zero personal data and zero image data.</strong> Specifically:
+          <strong>OriginLens does not ask for personal data and does not store image data.</strong>{' '}
+          Specifically:
         </p>
         <dl className="facts">
           <div>
             <dt>Image Files</dt>
-            <dd>Never sent to any server</dd>
+            <dd>Processed in browser memory; not uploaded by the app</dd>
           </div>
           <div>
             <dt>Filenames & Hashes</dt>
-            <dd>Kept strictly in local browser state</dd>
+            <dd>Held in local browser state; filenames are never sent to a model endpoint</dd>
           </div>
           <div>
             <dt>User Accounts</dt>
@@ -114,7 +117,11 @@ export default function PrivacyPolicyPage() {
           </div>
           <div>
             <dt>Cookies & Tracking</dt>
-            <dd>0 cookies, 0 persistent identifiers</dd>
+            <dd>None set by this app</dd>
+          </div>
+          <div>
+            <dt>Model Explanation</dt>
+            <dd>Optional; sends bounded check data to the configured endpoint after opt-in</dd>
           </div>
         </dl>
       </section>
@@ -132,7 +139,7 @@ export default function PrivacyPolicyPage() {
             GPS data is present, without disclosing the exact coordinates on screen by default.
           </li>
           <li>
-            <strong>Redacted Export:</strong> When downloading a JSON verification report, the
+            <strong>Redacted Export:</strong> When downloading a JSON inspection report, the
             report builder sets <code>includedPreciseGps: false</code> and excludes location
             coordinates to prevent accidental doxxing or location leakage.
           </li>
@@ -140,38 +147,41 @@ export default function PrivacyPolicyPage() {
       </section>
 
       <section aria-labelledby="ai-third-parties-heading" className="doc-section">
-        <h2 id="ai-third-parties-heading">4. Cloud AI & Optional Meta Llama 3.2 Vision Co-Pilot</h2>
+        <h2 id="ai-third-parties-heading">4. Optional Model Explanation</h2>
         <p>
-          Many commercial platforms silently transmit full image files to remote proprietary cloud
-          services for heuristic analysis. OriginLens maintains a strict browser-first boundary:
+          File inspection stays in the browser. A separate, optional feature can ask a language
+          model to explain the recorded check states. It is never part of the verification result:
         </p>
         <ul>
           <li>
-            <strong>100% Client-Side Ingestion by Default:</strong> Initial file intake, SHA-256 byte
-            hashing, EXIF metadata extraction, and WebAssembly C2PA credential verification execute
-            entirely within your local browser sandbox. No network requests are made during standard
-            inspection.
+            <strong>Local Inspection by Default:</strong> Intake, SHA-256 hashing (Web Crypto),
+            metadata parsing, and WebAssembly C2PA reading run in your browser. No network request is
+            made during standard inspection.
           </li>
           <li>
-            <strong>Deliberate Opt-In Activation:</strong> OriginLens provides an optional Meta Llama
-            3.2 Vision explanation feature (<code>/api/explain</code>). This service is invoked only
-            when you explicitly request an explanation and confirm the consent dialogue.
+            <strong>Deliberate Opt-In:</strong> The explanation is requested only after you open the
+            dialog and confirm it. No request is sent on page load or during analysis.
           </li>
           <li>
-            <strong>Bounded Metadata Transmission:</strong> External model requests transmit only
-            sanitized, structured evidence codes: the calculated SHA-256 digest, C2PA validation
-            outcome codes, check warnings, target audience mode (<code>general</code>,{' '}
-            <code>newsroom</code>, or <code>forensic</code>), and your optional inquiry query to the
-            configured inference provider (NVIDIA API / Meta).
+            <strong>Bounded Request:</strong> Check identifiers, execution states, outcomes, bounded
+            warnings and limitation codes, evidence identifiers and keys (no values), summary codes,
+            the SHA-256 fingerprint, byte size and dimensions, audience mode, and any question you
+            typed. Filenames are excluded.
           </li>
           <li>
-            <strong>Strict Data Exclusions:</strong> Media bytes, canvas bitmaps, preview pixels, GPS
-            coordinates, and raw EXIF payloads are <em>never</em> transmitted to external model
-            endpoints under any circumstance.
+            <strong>Strict Data Exclusions:</strong> Image bytes, canvas bitmaps, preview pixels, GPS
+            coordinates, raw EXIF values, and manifest text are not transmitted to the model
+            endpoint.
           </li>
           <li>
-            <strong>Stateless Processing:</strong> Model explanation requests are ephemeral and
-            stateless. OriginLens retains no copies of queries or generated prose.
+            <strong>Provider Depends on Deployment:</strong> If a model is enabled, the server sends
+            the bounded request to the inference provider configured by the operator. The provider,
+            model, and retention terms depend on that configuration. If no model is configured, a
+            deterministic template is generated and no external request is made.
+          </li>
+          <li>
+            <strong>Non-Authoritative:</strong> The explanation cannot add findings or change any
+            validation, binding, or trust state shown in the Evidence Ledger.
           </li>
         </ul>
       </section>
@@ -189,18 +199,17 @@ export default function PrivacyPolicyPage() {
             precise GPS data.
           </li>
           <li>
-            You retain 100% ownership and control over the exported file; no copy is retained by
-            OriginLens.
+            You control the exported file; OriginLens retains no copy of it.
           </li>
         </ul>
       </section>
 
       <section aria-labelledby="source-code-heading" className="doc-section">
-        <h2 id="source-code-heading">6. Open-Source Transparency</h2>
+        <h2 id="source-code-heading">6. Verifying These Claims</h2>
         <p>
-          Privacy claims should be verifiable, not taken on faith. OriginLens is completely open
-          source. You can inspect every line of our client-side intake pipeline, cryptographic
-          adapters, and security headers on GitHub:
+          Privacy claims should be verifiable, not taken on faith. The implementation is in the
+          project repository: review the client-side intake pipeline, the C2PA adapter, and the{' '}
+          <code>/api/explain</code> route to see exactly what is sent.
         </p>
         <p>
           <a

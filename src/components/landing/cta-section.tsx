@@ -17,11 +17,10 @@ export function CtaSection() {
           <div className="landing-cta-content">
             <p className="eyebrow">Ready to Inspect?</p>
             <h2 id="cta-bottom-heading" className="landing-cta-title">
-              Verify Media Integrity In Seconds
+              Inspect Media Provenance In Seconds
             </h2>
             <p className="landing-cta-desc">
-              No signup required. No images uploaded. 100% private in-browser analysis.
-              Experience the new standard for digital media provenance.
+              No signup required. No images uploaded. File inspection runs in your browser.
             </p>
 
             <div className="landing-cta-buttons">

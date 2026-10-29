@@ -1,5 +1,5 @@
 import type { CheckResult, EvidenceItem } from '@/lib/results/schemas';
-import { useState, useEffect, type Ref } from 'react';
+import { useState, useEffect, useRef, type Ref } from 'react';
 import type { FileAnalysis } from '@/lib/pipeline/types';
 import { buildCoverage, SUMMARY_DESCRIPTIONS, SUMMARY_HEADLINES } from '@/lib/pipeline/summary';
 import { C2PA_SDK_VERSION, C2PA_TRUST_POLICY_ID } from '@/lib/c2pa/asset';
@@ -18,11 +18,6 @@ import {
   formatDimensions,
 } from './labels';
 import { ModelExplanationCard } from './model-explanation';
-import { PkiTrustCard } from './pki-trust-card';
-import { EditHistoryTree } from './edit-history-tree';
-import { SpectralCard } from './spectral-card';
-import { RemoteRecoveryCard } from './remote-recovery-card';
-import { WebProvenanceCard } from './web-provenance-card';
 import {
   EyeIcon,
   CheckCircleIcon,
@@ -180,15 +175,15 @@ export function ActionLineageGraph({ actions, ingredients = [] }: ActionLineageG
         <div key={ing.sourceEvidenceId} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div className="lineage-node lineage-node-ingredient">
             <div className="lineage-node-header">
-              <span className="lineage-step-badge" style={{ color: '#15803d' }}>
+              <span className="lineage-step-badge" style={{ color: '#475569' }}>
                 <LayersIcon size={12} />
                 <span>Ingredient</span>
               </span>
-              <span className="lineage-tool-badge" style={{ background: '#dcfce7', color: '#166534' }}>
+              <span className="lineage-tool-badge" style={{ background: '#f1f5f9', color: '#334155' }}>
                 {ing.relationship ?? 'Input'}
               </span>
             </div>
-            <strong style={{ fontSize: '0.8125rem', color: '#14532d', wordBreak: 'break-word' }}>
+            <strong style={{ fontSize: '0.8125rem', color: '#334155', wordBreak: 'break-word' }}>
               {ing.title ?? 'Source Asset'}
             </strong>
             <span className="lineage-evidence-ref">evidence {ing.sourceEvidenceId}</span>
@@ -209,9 +204,9 @@ export function ActionLineageGraph({ actions, ingredients = [] }: ActionLineageG
             <div className="lineage-node-header">
               <span className="lineage-step-badge">
                 {getActionIcon(action.actionCode)}
-                <span>Step {idx + 1}</span>
+                <span>Recorded {idx + 1}</span>
               </span>
-              <span className="lineage-tool-badge">SEQ-{idx + 1}</span>
+              <span className="lineage-tool-badge">Order {idx + 1}</span>
             </div>
             <code className="lineage-action-code">{action.actionCode}</code>
             <span className="lineage-marker-text">{getActionCategory(action.actionCode)}</span>
@@ -226,22 +221,22 @@ export function ActionLineageGraph({ actions, ingredients = [] }: ActionLineageG
         </div>
       ))}
 
-      {/* Terminal Node: Current Inspected Version */}
+      {/* Terminal node: the file version inspected in this session */}
       <div className="lineage-node lineage-node-terminal">
         <div className="lineage-node-header">
-          <span className="lineage-step-badge" style={{ color: '#047857' }}>
+          <span className="lineage-step-badge" style={{ color: '#475569' }}>
             <ShieldCheckIcon size={13} />
-            <span>Terminal</span>
+            <span>Inspected</span>
           </span>
-          <span className="lineage-tool-badge" style={{ background: '#d1fae5', color: '#065f46' }}>
-            Audited
+          <span className="lineage-tool-badge" style={{ background: '#f1f5f9', color: '#334155' }}>
+            This session
           </span>
         </div>
-        <strong style={{ fontSize: '0.8125rem', color: '#064e3b' }}>
-          Current Version
+        <strong style={{ fontSize: '0.8125rem', color: '#334155' }}>
+          Current file version
         </strong>
-        <span className="lineage-marker-text" style={{ color: '#047857' }}>
-          Active Manifest State
+        <span className="lineage-marker-text" style={{ color: '#475569' }}>
+          The exact bytes supplied to this check
         </span>
       </div>
     </div>
@@ -517,17 +512,31 @@ function MediaPreviewCard({
   idPrefix: string;
 }) {
   const [lightbox, setLightbox] = useState(false);
+  const lightboxCloseRef = useRef<HTMLButtonElement>(null);
   const tid = (name: string) => (idPrefix ? `${idPrefix}${name}` : name);
 
   useEffect(() => {
     if (!lightbox) return;
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    lightboxCloseRef.current?.focus();
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setLightbox(false);
+        return;
+      }
+      if (e.key === 'Tab') {
+        // The close button is the only focusable control in the dialog; keep
+        // focus inside it instead of letting Tab reach the page behind.
+        e.preventDefault();
+        lightboxCloseRef.current?.focus();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused?.focus();
+    };
   }, [lightbox]);
 
   if (!previewUrl) {
@@ -621,6 +630,7 @@ function MediaPreviewCard({
           />
           <button
             type="button"
+            ref={lightboxCloseRef}
             className="button-ghost"
             style={{ marginTop: '14px', color: '#ffffff', borderColor: '#ffffff' }}
             onClick={(e) => {
@@ -645,10 +655,71 @@ function ExecutiveStatusBadges({
 }) {
   const tid = (name: string) => (idPrefix ? `${idPrefix}${name}` : name);
   const finding = analysis.finding;
-  const c2paPresent = finding && finding.manifestPresence === 'present';
-  const bindingValid = finding && finding.contentBindingValidation === 'valid';
-  const bindingInvalid = finding && finding.contentBindingValidation === 'invalid';
-  const sigValid = finding && finding.signatureValidation === 'valid';
+  const c2paCheck = analysis.checks.find((candidate) => candidate.kind === 'c2pa');
+  const present = finding?.manifestPresence === 'present';
+
+  const neutral = (
+    text: string,
+    testId: string,
+  ) => (
+    <span
+      key={testId}
+      className="badge badge-neutral"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+      data-testid={tid(testId)}
+    >
+      <InfoIcon size={13} />
+      <span>{text}</span>
+    </span>
+  );
+
+  const success = (text: string, testId: string) => (
+    <span
+      key={testId}
+      className="badge badge-success"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+      data-testid={tid(testId)}
+    >
+      <CheckCircleIcon size={13} />
+      <span>{text}</span>
+    </span>
+  );
+
+  const warning = (text: string, testId: string) => (
+    <span
+      key={testId}
+      className="badge badge-warning"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+      data-testid={tid(testId)}
+    >
+      <AlertTriangleIcon size={13} />
+      <span>{text}</span>
+    </span>
+  );
+
+  if (!present) {
+    let absenceLabel = 'No Embedded C2PA Manifest';
+    if (c2paCheck === undefined) {
+      absenceLabel = 'Credential Check Not Recorded';
+    } else if (c2paCheck.executionState !== 'completed') {
+      absenceLabel = `Credential Check ${EXECUTION_STATE_LABELS[c2paCheck.executionState]}`;
+    } else if (c2paCheck.outcome === 'unsupported' || finding?.manifestPresence === 'unsupported') {
+      absenceLabel = 'Credential Check Unsupported';
+    } else if (finding?.manifestPresence === 'error') {
+      absenceLabel = 'Credential Check Error';
+    }
+
+    return (
+      <div
+        className="executive-status-row"
+        data-testid={tid('executive-status-row')}
+        style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '0 0 16px 0' }}
+      >
+        {neutral(absenceLabel, 'executive-manifest-absence')}
+        {neutral('Unverified Clues Only', 'executive-unverified-clues')}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -656,51 +727,34 @@ function ExecutiveStatusBadges({
       data-testid={tid('executive-status-row')}
       style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '0 0 16px 0' }}
     >
-      {c2paPresent ? (
-        <>
-          <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <CheckCircleIcon size={13} />
-            <span>Manifest Present</span>
-          </span>
-          {sigValid ? (
-            <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <CheckCircleIcon size={13} />
-              <span>Signature Valid</span>
-            </span>
-          ) : (
-            <span className="badge badge-warning" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <AlertTriangleIcon size={13} />
-              <span>Signature Issues</span>
-            </span>
-          )}
-          {bindingValid ? (
-            <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <CheckCircleIcon size={13} />
-              <span>Asset Binding Valid</span>
-            </span>
-          ) : bindingInvalid ? (
-            <span className="badge badge-warning" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <AlertTriangleIcon size={13} />
-              <span>Binding Mismatch</span>
-            </span>
-          ) : null}
-          <span className="badge badge-neutral" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <InfoIcon size={13} />
-            <span>Signer: Unanchored</span>
-          </span>
-        </>
-      ) : (
-        <>
-          <span className="badge badge-neutral" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <InfoIcon size={13} />
-            <span>No Embedded C2PA Manifest</span>
-          </span>
-          <span className="badge badge-neutral" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <InfoIcon size={13} />
-            <span>Unverified Clues Only</span>
-          </span>
-        </>
-      )}
+      {neutral('Manifest Present', 'executive-manifest-present')}
+      {finding.signatureValidation === 'valid'
+        ? success('Signature Valid', 'executive-signature-valid')
+        : finding.signatureValidation === 'invalid'
+          ? warning('Signature Invalid', 'executive-signature-invalid')
+          : neutral(
+              `Signature: ${VALIDATION_LABELS[finding.signatureValidation]}`,
+              'executive-signature-state',
+            )}
+      {finding.contentBindingValidation === 'valid'
+        ? success('Asset Binding Valid', 'executive-binding-valid')
+        : finding.contentBindingValidation === 'invalid'
+          ? warning('Binding Mismatch', 'executive-binding-invalid')
+          : neutral(
+              `Binding: ${VALIDATION_LABELS[finding.contentBindingValidation]}`,
+              'executive-binding-state',
+            )}
+      {finding.signerTrust === 'trusted'
+        ? success(`Signer: ${TRUST_LABELS[finding.signerTrust]}`, 'executive-signer-trust')
+        : finding.signerTrust === 'not_trusted'
+          ? warning(`Signer: ${TRUST_LABELS[finding.signerTrust]}`, 'executive-signer-trust')
+          : neutral(`Signer: ${TRUST_LABELS[finding.signerTrust]}`, 'executive-signer-trust')}
+      {finding.timestampValidation === 'invalid'
+        ? warning('Timestamp Invalid', 'executive-timestamp-invalid')
+        : null}
+      {finding.revocationStatus === 'revoked'
+        ? warning('Credential Revoked', 'executive-revoked')
+        : null}
     </div>
   );
 }
@@ -843,15 +897,6 @@ export function FileEvidenceSections({ analysis, idPrefix, title, previewUrl }: 
         <CredentialSection analysis={analysis} idPrefix={idPrefix} />
       </section>
 
-      {/* Feature 1: PKI Trust Anchors & Evaluation */}
-      <PkiTrustCard analysis={analysis} idPrefix={idPrefix} />
-
-      {/* Feature 5: Full Editing-History Reconstruction (Lineage Graph Tree) */}
-      <EditHistoryTree analysis={analysis} idPrefix={idPrefix} />
-
-      {/* Feature 2: Remote / Durable C2PA Credential Recovery */}
-      <RemoteRecoveryCard analysis={analysis} idPrefix={idPrefix} />
-
       <section aria-labelledby={tid('metadata-heading')} className="panel">
         <h2 id={tid('metadata-heading')}>Metadata clues</h2>
         <p className="note">
@@ -869,14 +914,15 @@ export function FileEvidenceSections({ analysis, idPrefix, title, previewUrl }: 
           data-testid={tid('ai-clues-section')}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <h2 id={tid('ai-clues-heading')}>Unverified AI Generator Clues</h2>
+            <h2 id={tid('ai-clues-heading')}>Metadata text matching AI-tool patterns</h2>
             <span className="badge" style={{ background: '#f5f3ff', color: '#7c3aed', fontWeight: 600 }}>
-              Heuristic Tag Scan
+              String match, not detection
             </span>
           </div>
           <p className="note" style={{ marginTop: '4px', marginBottom: '12px' }}>
-            Detected textual tags referencing generative AI software. Metadata is easily forged or
-            stripped; this is an unverified textual clue, not cryptographic proof.
+            These metadata fields contain text that matches a known generative-AI tool pattern.
+            Metadata is easily forged or stripped, and a match can be wrong; it is not evidence that
+            this image was generated.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {analysis.metadata.aiGeneratorClues.map((clue, idx) => (
@@ -896,19 +942,13 @@ export function FileEvidenceSections({ analysis, idPrefix, title, previewUrl }: 
                   </span>
                 </div>
                 <p className="note" style={{ margin: 0, fontSize: '0.8125rem' }}>
-                  Matched text: <code>{clue.matchedText}</code>
+                  Matched text (verbatim): <code>{clue.matchedText}</code>
                 </p>
               </div>
             ))}
           </div>
         </section>
       ) : null}
-
-      {/* Feature 3: Invisible Watermark & Frequency Domain Signal Inspector */}
-      <SpectralCard analysis={analysis} previewUrl={previewUrl} idPrefix={idPrefix} />
-
-      {/* Feature 4: Web Provenance & Reverse Lookup */}
-      <WebProvenanceCard analysis={analysis} idPrefix={idPrefix} />
 
       <section aria-labelledby={tid('explanation-heading')} className="panel">
         <h2 id={tid('explanation-heading')}>Evidence explanation</h2>

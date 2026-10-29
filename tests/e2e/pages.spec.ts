@@ -31,7 +31,7 @@ test('how-to-use page renders complete step-by-step guide and passes accessibili
   await expect(
     page.getByRole('heading', { name: 'Compare Two Images (Provenance Delta)', exact: true }),
   ).toBeVisible();
-  await expect(page.getByText('Download & Share Audit Reports')).toBeVisible();
+  await expect(page.getByText('Download Inspection Reports')).toBeVisible();
   await expect(page.getByText('Clear Session & Release Memory')).toBeVisible();
 
   // Uncertainty table & FAQ
@@ -54,7 +54,7 @@ test('how-to-use page renders complete step-by-step guide and passes accessibili
   await expectNoHorizontalOverflow(page);
 });
 
-test('privacy page renders zero-knowledge invariants and passes accessibility', async ({
+test('privacy page renders local-first invariants and passes accessibility', async ({
   page,
 }) => {
   await page.goto('/privacy');
@@ -67,8 +67,8 @@ test('privacy page renders zero-knowledge invariants and passes accessibility', 
   // Verify navigation active state
   await expect(page.getByTestId('nav-privacy')).toHaveClass(/nav-link-active/);
 
-  // Core privacy guarantees
-  await expect(page.getByText('Zero Image Uploads')).toBeVisible();
+  // Core privacy properties
+  await expect(page.getByText('No Image Uploads')).toBeVisible();
   await expect(page.getByText('Volatile Session Memory')).toBeVisible();
   await expect(page.getByText('GPS Masked by Default')).toBeVisible();
   await expect(page.getByText('Zero Telemetry or Ads')).toBeVisible();
@@ -141,7 +141,7 @@ test('landing page renders storytelling hero, pipeline, and passes accessibility
   await expect(page.getByTestId('cta-hero-compare')).toBeVisible();
 
   // Trust indicators
-  await expect(page.getByText('100% Client-Side Inspection by Default')).toBeVisible();
+  await expect(page.getByText('Local Checks by Default')).toBeVisible();
   await expect(page.getByText('C2PA WebAssembly Standard')).toBeVisible();
 
   // Interactive Pipeline Diagram tab switching across all 4 stages
@@ -159,10 +159,10 @@ test('landing page renders storytelling hero, pipeline, and passes accessibility
   await expect(page.getByText('Stage 03: WebAssembly C2PA Verification Engine')).toBeVisible();
   await expect(page.getByText('c2pa.manifest')).toBeVisible();
 
-  // Switch to Stage 4: Meta Llama Co-Pilot
-  await page.getByRole('tab', { name: /Meta Llama Co-Pilot/ }).click();
-  await expect(page.getByText('Stage 04: Meta Llama Multimodal Interrogation')).toBeVisible();
-  await expect(page.getByText('llama.payload')).toBeVisible();
+  // Switch to Stage 4: Optional Model Explanation
+  await page.getByRole('tab', { name: /Optional Model Explanation/ }).click();
+  await expect(page.getByText('Stage 04: Optional Model Explanation')).toBeVisible();
+  await expect(page.getByText('model.payload')).toBeVisible();
 
   // Test WAI-ARIA roving tabindex and arrow key navigation
   const stage1Tab = page.locator('#tab-stage-1');
@@ -183,13 +183,13 @@ test('landing page renders storytelling hero, pipeline, and passes accessibility
 
   await page.keyboard.press('End');
   await expect(page.locator('#tab-stage-4')).toBeFocused();
-  await expect(page.getByText('Stage 04: Meta Llama Multimodal Interrogation')).toBeVisible();
+  await expect(page.getByText('Stage 04: Optional Model Explanation')).toBeVisible();
 
   // Storytelling & Pipeline & Features
   await expect(page.getByText('The Provenance Approach')).toBeVisible();
   await expect(page.getByText('The Provenance Standard')).toBeVisible();
-  await expect(page.getByText('Why Statistical Detection Fails & Cryptographic Verification Succeeds')).toBeVisible();
-  await expect(page.getByText('How OriginLens Verifies Integrity')).toBeVisible();
+  await expect(page.getByText('Why OriginLens Relies on Recorded Provenance Evidence')).toBeVisible();
+  await expect(page.getByText('How OriginLens Checks Provenance')).toBeVisible();
   await expect(page.getByText('Evidence Ledger', { exact: true })).toBeVisible();
   await expect(page.getByText('Provenance Delta', { exact: true })).toBeVisible();
 

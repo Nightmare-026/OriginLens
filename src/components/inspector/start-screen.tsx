@@ -112,11 +112,11 @@ export function StartScreen({
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const blob = await res.blob();
         onFile(new File([blob], 'c2pa-tampered.jpg', { type: 'image/jpeg' }));
-      } else if (presetId === 'unsigned-real') {
-        const res = await fetch('/samples/unsigned-real.jpg');
+      } else if (presetId === 'unsigned-photo') {
+        const res = await fetch('/samples/unsigned-photo.jpg');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const blob = await res.blob();
-        onFile(new File([blob], 'unsigned-real.jpg', { type: 'image/jpeg' }));
+        onFile(new File([blob], 'unsigned-photo.jpg', { type: 'image/jpeg' }));
       } else if (presetId === 'ai-sample') {
         const res = await fetch('/samples/ai-generated-sd.png');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -387,7 +387,9 @@ export function StartScreen({
           1-Click Live Demo Gallery (Sample Credentials & Pairs)
         </summary>
         <p className="note" style={{ marginTop: '10px', marginBottom: '14px' }}>
-          Select a verified sample to test cryptographic C2PA credentials, tampered bindings, photographic EXIF, or visual diffs without opening the file dialog. You can also paste an image with <code>Ctrl+V</code>.
+          Load a committed sample to exercise a valid credential, a modified test copy, unverified
+          camera metadata, or a preview difference without opening the file dialog. You can also
+          paste an image with <code>Ctrl+V</code>.
         </p>
         <div className="preset-buttons-row" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           {showInspect && (
@@ -403,8 +405,8 @@ export function StartScreen({
                   <ShieldCheckIcon size={13} />
                   <span>C2PA</span>
                 </span>
-                <strong>Verified Credential</strong>
-                <span className="note" style={{ fontSize: '0.75rem' }}>Adobe CC signed fixture</span>
+                <strong>Valid Credential</strong>
+                <span className="note" style={{ fontSize: '0.75rem' }}>Adobe test fixture; signer trust not evaluated</span>
               </button>
 
               <button
@@ -416,25 +418,25 @@ export function StartScreen({
               >
                 <span className="preset-badge" style={{ color: '#b45309', background: '#fef3c7', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <AlertTriangleIcon size={13} />
-                  <span>Tampered</span>
+                  <span>Altered copy</span>
                 </span>
-                <strong>Binding Mismatch</strong>
-                <span className="note" style={{ fontSize: '0.75rem' }}>Modified pixel scan data</span>
+                <strong>Content Binding Invalid</strong>
+                <span className="note" style={{ fontSize: '0.75rem' }}>One bit flipped in scan data (test fixture)</span>
               </button>
 
               <button
                 type="button"
                 className="preset-btn"
                 disabled={disabled || loadingSample !== null}
-                onClick={() => void handleLoadPreset('unsigned-real')}
-                data-testid="preset-unsigned-real"
+                onClick={() => void handleLoadPreset('unsigned-photo')}
+                data-testid="preset-unsigned-photo"
               >
                 <span className="preset-badge" style={{ color: '#0369a1', background: '#f0f9ff', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <CameraIcon size={13} />
                   <span>Camera</span>
                 </span>
-                <strong>Unsigned Photo</strong>
-                <span className="note" style={{ fontSize: '0.75rem' }}>Real EXIF camera metadata</span>
+                <strong>No Embedded Credential</strong>
+                <span className="note" style={{ fontSize: '0.75rem' }}>Camera EXIF metadata (unverified)</span>
               </button>
 
               <button

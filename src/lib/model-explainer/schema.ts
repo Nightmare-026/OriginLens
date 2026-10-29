@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { SUMMARY_CODES } from '@/lib/results/schemas';
 
 /**
- * P1-001 Meta Model Evidence Explanation Contract
+ * P1-001 model evidence explanation contract. The provider endpoint and model are
+ * operator-configured; nothing is assumed by default.
  * Strict Zod validation at both request and response boundaries.
  */
 
@@ -58,7 +59,12 @@ export const explainRequestSchema = z
             sourceCheckId: z.string().regex(/^chk_[A-Za-z0-9_-]{6,64}$/),
             key: z.string().max(120),
             valueType: z.enum(['text', 'number', 'boolean', 'hash', 'timestamp', 'code']),
-            value: z.union([z.string().max(600), z.number(), z.boolean(), z.null()]),
+            /**
+             * Evidence values are optional and deliberately omitted by the
+             * client projection: they can contain unverified metadata strings
+             * or manifest text and are not needed to explain check outcomes.
+             */
+            value: z.union([z.string().max(600), z.number(), z.boolean(), z.null()]).optional(),
             authority: z.enum([
               'cryptographic_validation',
               'provider_result',

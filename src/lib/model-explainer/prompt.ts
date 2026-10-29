@@ -1,7 +1,7 @@
 import type { ExplainRequest } from './schema';
 
 /**
- * System and user prompt construction for Meta Llama models.
+ * System and user prompt construction for the configured model.
  * Strictly adheres to P1-001 prompt injection controls and anti-hallucination rules.
  */
 
@@ -17,7 +17,7 @@ const AUDIENCE_INSTRUCTIONS: Record<'general' | 'newsroom' | 'forensic', string>
 export function buildSystemPrompt(audience: 'general' | 'newsroom' | 'forensic' = 'general'): string {
   const audienceGuide = AUDIENCE_INSTRUCTIONS[audience] ?? AUDIENCE_INSTRUCTIONS.general;
 
-  return `You are OriginLens Evidence Explainer, a specialized technical provenance analyst powered by Meta Llama 3.2.
+  return `You are OriginLens Evidence Explainer, a specialized technical provenance analyst.
 Your task is to explain already-validated structured media provenance evidence in clear, objective, neutral language.
 ${audienceGuide}
 
@@ -78,7 +78,6 @@ export function buildUserPrompt(request: ExplainRequest): string {
       evidenceId: e.evidenceId,
       key: e.key,
       valueType: e.valueType,
-      value: e.value,
       authority: e.authority,
     })),
   };
