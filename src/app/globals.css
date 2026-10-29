@@ -1942,6 +1942,7 @@ button:disabled {
 }
 
 .panel.dropzone-active .prominent-dropzone-box,
+.prominent-dropzone-box.dropzone-active,
 .prominent-dropzone-box:hover {
   border-color: #059669;
   background: #f0fdf4;

@@ -38,6 +38,8 @@ import {
   CameraIcon,
   DownloadIcon,
   SplitIcon,
+  CopyIcon,
+  CheckIcon,
 } from '@/components/ui/icons';
 
 
@@ -1060,16 +1062,59 @@ export function FileEvidenceSections({ analysis, idPrefix, title, previewUrl }: 
     </section>
   );
 
+function CopyHashButton({ hash }: { hash: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(hash);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      className="btn-copy-hash"
+      onClick={() => void handleCopy()}
+      aria-label={copied ? 'Copied SHA-256 fingerprint' : 'Copy SHA-256 fingerprint'}
+      title={copied ? 'Copied to clipboard!' : 'Copy SHA-256 fingerprint'}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '0.2rem 0.55rem',
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        borderRadius: '6px',
+        background: copied ? '#ecfdf5' : '#f1f5f9',
+        color: copied ? '#047857' : '#475569',
+        border: `1px solid ${copied ? '#a7f3d0' : '#cbd5e1'}`,
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        marginLeft: '6px',
+      }}
+    >
+      {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
+      <span>{copied ? 'Copied!' : 'Copy'}</span>
+    </button>
+  );
+}
+
   const renderFingerprintPanel = () => (
     <section aria-labelledby={tid('fingerprint-heading')} className="panel">
       <h2 id={tid('fingerprint-heading')}>File fingerprint</h2>
       <dl className="kv">
         <div>
           <dt>SHA-256 of the original bytes</dt>
-          <dd>
+          <dd style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
             <code className="hash" data-testid={tid('file-sha256')}>
               {analysis.file.sha256}
             </code>
+            <CopyHashButton hash={analysis.file.sha256} />
           </dd>
         </div>
         <div>

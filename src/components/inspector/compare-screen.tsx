@@ -191,14 +191,72 @@ function VisualDiffSlider({
             Interactive before/after split viewer. Drag divider or press Arrow Left / Arrow Right.
           </p>
         </div>
-        <button
-          type="button"
-          className="button-secondary button-small"
-          onClick={() => setShowHeatmap((prev) => !prev)}
-          data-testid="toggle-diff-heatmap"
-        >
-          {showHeatmap ? 'Hide Difference Heatmap' : 'Toggle Difference Heatmap'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div className="slider-preset-group" style={{ display: 'inline-flex', background: '#f1f5f9', borderRadius: '8px', padding: '2px', border: '1px solid #e2e8f0' }}>
+            <button
+              type="button"
+              className={`button-small ${sliderPos === 100 ? 'button-active' : ''}`}
+              style={{
+                background: sliderPos === 100 ? '#0ea5e9' : 'transparent',
+                color: sliderPos === 100 ? '#ffffff' : '#475569',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '4px 8px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+              onClick={() => setSliderPos(100)}
+              title="View 100% File A"
+            >
+              100% A
+            </button>
+            <button
+              type="button"
+              className={`button-small ${sliderPos === 50 ? 'button-active' : ''}`}
+              style={{
+                background: sliderPos === 50 ? '#0ea5e9' : 'transparent',
+                color: sliderPos === 50 ? '#ffffff' : '#475569',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '4px 8px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+              onClick={() => setSliderPos(50)}
+              title="Reset to 50/50 Split"
+            >
+              50/50
+            </button>
+            <button
+              type="button"
+              className={`button-small ${sliderPos === 0 ? 'button-active' : ''}`}
+              style={{
+                background: sliderPos === 0 ? '#0ea5e9' : 'transparent',
+                color: sliderPos === 0 ? '#ffffff' : '#475569',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '4px 8px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+              onClick={() => setSliderPos(0)}
+              title="View 100% File B"
+            >
+              100% B
+            </button>
+          </div>
+          <button
+            type="button"
+            className="button-secondary button-small"
+            onClick={() => setShowHeatmap((prev) => !prev)}
+            data-testid="toggle-diff-heatmap"
+          >
+            {showHeatmap ? 'Hide Difference Heatmap' : 'Toggle Difference Heatmap'}
+          </button>
+        </div>
       </div>
 
       <div

@@ -214,7 +214,22 @@ export function StartScreen({
             validator.
           </p>
 
-          <div className="prominent-dropzone-box">
+          <div
+            className={`prominent-dropzone-box ${isDragOverInspect ? 'dropzone-active' : ''}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (!disabled) setIsDragOverInspect(true);
+            }}
+            onDragLeave={() => setIsDragOverInspect(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragOverInspect(false);
+              const file = e.dataTransfer?.files?.[0];
+              if (file && !disabled) {
+                onFile(file);
+              }
+            }}
+          >
             <div className="dropzone-upload-icon-wrapper" aria-hidden="true">
               <UploadCloudIcon size={36} />
             </div>
