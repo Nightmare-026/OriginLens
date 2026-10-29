@@ -504,3 +504,39 @@ Users inspecting single files or comparing two images requested a well-structure
 - 49 Playwright E2E tests passing across all suites (`npm run test:e2e`).
 - TypeScript strict typecheck passing with 0 errors (`npm run typecheck`).
 - Zero automated WCAG A/AA accessibility violations.
+
+
+---
+
+## ADR-015 — Legal & Privacy-Preserving On-Demand Geolocation EXIF Unmasking
+
+**Date:** 2026-10-29  
+**Status:** **ACCEPTED & IMPLEMENTED**  
+**Deciders:** project owner + implementation agent  
+
+### Context
+
+When images containing embedded GPS tags (`GPSLatitude`, `GPSLongitude`, etc.) are inspected, OriginLens previously masked coordinates completely by design (`"Location metadata is present in the file. Coordinates are not extracted, displayed, or exported."`) to fulfill PRD §5.3/FR-004 anti-doxxing invariants. Users requested the ability to legally and safely reveal and inspect these location coordinates without introducing privacy risks, stalking hazards, or third-party tracking.
+
+### Decision
+
+1. **3-Tier Privacy Guard:**
+   - **Level 1 (Default Masked):** Location presence is detected, but coordinates remain masked (`••••••••••••`) to protect personal physical residence against screen recording, shoulder surfing, and accidental disclosure.
+   - **Level 2 (Coarse View):** Rounded to 1 decimal place (~10 km radius safe region) to verify city/region without exposing street address.
+   - **Level 3 (Explicit Unmask):** On-demand execution of `extractGpsDetails(bytes)` strictly in client memory when user clicks `[Reveal Coordinates (Local Only)]`, displaying exact Latitude, Longitude, Altitude, and UTC GPS timestamp.
+2. **Zero-Leakage In-Browser Extraction:**
+   - Extraction operates purely on the volatile in-memory file buffer (`ArrayBuffer`). Zero network calls, zero server APIs, zero telemetry.
+3. **Safe Outbound Mapping:**
+   - No embedded map iframes or background tile queries (which would leak client IP and coordinates to third-party servers).
+   - Explicit external links to OpenStreetMap and Google Maps with `rel="noopener noreferrer" target="_blank"` and prominent disclosure that clicking leaves the offline session.
+4. **Legal & Provenance Disclaimers:**
+   - Clear attribution: *"Unverified Device EXIF. Camera metadata can be edited, copied, or spoofed; it is not cryptographic or judicial proof of capture location."*
+5. **Export Invariant Maintained:**
+   - Machine-readable report schemas maintain `includedPreciseGps: false` by default, protecting public report sharing.
+
+### Verification Record
+
+- 284 unit tests passing in Vitest (`npm test`).
+- 23 Playwright E2E tests passing in `inspect.spec.ts` and `accessibility.spec.ts`.
+- TypeScript strict typecheck passing with 0 errors (`npm run typecheck`).
+- ESLint passing with 0 errors and 0 warnings (`npm run lint`).

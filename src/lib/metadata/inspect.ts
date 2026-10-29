@@ -235,6 +235,140 @@ function detectGpsPresence(tags: Record<string, unknown>): GpsPresence {
   return GPS_PRESENCE_KEYS.some((key) => key in tags) ? 'present' : 'not_present';
 }
 
+export type GpsCoordinates = Readonly<{
+  latitude: number;
+  longitude: number;
+  latitudeRef: 'N' | 'S';
+  longitudeRef: 'E' | 'W';
+  altitude?: number;
+  dmsLatitude: string;
+  dmsLongitude: string;
+  coarseLocation: string;
+  gpsTimestamp?: string;
+}>;
+
+function toDms(coordinate: number, type: 'lat' | 'lon'): string {
+  const absolute = Math.abs(coordinate);
+  const degrees = Math.floor(absolute);
+  const minutesNotTruncated = (absolute - degrees) * 60;
+  const minutes = Math.floor(minutesNotTruncated);
+  const seconds = Math.floor((minutesNotTruncated - minutes) * 60 * 10) / 10;
+  const direction = type === 'lat' ? (coordinate >= 0 ? 'N' : 'S') : (coordinate >= 0 ? 'E' : 'W');
+  return `${degrees}° ${minutes}' ${seconds.toFixed(1)}" ${direction}`;
+}
+
+/**
+ * On-demand client-side extraction of GPS coordinates from volatile in-memory image bytes.
+ * This runs ONLY when the user explicitly triggers an unmask action, preserving
+ * the default privacy and anti-doxxing invariants of OriginLens.
+ */
+export function extractGpsDetails(bytes: ArrayBuffer): GpsCoordinates | null {
+  let rawTags: Tags;
+  try {
+    rawTags = load(bytes);
+  } catch {
+    return null;
+  }
+
+  const tags = rawTags as unknown as Record<string, unknown>;
+  const latTag = tags['GPSLatitude'];
+  const lonTag = tags['GPSLongitude'];
+
+  if (!isRecord(latTag) && !isRecord(lonTag)) {
+    return null;
+  }
+
+  let lat = Number.NaN;
+  if (isRecord(latTag)) {
+    const desc = latTag['description'];
+    lat = typeof desc === 'number' ? desc : parseFloat(String(desc));
+  }
+
+  let lon = Number.NaN;
+  if (isRecord(lonTag)) {
+    const desc = lonTag['description'];
+    lon = typeof desc === 'number' ? desc : parseFloat(String(desc));
+  }
+
+  if (Number.isNaN(lat) && Number.isNaN(lon)) {
+    return null;
+  }
+
+  let latRef: 'N' | 'S' = 'N';
+  const latRefTag = tags['GPSLatitudeRef'];
+  if (isRecord(latRefTag)) {
+    const refStr = String(latRefTag['value'] ?? latRefTag['description'] ?? '').toUpperCase();
+    if (refStr.includes('S')) {
+      latRef = 'S';
+      if (!Number.isNaN(lat)) lat = -Math.abs(lat);
+    } else {
+      latRef = 'N';
+      if (!Number.isNaN(lat)) lat = Math.abs(lat);
+    }
+  }
+
+  let lonRef: 'E' | 'W' = 'E';
+  const lonRefTag = tags['GPSLongitudeRef'];
+  if (isRecord(lonRefTag)) {
+    const refStr = String(lonRefTag['value'] ?? lonRefTag['description'] ?? '').toUpperCase();
+    if (refStr.includes('W')) {
+      lonRef = 'W';
+      if (!Number.isNaN(lon)) lon = -Math.abs(lon);
+    } else {
+      lonRef = 'E';
+      if (!Number.isNaN(lon)) lon = Math.abs(lon);
+    }
+  }
+
+  const safeLat = Number.isNaN(lat) ? 0 : lat;
+  const safeLon = Number.isNaN(lon) ? 0 : lon;
+
+  if (safeLat < -90 || safeLat > 90 || safeLon < -180 || safeLon > 180) {
+    return null;
+  }
+
+  let altitude: number | undefined;
+  const altTag = tags['GPSAltitude'];
+  if (isRecord(altTag)) {
+    const desc = altTag['description'];
+    const parsedAlt = typeof desc === 'number' ? desc : parseFloat(String(desc));
+    if (!Number.isNaN(parsedAlt) && Number.isFinite(parsedAlt) && parsedAlt >= -500 && parsedAlt <= 50000) {
+      const altRefTag = tags['GPSAltitudeRef'];
+      const altRef = isRecord(altRefTag) ? Number(altRefTag['value']) : 0;
+      altitude = altRef === 1 ? -Math.abs(parsedAlt) : Math.abs(parsedAlt);
+    }
+  }
+
+  let gpsTimestamp: string | undefined;
+  const dateTag = tags['GPSDateStamp'];
+  const timeTag = tags['GPSTimeStamp'];
+  if (isRecord(dateTag) && isRecord(timeTag)) {
+    const d = String(dateTag['description'] ?? dateTag['value'] ?? '');
+    const t = String(timeTag['description'] ?? timeTag['value'] ?? '');
+    if (d && t) {
+      gpsTimestamp = `${d} ${t} UTC`;
+    }
+  }
+
+  const dmsLatitude = toDms(safeLat, 'lat');
+  const dmsLongitude = toDms(safeLon, 'lon');
+  const coarseLat = `${Math.abs(Math.round(safeLat * 10) / 10).toFixed(1)}° ${safeLat >= 0 ? 'N' : 'S'}`;
+  const coarseLon = `${Math.abs(Math.round(safeLon * 10) / 10).toFixed(1)}° ${safeLon >= 0 ? 'E' : 'W'}`;
+  const coarseLocation = `~${coarseLat}, ~${coarseLon} (approx. ±10 km region)`;
+
+  return {
+    latitude: Math.round(safeLat * 1000000) / 1000000,
+    longitude: Math.round(safeLon * 1000000) / 1000000,
+    latitudeRef: latRef,
+    longitudeRef: lonRef,
+    altitude: altitude !== undefined ? Math.round(altitude * 10) / 10 : undefined,
+    dmsLatitude,
+    dmsLongitude,
+    coarseLocation,
+    gpsTimestamp,
+  };
+}
+
 const AI_GENERATOR_PATTERNS = [
   {
     generator: 'Midjourney',

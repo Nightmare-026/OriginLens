@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   EXIFREADER_VERSION,
   inspectMetadata,
+  extractGpsDetails,
   sanitizeMetadataText,
 } from '@/lib/metadata/inspect';
 import {
@@ -66,6 +67,24 @@ describe('metadata allowlist', () => {
     const result = inspectMetadata(toArrayBuffer(buildExifJpeg({ includeGps: false })));
 
     expect(result.gpsPresence).toBe('not_present');
+  });
+
+  it('extracts GPS details on-demand with dual format and bounding', () => {
+    const buffer = toArrayBuffer(buildExifJpeg());
+    const gps = extractGpsDetails(buffer);
+
+    expect(gps).not.toBeNull();
+    expect(gps?.latitude).toBeCloseTo(37.775, 3);
+    expect(gps?.dmsLatitude).toContain('37° 46\'');
+    expect(gps?.dmsLatitude).toContain('N');
+    expect(gps?.coarseLocation).toContain('~37.8° N');
+  });
+
+  it('returns null for extractGpsDetails when no GPS tags exist', () => {
+    const buffer = toArrayBuffer(buildPlainJpeg());
+    const gps = extractGpsDetails(buffer);
+
+    expect(gps).toBeNull();
   });
 
   it('drops out-of-range orientation and explains why', () => {

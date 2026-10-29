@@ -18,8 +18,12 @@ import {
   formatDimensions,
 } from './labels';
 import { ModelExplanationCard } from './model-explanation';
+import { extractGpsDetails, type GpsCoordinates, type MetadataInspection } from '@/lib/metadata/inspect';
 import {
   EyeIcon,
+  EyeOffIcon,
+  MapPinIcon,
+  ExternalLinkIcon,
   CheckCircleIcon,
   AlertTriangleIcon,
   InfoIcon,
@@ -426,7 +430,214 @@ function CredentialSection({ analysis, idPrefix }: Readonly<{ analysis: FileAnal
   );
 }
 
-function MetadataSection({ analysis, idPrefix }: Readonly<{ analysis: FileAnalysis; idPrefix: string }>) {
+function GpsLocationCard({
+  metadata,
+  previewUrl,
+  idPrefix,
+}: {
+  metadata: MetadataInspection;
+  previewUrl?: string | null;
+  idPrefix: string;
+}) {
+  const [revealed, setRevealed] = useState(false);
+  const [precision, setPrecision] = useState<'precise' | 'coarse'>('precise');
+  const [loading, setLoading] = useState(false);
+  const [gpsData, setGpsData] = useState<GpsCoordinates | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  if (metadata.gpsPresence !== 'present') {
+    return (
+      <p className="note" data-testid={`${idPrefix}metadata-gps`}>
+        {metadata.gpsPresence === 'not_present'
+          ? 'No location metadata was found by this parser.'
+          : 'Location-metadata presence was not evaluated.'}
+      </p>
+    );
+  }
+
+  const handleReveal = async () => {
+    if (gpsData !== null) {
+      setRevealed(true);
+      return;
+    }
+
+    if (!previewUrl) {
+      setFetchError('Volatile in-memory file buffer is no longer available in this session.');
+      setRevealed(true);
+      return;
+    }
+
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const response = await fetch(previewUrl);
+      const buffer = await response.arrayBuffer();
+      const extracted = extractGpsDetails(buffer);
+      if (extracted === null) {
+        setFetchError('GPS tags were present, but exact numeric latitude/longitude coordinates could not be decoded.');
+      } else {
+        setGpsData(extracted);
+      }
+    } catch {
+      setFetchError('Failed to read local memory buffer.');
+    } finally {
+      setLoading(false);
+      setRevealed(true);
+    }
+  };
+
+  return (
+    <div className="gps-privacy-card" data-testid={`${idPrefix}metadata-gps`}>
+      <div className="gps-card-header">
+        <div className="gps-card-title">
+          <MapPinIcon size={18} style={{ color: '#0284c7' }} />
+          <span>Geolocation EXIF Metadata</span>
+        </div>
+        <span className="gps-privacy-badge">
+          Protected by Default (Anti-Doxxing)
+        </span>
+      </div>
+
+      <p className="note" style={{ margin: '0 0 10px 0' }}>
+        Location metadata is present in the file. Coordinates are masked by default to protect personal privacy against physical tracking and doxxing. You may unmask them locally on your device below.
+      </p>
+
+      {!revealed ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="gps-masked-preview">
+            <span>Latitude: <code>••••••••••••</code></span>
+            <span>Longitude: <code>••••••••••••</code></span>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              className="btn-reveal-gps"
+              onClick={() => void handleReveal()}
+              disabled={loading}
+            >
+              <EyeIcon size={14} />
+              <span>{loading ? 'Reading local buffer...' : 'Reveal Coordinates (Local Only)'}</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="gps-unmasked-details">
+          {fetchError ? (
+            <p className="note" style={{ color: '#b91c1c', margin: 0 }}>
+              {fetchError}
+            </p>
+          ) : gpsData ? (
+            <>
+              <div className="gps-controls-row">
+                <span style={{ color: '#475569', fontWeight: 600, fontSize: '0.8125rem' }}>Precision:</span>
+                <div className="precision-toggle">
+                  <button
+                    type="button"
+                    className={precision === 'precise' ? 'toggle-active' : ''}
+                    onClick={() => setPrecision('precise')}
+                  >
+                    Precise (Exact)
+                  </button>
+                  <button
+                    type="button"
+                    className={precision === 'coarse' ? 'toggle-active' : ''}
+                    onClick={() => setPrecision('coarse')}
+                  >
+                    Coarse (~10 km Safe Region)
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="btn-hide-gps"
+                  onClick={() => setRevealed(false)}
+                >
+                  <EyeOffIcon size={12} />
+                  <span>Hide Coordinates</span>
+                </button>
+              </div>
+
+              <div className="gps-coords-grid">
+                <div className="gps-coord-box">
+                  <span className="coord-label">Latitude</span>
+                  <span className="coord-value">
+                    {precision === 'precise'
+                      ? `${gpsData.latitude}° (${gpsData.dmsLatitude})`
+                      : gpsData.coarseLocation.split(',')[0]}
+                  </span>
+                </div>
+
+                <div className="gps-coord-box">
+                  <span className="coord-label">Longitude</span>
+                  <span className="coord-value">
+                    {precision === 'precise'
+                      ? `${gpsData.longitude}° (${gpsData.dmsLongitude})`
+                      : gpsData.coarseLocation.split(',')[1]}
+                  </span>
+                </div>
+
+                {gpsData.altitude !== undefined && precision === 'precise' ? (
+                  <div className="gps-coord-box">
+                    <span className="coord-label">Altitude</span>
+                    <span className="coord-value">{gpsData.altitude} m MSL</span>
+                  </div>
+                ) : null}
+
+                {gpsData.gpsTimestamp && precision === 'precise' ? (
+                  <div className="gps-coord-box">
+                    <span className="coord-label">GPS Fix Time</span>
+                    <span className="coord-value">{gpsData.gpsTimestamp}</span>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="gps-external-map-notice">
+                <div className="gps-map-links">
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${gpsData.latitude}&mlon=${gpsData.longitude}#map=16/${gpsData.latitude}/${gpsData.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="external-map-link"
+                  >
+                    <ExternalLinkIcon size={12} />
+                    <span>View on OpenStreetMap ↗</span>
+                  </a>
+
+                  <a
+                    href={`https://maps.google.com/?q=${gpsData.latitude},${gpsData.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="external-map-link"
+                  >
+                    <ExternalLinkIcon size={12} />
+                    <span>View on Google Maps ↗</span>
+                  </a>
+                </div>
+                <p className="note" style={{ margin: '6px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                  Privacy & Legal Notice: Clicking an external map link opens a new tab and transmits coordinates directly to that external map provider. Zero tracking requests are made by OriginLens.
+                </p>
+              </div>
+            </>
+          ) : null}
+
+          <p className="note" style={{ margin: 0, fontSize: '0.75rem' }}>
+            Legal Note: Device-reported EXIF metadata is editable and unauthenticated. It does not constitute legal, judicial, or cryptographic proof of physical capture location.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MetadataSection({
+  analysis,
+  idPrefix,
+  previewUrl,
+}: Readonly<{
+  analysis: FileAnalysis;
+  idPrefix: string;
+  previewUrl?: string | null;
+}>) {
   const check = analysis.checks.find((candidate) => candidate.kind === 'metadata');
   const metadata = analysis.metadata;
 
@@ -456,13 +667,7 @@ function MetadataSection({ analysis, idPrefix }: Readonly<{ analysis: FileAnalys
           That is not evidence that metadata was deliberately removed. Re-encoding and ordinary
           processing can remove it.
         </p>
-        <p className="note" data-testid={`${idPrefix}metadata-gps`}>
-          {metadata.gpsPresence === 'present'
-            ? 'Location metadata is present in the file. Coordinates are not extracted, displayed, or exported.'
-            : metadata.gpsPresence === 'not_present'
-              ? 'No location metadata was found by this parser.'
-              : 'Location-metadata presence was not evaluated.'}
-        </p>
+        <GpsLocationCard metadata={metadata} previewUrl={previewUrl} idPrefix={idPrefix} />
       </>
     );
   }
@@ -477,13 +682,7 @@ function MetadataSection({ analysis, idPrefix }: Readonly<{ analysis: FileAnalys
           </div>
         ))}
       </dl>
-      <p className="note" data-testid={`${idPrefix}metadata-gps`}>
-        {metadata.gpsPresence === 'present'
-          ? 'Location metadata is present in the file. Coordinates are not extracted, displayed, or exported.'
-          : metadata.gpsPresence === 'not_present'
-            ? 'No location metadata was found by this parser.'
-            : 'Location-metadata presence was not evaluated.'}
-      </p>
+      <GpsLocationCard metadata={metadata} previewUrl={previewUrl} idPrefix={idPrefix} />
       <p className="note">
         Every field above is an unverified clue marked {`"${metadata.parser.name} ${metadata.parser.version}"`}.
         Metadata can be absent, copied, edited, or misleading, and is not cryptographic provenance.
@@ -906,7 +1105,7 @@ export function FileEvidenceSections({ analysis, idPrefix, title, previewUrl }: 
         Metadata is unverified. It is shown only from a bounded allowlist and is never treated as
         cryptographic provenance.
       </p>
-      <MetadataSection analysis={analysis} idPrefix={idPrefix} />
+      <MetadataSection analysis={analysis} idPrefix={idPrefix} previewUrl={previewUrl} />
     </section>
   );
 
