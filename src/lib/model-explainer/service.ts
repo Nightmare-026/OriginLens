@@ -31,6 +31,43 @@ export function getExplainerConfig(): ModelExplainerConfig {
 }
 
 /**
+ * Strips reasoning/thought tokens (e.g. <thought>...</thought> from Meta Muse Spark Open
+ * or <think>...</think>) and markdown fences from model completions so clean JSON is parsed.
+ */
+export function cleanModelOutput(rawContent: string): string {
+  let cleaned = rawContent.trim();
+
+  // Strip closed <thought>...</thought> and <think>...</think> blocks (including any attributes)
+  cleaned = cleaned.replace(/<thought\b[^>]*>[\s\S]*?<\/thought>/gi, '');
+  cleaned = cleaned.replace(/<think\b[^>]*>[\s\S]*?<\/think>/gi, '');
+
+  // In case reasoning block was not closed with closing tag
+  const unclosedMatch = cleaned.match(/<(?:thought|think)\b[^>]*>/i);
+  if (unclosedMatch && unclosedMatch.index !== undefined) {
+    const afterTag = cleaned.slice(unclosedMatch.index + unclosedMatch[0].length);
+    const jsonStart = afterTag.indexOf('{');
+    if (jsonStart !== -1) {
+      cleaned = afterTag.slice(jsonStart);
+    }
+  }
+
+  // Strip markdown code fences (e.g. ```json ... ``` or unclosed ```json ... )
+  const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)(?:```|$)/i);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    cleaned = codeBlockMatch[1].trim();
+  }
+
+  // Extract outer JSON structure if there are leading/trailing characters
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+  }
+
+  return cleaned.trim();
+}
+
+/**
  * Executes an explanation request.
  * If the model is disabled, unconfigured, fails, times out, or produces invalid claims,
  * it safely falls back to a deterministic template without failing the user experience.
@@ -68,6 +105,7 @@ export async function explainReportEvidence(
     const systemPrompt = buildSystemPrompt(request.audience);
     const userPrompt = buildUserPrompt(request);
 
+    const startTime = Date.now();
     const completion = await openai.chat.completions.create({
       model: config.modelName,
       messages: [
@@ -78,15 +116,18 @@ export async function explainReportEvidence(
       max_tokens: 800,
       response_format: { type: 'json_object' },
     });
+    const latencyMs = Date.now() - startTime;
 
     const rawContent = completion.choices[0]?.message?.content;
     if (!rawContent) {
       return generateDeterministicFallback(request, 'Model returned empty response content.');
     }
 
+    const cleanedContent = cleanModelOutput(rawContent);
+
     let parsedJson: unknown;
     try {
-      parsedJson = JSON.parse(rawContent);
+      parsedJson = JSON.parse(cleanedContent);
     } catch {
       return generateDeterministicFallback(request, 'Model output was not valid JSON.');
     }
@@ -127,6 +168,7 @@ export async function explainReportEvidence(
       modelUsed: config.modelName,
       generatedAtUtc: new Date().toISOString(),
       evidenceAttribution: `AI-generated explanation (${config.modelName} — non-authoritative)`,
+      latencyMs,
     };
 
     return explainResponseSchema.parse(explanation);

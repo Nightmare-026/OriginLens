@@ -124,6 +124,7 @@ export const explainResponseSchema = rawModelResponseSchema.extend({
   modelUsed: z.string().max(120),
   generatedAtUtc: z.string(),
   evidenceAttribution: z.string(),
+  latencyMs: z.number().int().nonnegative().optional(),
   reason: z.string().max(200).optional(),
 });
 

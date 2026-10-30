@@ -1,12 +1,12 @@
 # OriginLens — Hackathon Judging Demo Script
 
-**OriginLens** is an **Evidence-First Media Provenance Explorer & Meta Llama Co-Pilot**. It inspects cryptographic and metadata provenance evidence for images and performs side-by-side comparative analysis between two files without jumping to ungrounded conclusions about image authenticity, origin, or scene truth.
+**OriginLens** is an **Evidence-First Media Provenance Explorer & Meta Muse Spark Open Explainer**. It inspects cryptographic and metadata provenance evidence for images and performs side-by-side comparative analysis between two files without jumping to ungrounded conclusions about image authenticity, origin, or scene truth.
 
 > **Core Philosophy:**
 > 1. **Evidence Ledger:** Every finding traces directly to a specific check, evidence ID, and validation standard.
 > 2. **Provenance Delta:** Compare two images side-by-side without presuming an "original" or inferring intent.
 > 3. **Honest Uncertainty:** Never convert absent evidence into a claim of authenticity ("human-made"); distinguish between signature validity and signer trust; state what was not checked.
-> 4. **Meta Llama Provenance Co-Pilot:** Explain cryptographic facts objectively across three distinct personas (General, Fact-Checkers, Cryptographers) with zero hallucination guarantee.
+> 4. **Meta Muse Spark Open Explainer (Baseten Partner):** Explain cryptographic facts objectively across three distinct personas (General, Newsroom, Technical) with grounded citation verification and reasoning token stripping.
 
 ---
 
@@ -92,12 +92,13 @@ All demo fixtures are included in the repository under [`tests/fixtures/c2pa/`](
 
 ---
 
-### Beat 6: Meta Llama Provenance Co-Pilot (3:15 – 3:45)
-- **Action:** Click on the **AI Clues & Co-Pilot** tab. Click **Explain with Meta Llama**.
+### Beat 6: Meta Muse Spark Open Explainer (3:15 – 3:45)
+- **Action:** Click on the **AI Clues & Co-Pilot** tab. Click **Explain evidence with a model**.
 - **What to Observe:**
-  - **Audience Personas:** Switch between **General Public**, **Newsroom Fact-Checkers**, and **Forensic Specialists**.
-  - **Citation Verification:** Every finding cited by Llama maps directly to a verified Evidence ID (`ev_...`).
-  - **Anti-Hallucination Guard:** The model explicitly states what the evidence supports and what remains unknown, refusing to fabricate claims of authenticity or intent.
+  - **Audience Personas:** Switch between **General Public**, **Newsroom Editorial**, and **Technical**.
+  - **Citation Verification:** Every finding cited by the model maps directly to a verified Evidence ID (`ev_...`).
+  - **Grounded Epistemic Guard:** The model explicitly states what the evidence supports and what remains unknown, refusing to fabricate claims of authenticity, tampering, or intent.
+  - **Reasoning Token Cleanliness:** Reasoned responses from Meta Muse Spark Open have `<thought>` tokens stripped, ensuring clean and valid JSON.
 
 ---
 
@@ -118,4 +119,4 @@ The demo is covered by an automated Playwright end-to-end test that executes all
 npx playwright test tests/e2e/demo-rehearsal.spec.ts
 ```
 
-All 50 quality gates and test suites are tracked in [`docs/implementation/verification-log.md`](docs/implementation/verification-log.md).
+All quality gates and test suites are tracked in [`docs/implementation/verification-log.md`](docs/implementation/verification-log.md).

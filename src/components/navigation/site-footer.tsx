@@ -73,6 +73,15 @@ export function SiteFooter() {
             </li>
             <li>
               <Link
+                id="footer-about"
+                href="/about"
+                className={`footer-link ${pathname === '/about' ? 'footer-link-active' : ''}`}
+              >
+                About OriginLens
+              </Link>
+            </li>
+            <li>
+              <Link
                 id="footer-privacy"
                 href="/privacy"
                 className={`footer-link ${pathname === '/privacy' ? 'footer-link-active' : ''}`}

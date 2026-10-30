@@ -33,6 +33,7 @@ export default defineConfig({
       MODEL_API_KEY: '',
       MODEL_API_BASE_URL: '',
       MODEL_NAME: '',
+      ALLOW_DEV_SMOKE: '1',
     },
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],

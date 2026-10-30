@@ -7,7 +7,7 @@ import {
 import { generateDeterministicFallback } from '@/lib/model-explainer/fallback';
 import { projectReportToExplainPayload } from '@/lib/model-explainer/payload';
 import { explainRequestSchema } from '@/lib/model-explainer/schema';
-import { explainReportEvidence } from '@/lib/model-explainer/service';
+import { explainReportEvidence, cleanModelOutput } from '@/lib/model-explainer/service';
 import type { OriginLensReport } from '@/lib/results/schemas';
 
 describe('Model Explainer (P1-001) Unit Tests', () => {
@@ -188,5 +188,64 @@ describe('Model Explainer (P1-001) Unit Tests', () => {
 
     expect(result.mode).toBe('deterministic_fallback');
     expect(result.reason).toContain('No model endpoint configured');
+  });
+
+  describe('cleanModelOutput reasoning token stripper', () => {
+    it('strips <thought>...</thought> tags from Meta Muse Spark Open output', () => {
+      const raw = `<thought>
+I will analyze the evidence for this image.
+The C2PA manifest is not present.
+</thought>
+{"plainLanguageSummary":"No credentials found.","whatThisSupports":[],"whatRemainsUnknown":[],"nextChecks":[]}`;
+
+      const cleaned = cleanModelOutput(raw);
+      expect(cleaned).not.toContain('<thought>');
+      expect(cleaned).not.toContain('</thought>');
+      expect(JSON.parse(cleaned)).toEqual({
+        plainLanguageSummary: 'No credentials found.',
+        whatThisSupports: [],
+        whatRemainsUnknown: [],
+        nextChecks: [],
+      });
+    });
+
+    it('strips <think>...</think> and markdown code fences', () => {
+      const raw = `<think>Internal chain of thought</think>
+\`\`\`json
+{
+  "plainLanguageSummary": "Fingerprint verified.",
+  "whatThisSupports": [],
+  "whatRemainsUnknown": [],
+  "nextChecks": []
+}
+\`\`\``;
+
+      const cleaned = cleanModelOutput(raw);
+      expect(cleaned).not.toContain('<think>');
+      expect(cleaned).not.toContain('```');
+      const parsed = JSON.parse(cleaned);
+      expect(parsed.plainLanguageSummary).toBe('Fingerprint verified.');
+    });
+
+    it('strips thought tags with attributes and handles unclosed reasoning blocks', () => {
+      const rawWithAttrs = `<thought id="reasoning_1" step="initial">Internal reasoning</thought>
+{"plainLanguageSummary":"Manifest inspected.","whatThisSupports":[],"whatRemainsUnknown":[],"nextChecks":[]}`;
+
+      const cleaned = cleanModelOutput(rawWithAttrs);
+      expect(cleaned).not.toContain('<thought');
+      const parsed = JSON.parse(cleaned);
+      expect(parsed.plainLanguageSummary).toBe('Manifest inspected.');
+
+      const unclosed = `<think>Unclosed thinking block
+{
+  "plainLanguageSummary": "Unclosed handled.",
+  "whatThisSupports": [],
+  "whatRemainsUnknown": [],
+  "nextChecks": []
+}`;
+      const cleanedUnclosed = cleanModelOutput(unclosed);
+      const parsedUnclosed = JSON.parse(cleanedUnclosed);
+      expect(parsedUnclosed.plainLanguageSummary).toBe('Unclosed handled.');
+    });
   });
 });

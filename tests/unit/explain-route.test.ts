@@ -23,7 +23,7 @@ describe('/api/explain Route Handler Unit Tests', () => {
     const hugeBody = JSON.stringify({
       schemaVersion: '2.0',
       consent: true,
-      model: 'meta/llama-3.2-11b-vision-instruct',
+      model: 'meta-models/muse-spark-open-1026',
       report: {
         hugeText: 'x'.repeat(70 * 1024),
       },
@@ -62,7 +62,7 @@ describe('/api/explain Route Handler Unit Tests', () => {
     const validBody = {
       schemaVersion: '2.0',
       consent: true,
-      model: 'meta/llama-3.2-11b-vision-instruct',
+      model: 'meta-models/muse-spark-open-1026',
       report: {
         reportId: 'rpt_valid_123456',
         summaryCodes: ['no_supported_embedded_credentials'],

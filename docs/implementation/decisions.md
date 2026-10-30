@@ -4,6 +4,41 @@ Material decisions with source, date, and consequence. Newest first.
 
 ---
 
+## ADR-017 — Hedging-Aware Claims Filter & Epistemic Boundary Enforcement
+
+**Date:** 2026-10-30  
+**Status:** ACCEPTED  
+**Deciders:** project owner (participant) + AI ethics/audit team
+
+### Context
+PRD §1 and §2.3 strictly prohibit definitive verdicts of authenticity, fraud, tampering, or 100% human-made/fake assertions. Earlier keyword matching (`claims.ts`) naively flagged any occurrence of tokens like `fake`, `tamper`, or `authentic`, erroneously blocking valid defensive negations and educational disclaimers (e.g. *"Absence of a C2PA manifest does not prove an image is fake"* in `whatRemainsUnknown`).
+
+### Decision
+1. **Unconditional Strict Bans:** Absolute guarantee claims (`100%`, `verified by meta`) remain permanently banned across all response sections.
+2. **Epistemic Negation Detection:** Prohibited verdict keywords (`tamper`, `authentic`, `fake`, `forgery`, `human-made`, `fraud`, `deceptive`, `guarantee`, `proves`) are evaluated clause-by-clause against epistemic negation patterns (`does not prove`, `cannot determine`, `is not evidence that`, `no evidence of`).
+3. **Compound Violation Rejection:** Sentences combining a valid negation with an unhedged affirmative violation are rejected.
+4. **Permitted Educational Negations:** Explanations may now truthfully explain the limits of the evidence in `whatRemainsUnknown` without triggering false rejections.
+
+---
+
+## ADR-016 — Live Meta AI Integration via Baseten Partner (Meta Muse Spark Open)
+
+**Date:** 2026-10-30  
+**Status:** ACCEPTED  
+**Deciders:** project owner (participant) + backend/hackathon team
+
+### Context
+Official Meta Global AI Developer Hackathon partner Baseten provided inference credit and designated `meta-models/muse-spark-open-1026` (Meta Muse Spark Open) as the official open-weights reasoning model. Muse Spark Open natively produces reasoning thoughts wrapped in `<thought>...</thought>` blocks before emitting the target JSON completion.
+
+### Decision
+1. **Baseten Partner Endpoint:** Configured OpenAI-compatible client targeting `https://inference.baseten.co/v1` with model `meta-models/muse-spark-open-1026`.
+2. **Reasoning Token Sanitization:** Implemented `cleanModelOutput()` to strip `<thought>...</thought>`, `<think>...</think>`, and markdown fences before JSON parsing and Zod schema validation.
+3. **Zero-Byte Privacy Invariant Preserved:** The 64 KiB request boundary remains inviolable. No image bytes, pixel previews, precise GPS coordinates, or unverified filenames are transmitted.
+4. **Latency & Partner Attribution:** Track API execution latency (`latencyMs`) and display model attribution badge `Meta Muse Spark Open (Baseten Partner)` in UI.
+5. **Deterministic Fallback:** If disabled, offline, or unconfigured, the app falls back to the local deterministic template with zero UI interruption.
+
+---
+
 ## ADR-012 — Visual Brand Polish, Calm Journalistic Copywriting, and Asset Optimization
 
 **Date:** 2026-10-28  

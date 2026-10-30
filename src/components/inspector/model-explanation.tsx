@@ -218,8 +218,8 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
                       style={{
                         fontSize: '0.75rem',
                         padding: '4px 8px',
-                        border: userQuery === q ? '1px solid var(--primary, #10b981)' : undefined,
-                        background: userQuery === q ? 'rgba(16, 185, 129, 0.12)' : undefined,
+                        border: userQuery === q ? '1px solid var(--primary, #047857)' : undefined,
+                        background: userQuery === q ? 'rgba(4, 120, 87, 0.12)' : undefined,
                       }}
                       onClick={() => setUserQuery(q)}
                     >
@@ -253,7 +253,7 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
               </div>
 
               <div className="consent-meta-box">
-                <span className="badge badge-meta">Server-configured model</span>
+                <span className="badge badge-meta">Meta Muse Spark Open (Baseten Partner)</span>
                 <span className="badge badge-privacy">No image or metadata values sent</span>
               </div>
 
@@ -297,9 +297,19 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
                   ? 'Model explanation'
                   : 'Deterministic fallback'}
               </span>
+              {explanation.mode === 'ai_generated' && (
+                <span className="badge badge-meta" style={{ fontSize: '0.75rem' }}>
+                  Meta Muse Spark Open (Baseten Partner)
+                </span>
+              )}
               <span className="badge badge-neutral" style={{ fontSize: '0.75rem', textTransform: 'capitalize' }}>
                 Mode: {audience}
               </span>
+              {typeof explanation.latencyMs === 'number' && (
+                <span className="badge badge-neutral" style={{ fontSize: '0.75rem' }}>
+                  {explanation.latencyMs}ms latency
+                </span>
+              )}
             </div>
             <span className="note" style={{ fontSize: '0.75rem' }}>
               {explanation.evidenceAttribution}. This explanation is non-authoritative and does not
@@ -377,6 +387,7 @@ export function ModelExplanationCard({ analysis, idPrefix }: ModelExplanationPro
             </button>
             <span className="note" style={{ fontSize: '0.75rem' }}>
               Generated at {new Date(explanation.generatedAtUtc).toLocaleTimeString()} · Model: {explanation.modelUsed}
+              {typeof explanation.latencyMs === 'number' && ` (${explanation.latencyMs}ms)`}
             </span>
           </div>
         </div>

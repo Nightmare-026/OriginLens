@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { explainRequestSchema } from '@/lib/model-explainer/schema';
 import { explainReportEvidence } from '@/lib/model-explainer/service';
 
+// Serverless timeout: 30 seconds max duration
+export const maxDuration = 30;
+
 // Maximum body size: 64 KiB (PRD P1-001 §10)
 const MAX_BODY_BYTES = 64 * 1024;
 
@@ -9,6 +12,22 @@ const MAX_BODY_BYTES = 64 * 1024;
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
+
+function extractClientIp(req: NextRequest): string {
+  const candidate =
+    req.headers.get('x-nf-client-connection-ip')?.trim() ||
+    req.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip')?.trim() ||
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    'local-client';
+
+  // Sanitize IP: valid IPv4 / IPv6 format, max 45 characters
+  if (candidate.length <= 45 && /^[a-fA-F0-9:.]+$/.test(candidate)) {
+    return candidate;
+  }
+
+  return 'local-client';
+}
 
 function checkRateLimit(clientId: string): boolean {
   const now = Date.now();
@@ -67,9 +86,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Rate limiting
-  const forwardedFor = req.headers.get('x-forwarded-for');
-  const clientIp =
-    forwardedFor?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'local-client';
+  const clientIp = extractClientIp(req);
   if (!checkRateLimit(clientIp)) {
     return NextResponse.json(
       { error: 'Rate limit exceeded (maximum 10 requests per 5 minutes)' },

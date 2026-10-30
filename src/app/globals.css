@@ -24,10 +24,10 @@
   --border: rgba(255, 255, 255, 0.9);
   --border-subtle: rgba(215, 225, 238, 0.7);
 
-  /* --- Brand & Primary Colors (Image 2: Cyan to Light Emerald Green) --- */
-  --primary: #10b981;             /* Vibrant Light Green / Emerald */
-  --primary-hover: #059669;
-  --primary-container: #10b981;
+  /* --- Brand & Primary Colors: Deep Emerald WCAG AA (5.48:1 contrast on white) --- */
+  --primary: #047857;             /* Deep Emerald WCAG AA */
+  --primary-hover: #065f46;
+  --primary-container: #047857;
   --on-primary: #ffffff;
   --on-primary-container: #ecfdf5;
   --inverse-primary: #a7f3d0;
@@ -402,15 +402,40 @@ select {
   font-size: 0.875rem;
 }
 
-/* Buttons & CTAs (Light Green & Cyan-to-Emerald Gradient from Image 2) */
+/* Accessible Skip Link (WCAG 2.4.1 Bypass Blocks) */
+.skip-link {
+  position: absolute;
+  top: -9999px;
+  left: 1rem;
+  z-index: 10000;
+  padding: 0.625rem 1.25rem;
+  background: #047857;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: var(--rounded-default, 8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 1rem;
+  outline: 3px solid #0ea5e9;
+  outline-offset: 2px;
+}
+
+/* Buttons & CTAs (Deep Emerald #047857 WCAG AA 5.48:1 contrast on white) */
 button,
-.btn-primary {
+.btn-primary,
+.button-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   padding: 0.6875rem 1.375rem;
-  background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%);
+  background: #047857;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: var(--rounded-default);
   color: #ffffff;
@@ -419,22 +444,27 @@ button,
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35), 0 2px 6px rgba(14, 165, 233, 0.2);
+  box-shadow: 0 4px 14px rgba(4, 120, 87, 0.35), 0 2px 6px rgba(14, 165, 233, 0.2);
   text-decoration: none;
 }
 
 button:hover:not(:disabled),
-.btn-primary:hover {
-  background: linear-gradient(135deg, #0284c7 0%, #059669 100%);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5), 0 3px 8px rgba(14, 165, 233, 0.3);
+.btn-primary:hover,
+.button-primary:hover:not(:disabled) {
+  background: #065f46;
+  box-shadow: 0 6px 20px rgba(4, 120, 87, 0.5), 0 3px 8px rgba(14, 165, 233, 0.3);
   transform: translateY(-1.5px);
   color: #ffffff;
   text-decoration: none;
 }
 
 button:active:not(:disabled),
-.btn-primary:active {
-  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.25);
+.btn-primary:active,
+.button-primary:active:not(:disabled),
+.button-active {
+  background: #065f46 !important;
+  color: #ffffff !important;
+  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.3);
   transform: translateY(0.5px);
 }
 
@@ -1466,7 +1496,7 @@ button:disabled {
 }
 
 /* ==========================================================================
-   Model Explainer (P1-001 Meta Llama 3.2) Component Styles
+   Model Explainer (P1-001 Meta Muse Spark Open on Baseten) Component Styles
    ========================================================================== */
 
 .model-explanation-container {
@@ -1588,7 +1618,7 @@ button:disabled {
 }
 
 /* ==========================================================================
-   Meta Llama Live Pulse / Skeleton Shimmer
+   Meta Muse Spark Open Live Pulse / Skeleton Shimmer
    ========================================================================== */
 
 .explainer-skeleton-card {

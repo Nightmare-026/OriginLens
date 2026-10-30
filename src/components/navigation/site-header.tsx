@@ -10,6 +10,7 @@ import {
   CompassIcon,
   LockIcon,
   BookOpenIcon,
+  InfoIcon,
 } from '@/components/ui/icons';
 
 export function SiteHeader() {
@@ -60,7 +61,11 @@ export function SiteHeader() {
   }
 
   return (
-    <header role="banner" className="site-header">
+    <>
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+      <header role="banner" className="site-header">
       <div className="site-header-inner">
         <Link id="nav-brand" href="/" className="brand-link">
           <span className="brand-logo-mark" aria-hidden="true">
@@ -105,6 +110,14 @@ export function SiteHeader() {
             className={`desktop-nav-link ${pathname === '/how-to-use' ? 'nav-link-active' : ''}`}
           >
             How to Use
+          </Link>
+          <Link
+            id="nav-about-desktop"
+            data-testid="nav-about-desktop"
+            href="/about"
+            className={`desktop-nav-link ${pathname === '/about' ? 'nav-link-active' : ''}`}
+          >
+            About
           </Link>
           <Link
             id="nav-privacy-desktop"
@@ -202,6 +215,16 @@ export function SiteHeader() {
               <span>How to Use</span>
             </Link>
             <Link
+              id="nav-about"
+              data-testid="nav-about"
+              href="/about"
+              className={`nav-dropdown-link nav-link ${pathname === '/about' ? 'nav-link-active' : ''}`}
+              onClick={() => setIsOpen(false)}
+            >
+              <InfoIcon size={18} className="nav-item-icon" />
+              <span>About</span>
+            </Link>
+            <Link
               id="nav-privacy"
               data-testid="nav-privacy"
               href="/privacy"
@@ -215,5 +238,6 @@ export function SiteHeader() {
         </div>
       </div>
     </header>
+    </>
   );
 }
