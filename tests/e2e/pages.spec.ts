@@ -140,12 +140,8 @@ test('landing page renders storytelling hero, pipeline, and passes accessibility
   await expect(page.getByTestId('cta-hero-inspect')).toBeVisible();
   await expect(page.getByTestId('cta-hero-compare')).toBeVisible();
 
-  // Trust indicators
-  await expect(page.getByText('Local Checks by Default')).toBeVisible();
-  await expect(page.getByText('C2PA WebAssembly Standard')).toBeVisible();
-
   // Interactive Pipeline Diagram tab switching across all 4 stages
-  await expect(page.getByText('Interactive Cryptographic Verification Pipeline')).toBeVisible();
+  await expect(page.getByText('Cryptographic Verification Pipeline')).toBeVisible();
   await expect(page.getByText('Stage 01: Preflight Intake')).toBeVisible();
   await expect(page.getByText('intake.format.valid')).toBeVisible();
 

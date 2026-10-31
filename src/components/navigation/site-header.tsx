@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { OriginLensLogo } from '@/components/ui/originlens-logo';
 import {
   ShieldCheckIcon,
   SplitIcon,
@@ -67,16 +67,9 @@ export function SiteHeader() {
       </a>
       <header role="banner" className="site-header">
       <div className="site-header-inner">
-        <Link id="nav-brand" href="/" className="brand-link">
+        <Link id="nav-brand" href="/" className="brand-link" aria-label="OriginLens Home">
           <span className="brand-logo-mark" aria-hidden="true">
-            <Image
-              src="/logo.png"
-              alt=""
-              width={38}
-              height={38}
-              priority
-              className="brand-logo-img"
-            />
+            <OriginLensLogo size={38} id="header" />
           </span>
           <span className="brand-text-group">
             <span className="brand-name">

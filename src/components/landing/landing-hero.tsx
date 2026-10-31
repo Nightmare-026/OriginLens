@@ -6,7 +6,6 @@ import {
   ShieldCheckIcon,
   ArrowRightIcon,
   SlidersIcon,
-  LockIcon,
   SparklesIcon,
   CheckCircleIcon,
   UploadCloudIcon,
@@ -150,34 +149,12 @@ export function LandingHero() {
           </Link>
         </div>
 
-        {/* Trust indicators row */}
-        <div className="landing-trust-grid" role="list" aria-label="Core system properties">
-          <div className="trust-item" role="listitem">
-            <LockIcon size={16} className="trust-icon" />
-            <span>Local Checks by Default</span>
-          </div>
-          <div className="trust-item" role="listitem">
-            <ShieldCheckIcon size={16} className="trust-icon" />
-            <span>C2PA WebAssembly Standard</span>
-          </div>
-          <div className="trust-item" role="listitem">
-            <SparklesIcon size={16} className="trust-icon" />
-            <span>Optional Model Explanation</span>
-          </div>
-          <div className="trust-item" role="listitem">
-            <CheckCircleIcon size={16} className="trust-icon" />
-            <span>Zero Image Uploads</span>
-          </div>
-        </div>
-
         {/* Interactive Cryptographic Verification Pipeline Diagram */}
         <div className="landing-mini-demo-wrapper" aria-label="Interactive cryptographic verification pipeline diagram">
           <div className="mini-demo-header">
             <div className="mini-demo-controls">
-              <span className="window-dot red" aria-hidden="true" />
-              <span className="window-dot yellow" aria-hidden="true" />
-              <span className="window-dot green" aria-hidden="true" />
-              <span className="mini-demo-title">Interactive Cryptographic Verification Pipeline</span>
+              <ShieldCheckIcon size={18} className="pipeline-header-icon" />
+              <span className="mini-demo-title">Cryptographic Verification Pipeline</span>
             </div>
             <span className="stage-indicator-pill">
               Stage {activeStage.step} of 04
