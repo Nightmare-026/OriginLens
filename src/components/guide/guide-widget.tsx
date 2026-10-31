@@ -342,19 +342,13 @@ export function GuideWidget() {
                     className={`guide-message guide-message-${message.role}`}
                     data-testid={`guide-message-${message.role}`}
                   >
-                    {message.role === 'assistant' && (
+                    {message.role === 'assistant' && message.mode === 'deterministic_fallback' && (
                       <div className="guide-message-meta">
                         <span
-                          className={
-                            message.mode === 'ai_generated'
-                              ? 'guide-badge guide-badge-ai'
-                              : 'guide-badge guide-badge-reference'
-                          }
+                          className="guide-badge guide-badge-reference"
                           data-testid="guide-mode"
                         >
-                          {message.mode === 'ai_generated'
-                            ? 'AI-generated'
-                            : 'Reviewed reference'}
+                          Reviewed reference
                         </span>
                       </div>
                     )}
