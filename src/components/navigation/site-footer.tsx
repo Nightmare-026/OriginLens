@@ -1,9 +1,9 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ExternalLinkIcon } from '@/components/ui/icons';
-import { OriginLensLogo } from '@/components/ui/originlens-logo';
 
 export function SiteFooter() {
   const pathname = usePathname();
@@ -14,7 +14,13 @@ export function SiteFooter() {
         <div className="footer-brand-col">
           <div className="footer-logo">
             <span className="brand-logo-mark" aria-hidden="true">
-              <OriginLensLogo size={38} id="footer" />
+              <Image
+                src="/logo.png"
+                alt=""
+                width={38}
+                height={38}
+                className="brand-logo-img"
+              />
             </span>
             <span className="footer-brand-name">
               Origin<span className="brand-lens-gradient">Lens</span>
