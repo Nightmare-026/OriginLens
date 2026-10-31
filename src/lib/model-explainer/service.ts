@@ -1,4 +1,8 @@
-import OpenAI from 'openai';
+import {
+  getModelProviderConfig,
+  type ModelProviderConfig,
+} from '@/lib/model-provider/config';
+import { requestModelText } from '@/lib/model-provider/client';
 import {
   type ExplainRequest,
   type ExplainResponse,
@@ -9,62 +13,24 @@ import { buildSystemPrompt, buildUserPrompt } from './prompt';
 import { validateResponseClaims, validateEvidenceIdCitations } from './claims';
 import { generateDeterministicFallback } from './fallback';
 
-export interface ModelExplainerConfig {
-  enabled: boolean;
-  apiKey?: string;
-  baseURL?: string;
-  modelName?: string;
-  timeoutMs: number;
-}
+export type ModelExplainerConfig = ModelProviderConfig;
 
 export function getExplainerConfig(): ModelExplainerConfig {
-  const enabled = process.env.MODEL_EXPLANATION_ENABLED === 'true';
-  const apiKey = process.env.MODEL_API_KEY;
   // No provider endpoint or model is assumed. An operator must set both
   // explicitly; otherwise the route returns the deterministic template and
   // never sends data to a third party by default.
-  const baseURL = process.env.MODEL_API_BASE_URL?.trim() || undefined;
-  const modelName = process.env.MODEL_NAME?.trim() || undefined;
-  const timeoutMs = 20_000;
-
-  return { enabled, apiKey, baseURL, modelName, timeoutMs };
+  return getModelProviderConfig();
 }
 
+import { extractJsonObject } from '@/lib/model-provider/json';
+
 /**
- * Strips reasoning/thought tokens (e.g. <thought>...</thought> from Meta Muse Spark Open
- * or <think>...</think>) and markdown fences from model completions so clean JSON is parsed.
+ * Backwards-compatible name for the shared JSON extractor. Existing callers and
+ * tests import `cleanModelOutput`; the implementation lives in the provider
+ * layer so the guide and the explainer cannot drift apart.
  */
 export function cleanModelOutput(rawContent: string): string {
-  let cleaned = rawContent.trim();
-
-  // Strip closed <thought>...</thought> and <think>...</think> blocks (including any attributes)
-  cleaned = cleaned.replace(/<thought\b[^>]*>[\s\S]*?<\/thought>/gi, '');
-  cleaned = cleaned.replace(/<think\b[^>]*>[\s\S]*?<\/think>/gi, '');
-
-  // In case reasoning block was not closed with closing tag
-  const unclosedMatch = cleaned.match(/<(?:thought|think)\b[^>]*>/i);
-  if (unclosedMatch && unclosedMatch.index !== undefined) {
-    const afterTag = cleaned.slice(unclosedMatch.index + unclosedMatch[0].length);
-    const jsonStart = afterTag.indexOf('{');
-    if (jsonStart !== -1) {
-      cleaned = afterTag.slice(jsonStart);
-    }
-  }
-
-  // Strip markdown code fences (e.g. ```json ... ``` or unclosed ```json ... )
-  const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)(?:```|$)/i);
-  if (codeBlockMatch && codeBlockMatch[1]) {
-    cleaned = codeBlockMatch[1].trim();
-  }
-
-  // Extract outer JSON structure if there are leading/trailing characters
-  const firstBrace = cleaned.indexOf('{');
-  const lastBrace = cleaned.lastIndexOf('}');
-  if (firstBrace !== -1 && lastBrace > firstBrace) {
-    cleaned = cleaned.slice(firstBrace, lastBrace + 1);
-  }
-
-  return cleaned.trim();
+  return extractJsonObject(rawContent);
 }
 
 /**
@@ -76,7 +42,7 @@ export async function explainReportEvidence(
   request: ExplainRequest,
   customConfig?: Partial<ModelExplainerConfig>,
 ): Promise<ExplainResponse> {
-  const config = { ...getExplainerConfig(), ...customConfig };
+  const config = getModelProviderConfig(customConfig);
 
   if (!config.enabled) {
     return generateDeterministicFallback(request, 'Model explanation is disabled by configuration.');
@@ -96,30 +62,26 @@ export async function explainReportEvidence(
   const knownEvidenceIds = new Set(request.report.evidence.map((e) => e.evidenceId));
 
   try {
-    const openai = new OpenAI({
-      apiKey: config.apiKey,
-      baseURL: config.baseURL,
-      timeout: config.timeoutMs,
-    });
-
     const systemPrompt = buildSystemPrompt(request.audience);
     const userPrompt = buildUserPrompt(request);
 
-    const startTime = Date.now();
-    const completion = await openai.chat.completions.create({
-      model: config.modelName,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.2,
-      max_tokens: 800,
-      response_format: { type: 'json_object' },
-    });
-    const latencyMs = Date.now() - startTime;
+    const result = await requestModelText(config, [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ]);
 
-    const rawContent = completion.choices[0]?.message?.content;
-    if (!rawContent) {
+    // Muse Spark Open draws reasoning and answer from the same budget. A
+    // `length` finish means the visible answer may be missing or truncated;
+    // never attempt to parse it as a complete explanation.
+    if (result.finishReason === 'length') {
+      return generateDeterministicFallback(
+        request,
+        'Model reached its output-token limit before completing a structured explanation.',
+      );
+    }
+
+    const rawContent = result.content;
+    if (!rawContent.trim()) {
       return generateDeterministicFallback(request, 'Model returned empty response content.');
     }
 
@@ -135,10 +97,7 @@ export async function explainReportEvidence(
     // 1. Zod schema validation
     const parsedResult = rawModelResponseSchema.safeParse(parsedJson);
     if (!parsedResult.success) {
-      return generateDeterministicFallback(
-        request,
-        `Model response schema mismatch: ${parsedResult.error.issues[0]?.message ?? 'invalid'}`,
-      );
+      return generateDeterministicFallback(request, 'Model response did not match the required schema.');
     }
 
     const rawResponse = parsedResult.data;
@@ -146,34 +105,32 @@ export async function explainReportEvidence(
     // 2. Forbidden claims validation (no tamper, fake, authentic, human-made assertions)
     const claimsCheck = validateResponseClaims(rawResponse);
     if (!claimsCheck.valid) {
-      return generateDeterministicFallback(
-        request,
-        `Model response rejected for forbidden claim: ${claimsCheck.violation}`,
-      );
+      return generateDeterministicFallback(request, 'Model response contained a prohibited verdict claim.');
     }
 
     // 3. Evidence ID citation verification (must only cite evidence IDs present in report)
     const citationCheck = validateEvidenceIdCitations(rawResponse, knownEvidenceIds);
     if (!citationCheck.valid) {
-      return generateDeterministicFallback(
-        request,
-        `Model response cited unknown evidence ID: ${citationCheck.unknownId}`,
-      );
+      return generateDeterministicFallback(request, 'Model response cited an unknown evidence identifier.');
     }
 
     // Successful validation!
     const explanation: ExplainResponse = {
       ...rawResponse,
       mode: 'ai_generated',
-      modelUsed: config.modelName,
+      modelUsed: config.modelName ?? 'server-configured',
       generatedAtUtc: new Date().toISOString(),
-      evidenceAttribution: `AI-generated explanation (${config.modelName} — non-authoritative)`,
-      latencyMs,
+      evidenceAttribution: `AI-generated explanation (${config.modelName ?? 'server-configured'} — non-authoritative)`,
+      latencyMs: result.latencyMs,
     };
 
     return explainResponseSchema.parse(explanation);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error during model call';
-    return generateDeterministicFallback(request, `Model execution fallback: ${message}`);
+    // Only the safe, mapped message is returned. Raw provider errors can echo
+    // credentials or request details and must never reach the client.
+    return generateDeterministicFallback(
+      request,
+      error instanceof Error ? error.message : 'Model call failed.',
+    );
   }
 }

@@ -33,6 +33,7 @@ export default defineConfig({
       MODEL_API_KEY: '',
       MODEL_API_BASE_URL: '',
       MODEL_NAME: '',
+      NEXT_PUBLIC_APP_URL: 'https://originlens.org',
       ALLOW_DEV_SMOKE: '1',
     },
   },

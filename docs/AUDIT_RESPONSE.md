@@ -1,11 +1,12 @@
-# OriginLens — Audit Response (superseded)
+# OriginLens — Audit Response (superseded 2026-10-29)
 
 **Original date:** 27 October 2026  
 **Corrected:** 29 October 2026  
 **External report:** `OriginLens_Audit_Report.md`  
-**Current status source:** [`docs/implementation/plan.md`](implementation/plan.md),
-[`docs/implementation/requirements-traceability.md`](implementation/requirements-traceability.md), and the
-2026-10-29 entry in [`docs/implementation/verification-log.md`](implementation/verification-log.md).
+**Current status source:** [`docs/implementation/readiness-audit-2026-10-31.md`](implementation/readiness-audit-2026-10-31.md),
+[`docs/implementation/plan.md`](implementation/plan.md), and the 2026-10-31 entry in
+[`docs/implementation/verification-log.md`](implementation/verification-log.md). The status below is
+historical as of 2026-10-29 and is not the current provider configuration or verification result.
 
 ---
 

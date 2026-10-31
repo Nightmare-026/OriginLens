@@ -1,9 +1,33 @@
 import type { RawModelResponse } from './schema';
 
 /**
- * Forbidden claim patterns per PRD §1, §2.3, and ADR-017.
- * The model must never make affirmative definitive claims regarding authenticity,
- * fraud, tampering, human authorship, or absolute 100% guarantees.
+ * Forbidden claim policy per PRD §1, §2.3, and ADR-017.
+ *
+ * The model must never assert authenticity, tampering, human authorship,
+ * fabrication, fraud, or absolute proof. OriginLens reports check states; it does
+ * not deliver verdicts, so any affirmative verdict in generated prose is a
+ * product-integrity failure, not just a wording problem.
+ *
+ * The filter therefore works in two passes:
+ *
+ *  1. Unconditional bans (`100%`, `verified by Meta`) are always violations.
+ *  2. Otherwise a clause is stripped of *scoped* negations it legitimately
+ *     contains, and any verdict term left over is a violation.
+ *
+ * Scoped negations are of two kinds:
+ *
+ *  - Epistemic negation: a negation followed by an epistemic verb, which limits
+ *    what evidence can establish. Everything after that verb inside the same
+ *    clause is treated as negated scope, so a list such as "does not decide
+ *    whether an image is real, fake, AI-generated, or trustworthy" is permitted
+ *    in full.
+ *  - Direct negation of a negative verdict: "the image is not fake", "has not
+ *    been tampered with", "nothing here is synthetic". These deny a bad finding
+ *    and do not promote trust in a credential.
+ *
+ * A direct negation of a *positive* verdict is NOT permitted ("the image is not
+ * authentic", "it is not real"), because that asserts the opposite verdict about
+ * the file instead of limiting the evidence.
  */
 
 // Unconditional bans: never permitted under any circumstance or phrasing
@@ -12,61 +36,93 @@ export const UNCONDITIONAL_BANNED_PATTERNS = [
   /verified by meta/i,
 ] as const;
 
-// Prohibited verdict keywords that require defensive hedging/epistemic negation
-export const PROHIBITED_VERDICT_KEYWORD =
-  /\b(?:tamper(?:ed|ing)?|authentic(?:ity)?|genuine|fake|forg(?:ed|ery)|human[- ](?:made|created)|fraud(?:ulent)?|deceptive|guarantee(?:s|d|ing)?|proves?)\b/i;
+// Terms that only ever appear in a verdict or proof claim about the file.
+// `prove`/`proof` are included because OriginLens never proves anything about an
+// image's origin, intent, or truth; a negated form is handled as evidence
+// limitation below.
+const VERDICT_TERM_SOURCE = String.raw`tamper(?:ed|ing)?|authentic(?:ity)?|genuine|forg(?:ed|ery)|human[- ](?:made|created)|fraud(?:ulent)?|deceptive|guarantee(?:s|d|ing)?|ai[- ]generated|synthetic|manipulat(?:ed|ion|ing)?|prove[sn]?|proof|fake`;
 
-// Epistemic negation patterns (hedging that clarifies the limits of evidence)
-const EPISTEMIC_VERB_NEGATION =
-  /\b(?:(?:does|do|did|can|could|should|would)\s+not|doesn't|don't|didn't|cannot|can't|couldn't|nor\s+(?:does|is|can|will)?)\s+(?:prove|mean|indicate|show|confirm|establish|guarantee|imply|verify|determine|provide|constitute|represent|offer)\b[\s\w,‘'’"“”()\-]*?\b(?:tamper(?:ed|ing)?|authentic(?:ity)?|genuine|fake|forg(?:ed|ery)|human[- ](?:made|created)|fraud(?:ulent)?|deceptive|guarantee(?:s|d)?|proves?)\b/i;
+/**
+ * `real` is ordinary English ("real stage states", "a real check result"), so it
+ * only counts as a verdict in a predicate position about the subject:
+ * "the image is real", "it looks real", "this is not real".
+ */
+const REAL_AS_VERDICT = new RegExp(
+  String.raw`\b(?:is|are|was|were|isn['’]t|aren['’]t|wasn['’]t|weren['’]t|seems?|appears?|looks?|be|been|being|remains?)\s+(?:not\s+|a\s+|an\s+|the\s+|very\s+|clearly\s+|definitely\s+|actually\s+|really\s+|truly\s+|entirely\s+|completely\s+)*real\b`,
+  'i',
+);
 
-const EPISTEMIC_NOUN_NEGATION =
-  /\b(?:(?:is|are|was|were)\s+not|isn't|aren't|wasn't|weren't|not\s+necessarily)\s+(?:proof|evidence|a\s+guarantee|indicative|confirmation)\s+(?:that|of)?\b[\s\w,‘'’"“”()\-]*?\b(?:tamper(?:ed|ing)?|authentic(?:ity)?|genuine|fake|forg(?:ed|ery)|human[- ](?:made|created)|fraud(?:ulent)?|deceptive|guarantee(?:s|d)?|proves?)\b/i;
+export const PROHIBITED_VERDICT_KEYWORD = new RegExp(
+  String.raw`\b(?:${VERDICT_TERM_SOURCE}|real(?![- ](?:world|time)))\b`,
+  'i',
+);
 
-const NO_EVIDENCE_NEGATION =
-  /\b(?:no\s+(?:evidence|proof|guarantee|indication)\s+(?:that|of)?|not\s+(?:evidence\s+that|proof\s+that|a\s+guarantee\s+that)|nor\s+(?:is\s+it|are\s+they|does\s+it|is|are|was|were)?\s*(?:evidence|proof|a\s+guarantee|indicative|confirmation)\s+(?:that|of)?|without\s+proving|neither\s+confirms?\s+nor\s+denies?|fails?\s+to\s+prove)\b[\s\w,‘'’"“”()\-]*?\b(?:tamper(?:ed|ing)?|authentic(?:ity)?|genuine|fake|forg(?:ed|ery)|human[- ](?:made|created)|fraud(?:ulent)?|deceptive|guarantee(?:s|d)?|proves?)\b/i;
+const VERDICT_TERM = new RegExp(String.raw`\b(?:${VERDICT_TERM_SOURCE})\b`, 'i');
+
+function containsVerdictClaim(text: string): boolean {
+  return VERDICT_TERM.test(text) || REAL_AS_VERDICT.test(text);
+}
+
+const NEGATION_PREFIX = String.raw`(?:does|do|did|can|could|should|would|has|have|had|is|are|was|were|will|must|might|may|need|needs)\s+not|doesn['’]t|don['’]t|didn['’]t|cannot|can['’]t|couldn['’]t|isn['’]t|aren['’]t|wasn['’]t|weren['’]t|won['’]t|no|never|without|nor|neither`;
+
+const EPISTEMIC_VERB_SOURCE = String.raw`prove|proof|mean|indicate|show|confirm|establish|guarantee|imply|verify|determine|decide|conclude|infer|evidence|indication|confirmation|indicative|constitute|represent|deny|denies|provide|suggest`;
+
+/**
+ * Negation + epistemic verb, scoped to the rest of the clause.
+ * Example: "does not by itself prove who signed or that the scene is true".
+ */
+const EPISTEMIC_NEGATION_TO_END = new RegExp(
+  String.raw`\b(?:${NEGATION_PREFIX})\b[\s\S]{0,40}?\b(?:${EPISTEMIC_VERB_SOURCE})\b[\s\S]*$`,
+  'i',
+);
+
+/** Verdicts that describe a bad finding; denying them is defensive. */
+const NEGATIVE_VERDICT_SOURCE = String.raw`tamper(?:ed|ing)?|forg(?:ed|ery)|fraud(?:ulent)?|deceptive|fake|ai[- ]generated|synthetic|manipulat(?:ed|ion|ing)?|prove[sn]?|proof`;
+
+/** "not fake", "never tampered with", "not been synthetic", "not proof of". */
+const DIRECT_NEGATIVE_VERDICT = new RegExp(
+  String.raw`\b(?:not|never|no)\b[\s\S]{0,20}?\b(?:${NEGATIVE_VERDICT_SOURCE})\b`,
+  'i',
+);
+
+/**
+ * Clause boundaries for scope analysis. Commas alone do not end a clause,
+ * because verdict lists use them ("real, fake, AI-generated"); a comma only
+ * starts a new clause when a new subject or a contrast follows.
+ */
+const CLAUSE_BOUNDARY =
+  /[.!?;:—–]+|\b(?:but|however|whereas|although|while|yet)\b|,\s*(?:and|but|while|whereas|yet|this|that|these|those|the|it|they|we|images?|photos?|files?)\b|\band\s+(?:this|that|the|it|they|we|images?|photos?|files?)\b/i;
+
+function stripScopedNegations(clause: string): string {
+  return clause
+    .replace(EPISTEMIC_NEGATION_TO_END, '')
+    .replace(DIRECT_NEGATIVE_VERDICT, '');
+}
 
 /**
  * Scans a string for forbidden claims per ADR-017.
- * - Affirmative claims (e.g. "This image is fake", "Confirmed authentic", "Was tampered with") are rejected.
- * - Defensive negations (e.g. "Absence does not prove the image is fake", "Missing credentials do not prove tampering") are permitted.
- * - Compound sentences containing an affirmative violation alongside a negation are rejected.
+ * - Affirmative verdicts ("This image is fake", "Confirmed authentic") are rejected.
+ * - Evidence-limit negations ("Absence does not prove the image is fake") are permitted.
+ * - A compound sentence that pairs a permitted negation with an affirmative
+ *   verdict is rejected, because the affirmative clause survives the stripping.
  */
 export function hasForbiddenClaim(text: string): boolean {
-  // 1. Check unconditional bans
   for (const pattern of UNCONDITIONAL_BANNED_PATTERNS) {
     if (pattern.test(text)) {
       return true;
     }
   }
 
-  // 2. If no prohibited verdict keyword is present, it is completely valid
   if (!PROHIBITED_VERDICT_KEYWORD.test(text)) {
     return false;
   }
 
-  // 3. Prohibited keywords are present. Check clause-by-clause.
-  // Split on sentence punctuation, contrasting conjunctions, or coordinating conjunctions introducing an assertion
-  const clauses = text.split(
-    /[.!?;]+|\b(?:but|however|whereas|although|while|yet)\b|,\s*(?:and|while|whereas|yet)?\b|\band\s+(?:this|that|the|it|they|we|images?|photos?|files?)\b/i,
-  );
-
-  for (const clause of clauses) {
+  for (const clause of text.split(CLAUSE_BOUNDARY)) {
     const trimmed = clause.trim();
-    if (!trimmed) continue;
+    if (trimmed === '') continue;
 
-    // If this clause has a prohibited verdict keyword
-    if (PROHIBITED_VERDICT_KEYWORD.test(trimmed)) {
-      // Check if it is a legitimate epistemic defensive negation
-      const isNegated =
-        EPISTEMIC_VERB_NEGATION.test(trimmed) ||
-        EPISTEMIC_NOUN_NEGATION.test(trimmed) ||
-        NO_EVIDENCE_NEGATION.test(trimmed);
-
-      if (!isNegated) {
-        // Unhedged affirmative verdict detected!
-        return true;
-      }
+    if (containsVerdictClaim(stripScopedNegations(trimmed))) {
+      return true;
     }
   }
 

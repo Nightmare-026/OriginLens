@@ -86,7 +86,7 @@ export default function AboutPage() {
           <div className="faq-item">
             <h3>Meta Muse Spark Open Explainer (Baseten Partner)</h3>
             <p>
-              When a user explicitly opts in, OriginLens sends a bounded, privacy-safe summary
+              <strong>Built with Muse Spark Open.</strong> When a user explicitly opts in, OriginLens sends a bounded, privacy-safe summary
               (check codes, evidence IDs, and SHA-256 fingerprint—never image bytes, previews, or
               GPS) to <strong>Meta Muse Spark Open</strong> (<code>meta-models/muse-spark-open-1026</code>)
               hosted via official hackathon partner <strong>Baseten</strong> (

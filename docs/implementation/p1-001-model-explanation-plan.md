@@ -1,20 +1,23 @@
 # P1-001 — Model Evidence Explanation: Integration Plan
 
-> **2026-10-29 correction — this plan was not executed as written.**
-> - P1-001 is **BLOCKED**. No source-backed eligibility record, accepted Official Rules, authorized
->   Model API access, or successful authorized runtime smoke test exists in this repository.
-> - No Meta Model API integration exists. The shipped adapter is a generic OpenAI-compatible
->   server-side route, disabled by default; its default endpoint and model ID are unverified.
+> **2026-10-31 status correction.**
+> - P1-001 is **BLOCKED for release**. The event rules/waiver remain unavailable; no authorized live
+>   smoke test exists. The local ignored `.env.local` is currently configured and enabled for Baseten.
+> - This is not Meta Model API (`api.meta.ai`). The current route is an OpenAI-compatible server-side
+>   adapter to Baseten hosting the Muse Spark Open open-weight model. The `-1026` model slug and
+>   hackathon credit terms are sourced only from the user-supplied email.
+> - The API key was visible in the user-supplied screenshot and must be revoked/reissued before further
+>   calls. Never copy the key into this document or any logs.
 > - Therefore the `api.meta.ai`, `muse-spark-1.3`, Meta-retention, and "Meta Model API" consent text
->   below is **design intent only**. It is not what the code does and must not be shown as a provider
->   disclosure.
+>   below is **design intent only**. It is not what the current configured route does and must not be
+>   shown as a Baseten provider disclosure.
 > - The request contract also changed: `evidence.value` is omitted from the request; only evidence IDs
 >   and keys are sent. The UI/route tests cover schema, privacy projection, claim rejection, and
 >   fallback — not a live model call.
 > - Current status is tracked in `plan.md`, `requirements-traceability.md`, and
 >   `compliance-checklist.md`.
 
-**Status (design document):** superseded; implementation exists but the provider path is blocked.
+**Status (design document):** superseded; implementation exists, local provider settings are active, but authorization/live use is blocked.
 **Decision record:** `decisions.md` ADR-001.
 **API facts recorded 2026-10-27 (not relied upon):** base URL `https://api.meta.ai/v1`; default model ID
 `muse-spark-1.3`; Standard tier pricing and rate limits. These were never verified against an authorized

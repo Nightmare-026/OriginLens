@@ -111,6 +111,55 @@ describe('Hedging-Aware Claims Filter (ADR-017) Unit Tests', () => {
     });
   });
 
+  describe('List scoping and polarity', () => {
+    it('permits a negated verdict list without splitting it into affirmative claims', () => {
+      expect(
+        hasForbiddenClaim(
+          'It does not decide whether an image is real, fake, AI-generated, or trustworthy.',
+        ),
+      ).toBe(false);
+
+      expect(
+        hasForbiddenClaim(
+          'It cannot prove an image is real, fake, human-made, AI-generated, tampered with, or deceptive.',
+        ),
+      ).toBe(false);
+    });
+
+    it('permits direct denials of negative verdicts', () => {
+      expect(hasForbiddenClaim('The image has not been tampered with.')).toBe(false);
+      expect(hasForbiddenClaim('The image is not fake.')).toBe(false);
+      expect(hasForbiddenClaim('Pixel differences are measurements, not tampering findings.')).toBe(false);
+      expect(hasForbiddenClaim('This direct field is not AI-generated.')).toBe(false);
+    });
+
+    it('still rejects affirmative verdicts next to a permitted denial', () => {
+      expect(hasForbiddenClaim('This image is AI-generated.')).toBe(true);
+      expect(hasForbiddenClaim('The image is real.')).toBe(true);
+      expect(hasForbiddenClaim('The file is authentic.')).toBe(true);
+      expect(hasForbiddenClaim('This is a genuine photograph.')).toBe(true);
+    });
+
+    it('rejects a negated positive verdict because it asserts the opposite verdict', () => {
+      // "not authentic" / "not real" are verdicts about the file, not limits on evidence.
+      expect(hasForbiddenClaim('The image is not authentic.')).toBe(true);
+      expect(hasForbiddenClaim('The photo is not real.')).toBe(true);
+    });
+
+    it('does not treat the ordinary adjective "real" as a verdict', () => {
+      expect(hasForbiddenClaim('This is a real-world example.')).toBe(false);
+      expect(hasForbiddenClaim('Progress reflects real stage states, not invented percentages.')).toBe(
+        false,
+      );
+    });
+
+    it('permits an epistemic limit that names what a signature proves', () => {
+      expect(
+        hasForbiddenClaim('A valid signature does not by itself prove who signed.'),
+      ).toBe(false);
+    });
+  });
+
   describe('validateResponseClaims Integration', () => {
     it('accepts responses where whatRemainsUnknown contains valid defensive negations', () => {
       const response = {

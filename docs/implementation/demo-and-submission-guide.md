@@ -24,8 +24,12 @@ It:
 - Computes a **Provenance Delta** between two independent images: bytes, dimensions, selected metadata,
   and a normalized preview pixel metric. It does not infer which file is original or why they differ.
 - Runs intake, hashing, metadata parsing, and C2PA reading in the browser in volatile memory. Image bytes
-  are not uploaded. The only outbound feature is an optional, consent-gated model explanation that sends
-  bounded check data without image bytes, filenames, GPS, or metadata values.
+  are not uploaded. The only outbound features are an optional, consent-gated model explanation and a
+  consent-gated site-wide help guide; both send bounded text only, never image bytes, filenames, GPS, or
+  metadata values.
+- Ships a bottom-right **OriginLens Guide** on every page. It is grounded only in a versioned, reviewed
+  help-content file, is explicitly non-authoritative, and falls back to the same reviewed content when
+  the provider is unavailable.
 
 It does **not** certify authenticity, detect AI generation, identify creators, or prove scene truth.
 
@@ -33,16 +37,18 @@ It does **not** certify authenticity, detect AI generation, identify creators, o
 
 ## 2. Release Gates (PRD §14.5)
 
-| Gate | Description | Status (2026-10-29) | Evidence / limitation |
+Status updated 2026-10-31 after the final gate run (verification-log entries 210-223).
+
+| Gate | Description | Status | Evidence / limitation |
 |---|---|---|---|
-| **Gate 1** | All P0 requirements complete | **PARTIAL** | FR-001…FR-014 have recorded evidence; FR-015 and the V01–V50 matrix are not claimed complete. P1-001 is blocked separately. |
+| **Gate 1** | All P0 requirements complete | **PARTIAL** | FR-001…FR-014 have recorded evidence; FR-015 and the V01–V50 matrix are not claimed complete. P1-001 is implemented with a verified live call but its event-rule gate is open. |
 | **Gate 2** | V01–V50 acceptance matrix | **PARTIAL** | Many cases have explicit E2E/unit tests; the full matrix has not been re-verified row by row after the audit. No `PASS` row exists without recorded evidence. |
-| **Gate 3** | No high/critical dependency vulnerabilities | **PASS** | `npm run audit` → `found 0 vulnerabilities` (2026-10-29). |
-| **Gate 4** | Strict TypeScript and clean lint | **PASS** | `npm run typecheck` and `npm run lint` exit 0 (2026-10-29). |
-| **Gate 5** | Production Next.js build | **PASS** | `npm run build` succeeds (2026-10-29). |
+| **Gate 3** | No high/critical dependency vulnerabilities | **PASS (with documented moderates)** | `npm run audit`: 0 high/critical, 16 moderate, all one `minimatch` ReDoS reached only through the ESLint/`typescript-eslint` devDependency tree. Not shipped at runtime; documented in README rather than suppressed. The earlier "0 vulnerabilities" entry was inaccurate. |
+| **Gate 4** | Strict TypeScript and clean lint | **PASS** | `npm run typecheck` and `npm run lint` exit 0 (2026-10-31). |
+| **Gate 5** | Production Next.js build | **PASS** | `npm run build` succeeds, 13 routes (2026-10-31). |
 | **Gate 6** | Privacy and export invariants | **PASS** | E2E asserts `includedOriginalImage: false` and `includedPreciseGps: false`; preview pixels and report contents inspected. |
-| **Gate 7** | Accessible, responsive UX | **PARTIAL** | Automated axe checks and 360 px keyboard/viewport checks pass. A manual screen-reader walkthrough was **not performed**. |
-| **Gate 8** | Rehearsed judging demo | **PARTIAL** | The automated `demo-rehearsal.spec.ts` passes; the manual talk track has not been rehearsed against the audited build. |
+| **Gate 7** | Accessible, responsive UX | **PARTIAL** | 53/53 Playwright specs including axe, keyboard, Escape/focus-return, and 360 px checks pass. A human screen-reader walkthrough was **not performed**. |
+| **Gate 8** | Rehearsed judging demo | **PARTIAL** | The automated `demo-rehearsal.spec.ts` passes and the full suite exits cleanly. The recorded video and a live deployed URL are still outstanding. |
 
 Exact commands and results are recorded in
 [`verification-log.md`](verification-log.md). This document does not substitute for that log.
@@ -74,27 +80,32 @@ Representative tested behaviour:
 
 ## 4. Compliance and Model-Provider Determination (Phase 1 Gate)
 
-**Status: BLOCKED.**
+**Status: IMPLEMENTED AND LIVE-VERIFIED; ACCESS/EVENT-RULE GATE STILL OPEN.**
 
-1. **Eligibility, rules, and authorized access:** no source-backed record exists in this repository for
-   participant age/eligibility, accepted Official Rules, an authorized Model API key, or a successful
-   authorized runtime smoke test. Earlier text in this file asserted `UNBLOCKED, IMPLEMENTED, AND
-   VERIFIED` and an active Meta/NVIDIA endpoint; that statement is withdrawn.
-2. **P1-001:** the optional model explanation exists as a disabled-by-default local implementation in
-   `src/lib/model-explainer/` and `/api/explain`. Tests cover schema validation, request projection,
-   forbidden-claim rejection, evidence-ID whitelisting, timeout handling, and deterministic fallback.
-   They do **not** establish a working external provider integration.
+1. **Eligibility, rules, and authorized access:** the ignored `.env.local` is configured with Baseten's
+   endpoint and the user-supplied hackathon model slug. On 2026-10-31 two minimal consented calls
+   succeeded (`/api/explain` 2591 ms, `/api/guide` 2036 ms, both `mode=ai_generated`), which verifies the
+   endpoint and model slug. It does not verify ownership, remaining credit, or accepted Official Rules.
+   The key shown in the supplied screenshot is **not** being rotated (owner decision, 2026-10-31):
+   accepted risk - keep it server-side only, keep the deployment demo-scoped, and monitor the Baseten
+   usage dashboard.
+2. **P1-001:** the optional model explanation exists in `src/lib/model-explainer/` and `/api/explain`.
+   The guide lives in `src/lib/guide/` and `/api/guide`. Both share `src/lib/model-provider/`, which owns
+   the endpoint config, bounded `max_tokens`, reasoning effort, timeout, and safe error mapping.
 3. **Request contents (after consent):** check IDs, kinds, execution states, outcomes, bounded warnings
    and limitation codes, evidence IDs and keys (no values), summary codes, SHA-256, detected MIME type,
-   byte size, dimensions, audience mode, and the user's typed question. Filenames, image bytes, preview
-   pixels, GPS, metadata values, and manifest text are excluded.
-4. **Non-authoritative:** the explanation cannot add findings or change any validation, binding, or trust
-   state.
-5. **Provider status:** `MODEL_API_BASE_URL` defaults to a third-party OpenAI-compatible endpoint and
-   `MODEL_NAME` to an open-weight model ID. That is an unverified configuration, not approved Meta Model
-   API access, and must not be described as a Meta or NVIDIA integration.
+   byte size, dimensions, audience mode, and the user's typed question. The guide sends only the question
+   and a coarse page id. Filenames, image bytes, preview pixels, GPS, metadata values, and manifest text
+   are excluded.
+4. **Non-authoritative:** neither feature can add findings or change any validation, binding, or trust
+   state. Invalid, unknown, or prohibited output is discarded and replaced with a deterministic answer.
+5. **Provider status:** Baseten is a hosted inference provider for Meta's open-weight Muse Spark Open;
+   this is distinct from Meta Model API (`api.meta.ai`). The `-1026` slug is now confirmed by a live call;
+   the credit allocation is still only from the user-supplied email. Do not claim partner credits or
+   Meta Model API access.
 
-P1-001 stays disabled and unclaimed until the Phase 1 gate is source-backed.
+The deterministic fallback remains available and is what the E2E suite exercises, so the demo never
+depends on network availability.
 
 ---
 
@@ -135,17 +146,19 @@ For manual evaluation:
 | Phase | Status |
 |---|---|
 | 0 — Bootstrap | PASS |
-| 1 — Compliance and access | **BLOCKED** |
+| 1 — Compliance and access | **BLOCKED** (portal rules; key rotation) |
 | 2 — Requirements and traceability | **PARTIAL** |
 | 3 — Architecture and WASM spike | PASS |
 | 4 — Data contracts and intake | PASS |
 | 5 — Evidence Ledger | PASS |
 | 6 — Provenance Delta and export | PASS |
 | 7 — UX and accessibility | PARTIAL (manual screen-reader walkthrough not run) |
-| 8 — Optional model explanation | **BLOCKED** |
-| 9 — Hardening and release candidate | **PARTIAL** |
-| 10 — Demo and submission | **PARTIAL** |
+| 8 — Optional model explanation + guide | IMPLEMENTED, LIVE-VERIFIED; compliance gate open |
+| 9 — Hardening and release candidate | PASS (quality gates); deployment not verified |
+| 10 — Demo and submission | **PARTIAL** (video, deployed URL, portal submission outstanding) |
 
-No submission has been made. The removed features (PKI trust anchors, remote manifest recovery, web
-provenance lookup, spectral/watermark analysis, edit-history tree, chronology) are no longer part of the
-product or the claims.
+Final gate run (2026-10-31): `typecheck` 0 errors, `lint` 0 warnings, `test` 326/326,
+`npx playwright test` 53/53 with a clean exit in 3.3 m, `build` 13 routes, `audit` 0 high/critical
+(16 moderate, dev-only). No submission has been made. The removed features (PKI trust anchors, remote
+manifest recovery, web provenance lookup, spectral/watermark analysis, edit-history tree, chronology) are
+no longer part of the product or the claims.

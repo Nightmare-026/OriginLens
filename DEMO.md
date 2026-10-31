@@ -80,7 +80,7 @@ All demo fixtures are included in the repository under [`tests/fixtures/c2pa/`](
 
 ---
 
-### Beat 5: Provenance Delta & Visual Swipe Slider (2:35 – 3:15)
+### Beat 5: Provenance Delta & Visual Swipe Slider (2:35 – 3:10)
 - **Fixtures:**
   - File A: [`tests/fixtures/c2pa/plain-3x2.png`](tests/fixtures/c2pa/plain-3x2.png)
   - File B: [`tests/fixtures/c2pa/plain-3x2-filtered.png`](tests/fixtures/c2pa/plain-3x2-filtered.png)
@@ -92,31 +92,51 @@ All demo fixtures are included in the repository under [`tests/fixtures/c2pa/`](
 
 ---
 
-### Beat 6: Meta Muse Spark Open Explainer (3:15 – 3:45)
+### Beat 6: Meta Muse Spark Open Explainer (3:10 – 3:45)
 - **Action:** Click on the **AI Clues & Co-Pilot** tab. Click **Explain evidence with a model**.
 - **What to Observe:**
+  - **Consent First:** No request is made until you confirm the disclosure naming the provider, data categories, purpose, and the fact that the answer is non-authoritative.
   - **Audience Personas:** Switch between **General Public**, **Newsroom Editorial**, and **Technical**.
-  - **Citation Verification:** Every finding cited by the model maps directly to a verified Evidence ID (`ev_...`).
-  - **Grounded Epistemic Guard:** The model explicitly states what the evidence supports and what remains unknown, refusing to fabricate claims of authenticity, tampering, or intent.
-  - **Reasoning Token Cleanliness:** Reasoned responses from Meta Muse Spark Open have `<thought>` tokens stripped, ensuring clean and valid JSON.
+  - **Citation Verification:** Every `whatThisSupports` claim cites an `ev_...` ID that exists in the report; one unknown ID discards the whole response.
+  - **Grounded Epistemic Guard:** The model states what the evidence supports and what remains unknown, and the claims filter rejects authenticity, tampering, or intent verdicts.
+  - **Reasoning Token Cleanliness:** Muse Spark Open reasoning tokens are stripped before JSON schema validation.
+  - **Live Provider Label:** The card shows the model actually used and the real latency, or explicitly says "Reviewed reference" when the deterministic fallback ran.
 
 ---
 
-### Beat 7: Multi-Format Export Hub (3:45 – 4:00)
+### Beat 7: Site-Wide Guide, Grounded and Bounded (3:45 – 4:10)
+- **Action:** Click **Ask OriginLens** in the bottom-right corner on any page, read the disclosure, click **Start guide**, and ask *"What does signer trust unknown mean?"* Then ask *"How do I bake sourdough bread?"*
+- **What to Observe:**
+  - The guide answers about the product's workflow, Evidence Ledger, C2PA limits, privacy, formats, and errors.
+  - The second question is refused: *"not covered by the reviewed help content"* - it does not invent an answer.
+  - Only the question and a coarse page id are sent, and only after consent. It never sees an image and cannot change a result.
+  - Press `Escape`; focus returns to the launcher.
+- **Talk Track:** *"The same model also powers a help guide, but its job is deliberately narrow: explain this product from reviewed content, never act as a general web assistant and never touch a verification result."*
+
+---
+
+### Beat 8: Multi-Format Export Hub (4:10 – 4:30)
 - **Action:**
   - Click **Print / Save as PDF** to preview the executive print layout with watermark headers.
   - Click **Download Social Card (PNG)** to generate a 1200×630 Canvas preview card.
   - Click **Download Report (JSON)** to inspect the machine-readable Schema 2.0 report.
-  - Observe zero-leakage guarantees: `includedOriginalImage: false` and `includedPreciseGps: false`.
+  - Observe the privacy defaults: `includedOriginalImage: false` and `includedPreciseGps: false`.
+
+> **Cutting to 2–3 minutes:** keep Beats 0, 1, 2, 5, 6 (one persona only), and 8. Drop Beats 3, 4, and 7, or compress Beat 7 to a single suggested-question click. Never cut the "what this does not prove" line - it is the product's core claim.
 
 ---
 
 ## Automated Verification
 
-The demo is covered by an automated Playwright end-to-end test that executes all key steps:
+The demo is covered by automated Playwright end-to-end tests that execute the key steps, including the
+guide's consent gate, reviewed fallback, Escape/focus-return, and 360 px layout:
 
 ```bash
 npx playwright test tests/e2e/demo-rehearsal.spec.ts
+npx playwright test tests/e2e/guide.spec.ts
+
+# or the whole suite (53 specs, ~3.3 min on this machine)
+npx playwright test
 ```
 
 All quality gates and test suites are tracked in [`docs/implementation/verification-log.md`](docs/implementation/verification-log.md).

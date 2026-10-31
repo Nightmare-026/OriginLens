@@ -1,60 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { explainRequestSchema } from '@/lib/model-explainer/schema';
 import { explainReportEvidence } from '@/lib/model-explainer/service';
+import { createRateLimiter, getClientId } from '@/lib/security/request';
 
-// Serverless timeout: 30 seconds max duration
-export const maxDuration = 30;
+// Muse Spark Open reasons before answering; allow headroom over the client timeout.
+export const maxDuration = 60;
 
 // Maximum body size: 64 KiB (PRD P1-001 §10)
 const MAX_BODY_BYTES = 64 * 1024;
 
-// In-memory rate limiter: max 10 requests per 5 minutes per IP/client
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
-const RATE_LIMIT_MAX_REQUESTS = 10;
-
-function extractClientIp(req: NextRequest): string {
-  const candidate =
-    req.headers.get('x-nf-client-connection-ip')?.trim() ||
-    req.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() ||
-    req.headers.get('x-real-ip')?.trim() ||
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    'local-client';
-
-  // Sanitize IP: valid IPv4 / IPv6 format, max 45 characters
-  if (candidate.length <= 45 && /^[a-fA-F0-9:.]+$/.test(candidate)) {
-    return candidate;
-  }
-
-  return 'local-client';
-}
-
-function checkRateLimit(clientId: string): boolean {
-  const now = Date.now();
-
-  // Bound the map so a long-running process cannot accumulate unbounded keys.
-  if (rateLimitMap.size > 1000) {
-    for (const [key, entry] of rateLimitMap) {
-      if (now > entry.resetAt) {
-        rateLimitMap.delete(key);
-      }
-    }
-  }
-
-  const entry = rateLimitMap.get(clientId);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(clientId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return true;
-  }
-
-  if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return false;
-  }
-
-  entry.count += 1;
-  return true;
-}
+// In-memory rate limiter: max 10 requests per 5 minutes per IP/client.
+// This is an abuse guard, not a durable multi-instance quota or spend cap.
+const rateLimiter = createRateLimiter({
+  windowMs: 5 * 60 * 1000,
+  maxRequests: 10,
+});
 
 export async function POST(req: NextRequest) {
   // 1. Same-origin validation
@@ -86,11 +46,16 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Rate limiting
-  const clientIp = extractClientIp(req);
-  if (!checkRateLimit(clientIp)) {
+  if (!rateLimiter.check(getClientId(req))) {
     return NextResponse.json(
       { error: 'Rate limit exceeded (maximum 10 requests per 5 minutes)' },
-      { status: 429, headers: { 'Cache-Control': 'no-store', 'Retry-After': '300' } },
+      {
+        status: 429,
+        headers: {
+          'Cache-Control': 'no-store',
+          'Retry-After': String(rateLimiter.windowSeconds),
+        },
+      },
     );
   }
 

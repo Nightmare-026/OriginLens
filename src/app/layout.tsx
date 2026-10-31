@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { SiteHeader } from '@/components/navigation/site-header';
 import { SiteFooter } from '@/components/navigation/site-footer';
+import { GuideWidget } from '@/components/guide/guide-widget';
 import './globals.css';
 
 const appUrl =
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
             {children}
           </div>
           <SiteFooter />
+          <GuideWidget />
         </div>
       </body>
     </html>
