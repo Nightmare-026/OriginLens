@@ -62,7 +62,8 @@ export async function explainReportEvidence(
   const knownEvidenceIds = new Set(request.report.evidence.map((e) => e.evidenceId));
 
   try {
-    const systemPrompt = buildSystemPrompt(request.audience);
+    const isComparison = request.report.files.length > 1;
+    const systemPrompt = buildSystemPrompt(request.audience, isComparison);
     const userPrompt = buildUserPrompt(request);
 
     const result = await requestModelText(config, [

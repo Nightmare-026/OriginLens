@@ -30,7 +30,7 @@ const DEFAULT_MAX_TOKENS = 3_000;
 const MIN_MAX_TOKENS = 512;
 const MAX_MAX_TOKENS = 8_000;
 
-const DEFAULT_REASONING_EFFORT: ModelReasoningEffort = 'low';
+const DEFAULT_REASONING_EFFORT: ModelReasoningEffort = 'medium';
 
 const REASONING_EFFORTS: readonly ModelReasoningEffort[] = ['low', 'medium', 'high', 'xhigh'];
 

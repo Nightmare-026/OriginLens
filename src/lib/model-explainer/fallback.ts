@@ -96,28 +96,33 @@ export function generateDeterministicFallback(
     });
   }
 
-  // Summary statement derived only from the primary summary code.
+  // Summary statement derived only from the primary summary code or comparison context.
   const primaryCode = report.summaryCodes[0];
   let summary: string;
 
-  switch (primaryCode) {
-    case 'verified_provenance_evidence_found':
-      summary =
-        'The configured validator reports an embedded credential whose manifest, claim signature, and asset binding validate for this exact file version. Signer trust and revocation are not established by this result.';
-      break;
-    case 'no_supported_embedded_credentials':
-      summary =
-        'No supported embedded C2PA credential was found in this file version. This does not establish how the image was made, whether it was edited, or whether the scene is true.';
-      break;
-    case 'validation_issues_require_attention':
-      summary =
-        'At least one credential validation component did not validate. That is a finding about the credential, not proof of intent, deception, or tampering.';
-      break;
-    case 'evidence_incomplete':
-    default:
-      summary =
-        'At least one check did not complete, was skipped, or was unsupported, so the evidence is incomplete. No conclusion is drawn from a check that did not produce a result.';
-      break;
+  if (report.files.length > 1) {
+    summary =
+      'Provenance Delta comparison completed between File A and File B. Recorded properties establish whether byte fingerprints, dimensions, and credentials diverge. These findings describe measurable differences without inferring chronology, tampering, or authenticity.';
+  } else {
+    switch (primaryCode) {
+      case 'verified_provenance_evidence_found':
+        summary =
+          'The configured validator reports an embedded credential whose manifest, claim signature, and asset binding validate for this exact file version. Signer trust and revocation are not established by this result.';
+        break;
+      case 'no_supported_embedded_credentials':
+        summary =
+          'No supported embedded C2PA credential was found in this file version. This does not establish how the image was made, whether it was edited, or whether the scene is true.';
+        break;
+      case 'validation_issues_require_attention':
+        summary =
+          'At least one credential validation component did not validate. That is a finding about the credential, not proof of intent, deception, or tampering.';
+        break;
+      case 'evidence_incomplete':
+      default:
+        summary =
+          'At least one check did not complete, was skipped, or was unsupported, so the evidence is incomplete. No conclusion is drawn from a check that did not produce a result.';
+        break;
+    }
   }
 
   if (request.audience === 'forensic') {

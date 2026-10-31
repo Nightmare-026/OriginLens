@@ -194,7 +194,7 @@ describe('model provider configuration', () => {
     expect(config.enabled).toBe(false);
     expect(config.maxTokens).toBe(3000);
     expect(config.timeoutMs).toBe(45000);
-    expect(config.reasoningEffort).toBe('low');
+    expect(config.reasoningEffort).toBe('medium');
     expect(isModelProviderReady(config)).toBe(false);
   });
 
@@ -206,7 +206,7 @@ describe('model provider configuration', () => {
     const config = getModelProviderConfig();
     expect(config.maxTokens).toBe(8000);
     expect(config.timeoutMs).toBe(5000);
-    expect(config.reasoningEffort).toBe('low');
+    expect(config.reasoningEffort).toBe('medium');
   });
 
   it('treats an explicit empty override as unconfigured', () => {

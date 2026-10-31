@@ -3,6 +3,7 @@ import { useState, useRef, type Ref } from 'react';
 import type { FileAnalysis } from '@/lib/pipeline/types';
 import { PREVIEW_NORMALIZATION_NOTE } from '@/lib/compare/preview';
 import { CheckRow, FileEvidenceSections, ReportActions } from './ledger';
+import { CompareDeltaSynthesizer } from './compare-delta-synthesizer';
 import {
   SplitIcon,
   FileTextIcon,
@@ -10,6 +11,7 @@ import {
   CameraIcon,
   LayersIcon,
   LayoutGridIcon,
+  SparklesIcon,
 } from '@/components/ui/icons';
 import {
   CHECK_LABELS,
@@ -415,7 +417,7 @@ function VisualDiffSlider({
   );
 }
 
-type CompareTabKey = 'overview' | 'c2pa' | 'metadata' | 'visual' | 'audit' | 'all';
+type CompareTabKey = 'overview' | 'ai-delta' | 'c2pa' | 'metadata' | 'visual' | 'audit' | 'all';
 
 interface CompareTabItem {
   id: CompareTabKey;
@@ -425,6 +427,7 @@ interface CompareTabItem {
 
 const COMPARE_TABS: readonly CompareTabItem[] = [
   { id: 'overview', label: 'Delta Overview', icon: FileTextIcon },
+  { id: 'ai-delta', label: 'Meta AI Synthesizer', icon: SparklesIcon },
   { id: 'c2pa', label: 'C2PA Credentials', icon: ShieldCheckIcon },
   { id: 'metadata', label: 'Metadata Delta', icon: CameraIcon },
   { id: 'visual', label: 'Visual Diff & Heatmap', icon: SplitIcon },
@@ -845,6 +848,7 @@ export function CompareScreen({
           hidden={activeTab !== 'overview' && activeTab !== 'all'}
         >
           {renderComparisonResultSection()}
+          <CompareDeltaSynthesizer first={first} second={second} comparison={comparison} check={check} />
           {renderLabelsSection()}
           {renderMetadataDeltaSection()}
           {renderPreviewPixelSection()}
@@ -852,7 +856,19 @@ export function CompareScreen({
           {renderSideBySideAuditSection()}
         </div>
 
-        {/* Tab 2: C2PA Credentials Comparison */}
+        {/* Tab 2: Meta AI Provenance Delta Synthesizer */}
+        {activeTab === 'ai-delta' && (
+          <div
+            role="tabpanel"
+            id="compare-panel-ai-delta"
+            aria-labelledby="compare-tab-ai-delta"
+            className="category-tabpanel"
+          >
+            <CompareDeltaSynthesizer first={first} second={second} comparison={comparison} check={check} />
+          </div>
+        )}
+
+        {/* Tab 3: C2PA Credentials Comparison */}
         {activeTab === 'c2pa' && (
           <div
             role="tabpanel"
@@ -901,7 +917,7 @@ export function CompareScreen({
           </div>
         )}
 
-        {/* Tab 6: Complete Comparison */}
+        {/* Tab 7: Complete Comparison */}
         {activeTab === 'all' && (
           <div
             role="tabpanel"
@@ -909,6 +925,7 @@ export function CompareScreen({
             aria-labelledby="compare-tab-all"
             className="category-tabpanel"
           >
+            <CompareDeltaSynthesizer first={first} second={second} comparison={comparison} check={check} />
             {renderC2paComparisonSection()}
           </div>
         )}
