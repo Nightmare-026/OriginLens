@@ -6,6 +6,7 @@ import { GuideWidget } from '@/components/guide/guide-widget';
 import './globals.css';
 
 const appUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
   process.env.NEXT_PUBLIC_APP_URL ||
   process.env.URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
@@ -41,6 +42,13 @@ export const metadata: Metadata = {
     description:
       'Inspect supported embedded provenance evidence and compare two images without a real or fake verdict. Grounded in C2PA Content Credentials and exact cryptographic fingerprints.',
     images: ['/logo.png'],
+  },
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/logo.png', type: 'image/png' },
+    ],
+    apple: [{ url: '/logo.png' }],
   },
 };
 

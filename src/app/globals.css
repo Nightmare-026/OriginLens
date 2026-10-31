@@ -1940,7 +1940,7 @@ button:disabled {
   margin-left: auto;
 }
 
-@media (max-width: 48rem) {
+@media (max-width: 47.9375rem) {
   .desktop-nav-links {
     display: none !important;
   }

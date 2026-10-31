@@ -1,6 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  'https://originlens-ai.vercel.app';
+
 export const metadata: Metadata = {
   title: 'About — OriginLens',
   description:
@@ -12,7 +17,7 @@ export const metadata: Metadata = {
     title: 'About — OriginLens',
     description:
       'OriginLens is an evidence-first media provenance explorer. Learn about our client-side C2PA WebAssembly architecture, Meta Muse Spark Open explainer on Baseten, and commitment to honest uncertainty.',
-    url: 'https://originlens.org/about',
+    url: `${baseUrl}/about`,
   },
 };
 

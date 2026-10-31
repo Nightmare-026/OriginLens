@@ -263,11 +263,11 @@ test('verifies correct canonical and openGraph metadata across all public routes
   page,
 }) => {
   const routes = [
-    { path: '/', canonical: 'https://originlens.org' },
-    { path: '/inspect', canonical: 'https://originlens.org/inspect' },
-    { path: '/compare', canonical: 'https://originlens.org/compare' },
-    { path: '/how-to-use', canonical: 'https://originlens.org/how-to-use' },
-    { path: '/privacy', canonical: 'https://originlens.org/privacy' },
+    { path: '/', canonical: 'https://originlens-ai.vercel.app' },
+    { path: '/inspect', canonical: 'https://originlens-ai.vercel.app/inspect' },
+    { path: '/compare', canonical: 'https://originlens-ai.vercel.app/compare' },
+    { path: '/how-to-use', canonical: 'https://originlens-ai.vercel.app/how-to-use' },
+    { path: '/privacy', canonical: 'https://originlens-ai.vercel.app/privacy' },
   ];
 
   for (const route of routes) {

@@ -2,6 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ExternalLinkIcon } from '@/components/ui/icons';
 
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  'https://originlens-ai.vercel.app';
+
 export const metadata: Metadata = {
   title: 'Privacy Policy — OriginLens',
   description:
@@ -13,7 +18,7 @@ export const metadata: Metadata = {
     title: 'Privacy Policy — OriginLens',
     description:
       'Local file inspection: image bytes stay in the browser, no cookies or telemetry, and GPS is hidden by default. The optional model explanation sends bounded check data only after opt-in.',
-    url: 'https://originlens.org/privacy',
+    url: `${baseUrl}/privacy`,
   },
 };
 

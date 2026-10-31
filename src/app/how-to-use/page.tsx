@@ -1,6 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  'https://originlens-ai.vercel.app';
+
 export const metadata: Metadata = {
   title: 'How to Use — OriginLens',
   description:
@@ -12,7 +17,7 @@ export const metadata: Metadata = {
     title: 'How to Use — OriginLens',
     description:
       'A concrete, step-by-step guide to inspecting image provenance, comparing two images, and reading media evidence with OriginLens.',
-    url: 'https://originlens.org/how-to-use',
+    url: `${baseUrl}/how-to-use`,
   },
 };
 
