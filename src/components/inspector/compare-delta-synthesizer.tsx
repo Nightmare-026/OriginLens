@@ -381,7 +381,6 @@ export function CompareDeltaSynthesizer({
             style={{
               background: '#ffffff',
               border: '1px solid rgba(215, 225, 238, 0.85)',
-              borderLeft: '4px solid #0284c7',
               borderRadius: '12px',
               padding: '1.5rem',
               boxShadow: 'var(--neu-flat)',

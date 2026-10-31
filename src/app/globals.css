@@ -275,7 +275,7 @@ code {
 }
 
 .panel-error {
-  border-left: 4px solid var(--error);
+  border: 1px solid var(--error);
   background: var(--surface-canvas);
   box-shadow: var(--neu-flat);
 }
@@ -285,7 +285,6 @@ code {
   padding: 0.75rem 1rem;
   background: var(--error-container);
   border: 1px solid var(--error);
-  border-left: 4px solid var(--error);
   border-radius: var(--rounded-default);
   color: var(--on-error-container);
   font-size: 0.875rem;
@@ -297,8 +296,7 @@ code {
   margin-top: 1.5rem;
   padding: 1rem 1.25rem;
   background: var(--surface-canvas);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  border-left: 4px solid var(--secondary);
+  border: 1px solid rgba(215, 225, 238, 0.85);
   border-radius: var(--rounded-default);
   color: var(--text-headline);
   font-size: 0.9375rem;
@@ -875,8 +873,6 @@ button:disabled {
 }
 
 .file-header {
-  border-left: 4px solid var(--secondary);
-  padding-left: 0.75rem;
   margin-bottom: 1rem;
 }
 
@@ -1177,7 +1173,7 @@ button:disabled {
 .nav-dropdown-link.nav-link-active {
   background: var(--secondary-subtle);
   color: var(--secondary-text);
-  border-left: 3px solid var(--secondary);
+  font-weight: 600;
 }
 
 .nav-item-icon {
@@ -1422,7 +1418,7 @@ button:disabled {
   margin-top: 1.25rem;
   padding: 1.125rem 1.35rem;
   background: var(--surface-canvas);
-  border-left: 4px solid var(--secondary);
+  border: 1px solid rgba(215, 225, 238, 0.85);
   border-radius: var(--rounded-default);
   box-shadow: var(--neu-flat-sm);
   font-size: 0.9rem;
@@ -1558,8 +1554,7 @@ button:disabled {
 .explanation-result-card {
   padding: 1.5rem;
   background: var(--surface-canvas);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  border-left: 4px solid var(--secondary);
+  border: 1px solid rgba(215, 225, 238, 0.85);
   border-radius: var(--rounded-lg);
   box-shadow: var(--neu-flat);
 }

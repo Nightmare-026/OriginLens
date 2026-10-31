@@ -1193,7 +1193,6 @@ function CopyHashButton({ hash }: { hash: string }) {
           <section
             aria-labelledby={tid('ai-clues-heading')}
             className="panel ai-clues-panel"
-            style={{ borderLeft: '4px solid #7c3aed' }}
             data-testid={tid('ai-clues-section')}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
