@@ -9,6 +9,7 @@ const config = [
       '.next/**',
       'node_modules/**',
       'coverage/**',
+      '.agents/**',
       'next-env.d.ts',
     ],
   },

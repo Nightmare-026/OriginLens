@@ -245,7 +245,7 @@ export function CompareDeltaSynthesizer({
                   onClick={() => setAudience(mode)}
                   style={{
                     padding: '0.65rem 0.85rem',
-                    border: active ? '1.5px solid #0284c7' : '1px solid rgba(215, 225, 238, 0.8)',
+                    border: active ? '1.5px solid #0369a1' : '1px solid rgba(215, 225, 238, 0.8)',
                     background: active ? 'rgba(14, 165, 233, 0.06)' : '#ffffff',
                     borderRadius: '8px',
                     textAlign: 'left',
@@ -254,7 +254,7 @@ export function CompareDeltaSynthesizer({
                   }}
                   data-testid={tid(`audience-${mode}`)}
                 >
-                  <strong style={{ fontSize: '0.8125rem', color: active ? '#0284c7' : 'var(--text-headline)' }}>
+                  <strong style={{ fontSize: '0.8125rem', color: active ? '#0369a1' : 'var(--text-headline)' }}>
                     {info.label}
                   </strong>
                   <span style={{ fontSize: '0.6875rem', color: 'var(--muted)', marginTop: '2px', display: 'block', lineHeight: 1.3 }}>

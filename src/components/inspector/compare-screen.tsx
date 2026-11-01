@@ -1,5 +1,5 @@
 import type { CommonOutcome, Comparison, CheckResult, EvidenceItem } from '@/lib/results/schemas';
-import { useState, useRef, type Ref } from 'react';
+import { useState, useRef, useEffect, type Ref } from 'react';
 import type { FileAnalysis } from '@/lib/pipeline/types';
 import { PREVIEW_NORMALIZATION_NOTE } from '@/lib/compare/preview';
 import { CheckRow, FileEvidenceSections, ReportActions } from './ledger';
@@ -143,8 +143,119 @@ function VisualDiffSlider({
 }) {
   const [sliderPos, setSliderPos] = useState(50);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [heatmapComputing, setHeatmapComputing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Compute authentic pixel difference heatmap when toggled on
+  useEffect(() => {
+    if (!showHeatmap || !canvasRef.current || !previewUrlA || !previewUrlB) {
+      return;
+    }
+
+    let cancelled = false;
+    setHeatmapComputing(true);
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) {
+      setHeatmapComputing(false);
+      return;
+    }
+
+    const imgA = new Image();
+    const imgB = new Image();
+    imgA.crossOrigin = 'anonymous';
+    imgB.crossOrigin = 'anonymous';
+
+    Promise.all([
+      new Promise<void>((resolve, reject) => {
+        imgA.onload = () => resolve();
+        imgA.onerror = reject;
+        imgA.src = previewUrlA;
+      }),
+      new Promise<void>((resolve, reject) => {
+        imgB.onload = () => resolve();
+        imgB.onerror = reject;
+        imgB.src = previewUrlB;
+      }),
+    ])
+      .then(() => {
+        if (cancelled) return;
+
+        // Bounded resolution for the heatmap overlay (max 800x600 for smooth rendering and low memory)
+        const maxDim = 800;
+        const w = Math.min(imgA.naturalWidth || 600, imgB.naturalWidth || 600, maxDim);
+        const aspectA = (imgA.naturalWidth || 1) / (imgA.naturalHeight || 1);
+        const h = Math.max(1, Math.round(w / aspectA));
+
+        canvas.width = w;
+        canvas.height = h;
+
+        // Temporary offscreen canvas for pixel extraction
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = w;
+        offCanvas.height = h;
+        const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
+        if (!offCtx) return;
+
+        // Draw Image A onto opaque white backing
+        offCtx.fillStyle = '#ffffff';
+        offCtx.fillRect(0, 0, w, h);
+        offCtx.drawImage(imgA, 0, 0, w, h);
+        const dataA = offCtx.getImageData(0, 0, w, h).data;
+
+        // Draw Image B onto opaque white backing
+        offCtx.fillStyle = '#ffffff';
+        offCtx.fillRect(0, 0, w, h);
+        offCtx.drawImage(imgB, 0, 0, w, h);
+        const dataB = offCtx.getImageData(0, 0, w, h).data;
+
+        // Create authentic difference image data
+        const diffImageData = ctx.createImageData(w, h);
+        const diffData = diffImageData.data;
+        const threshold = 16; // Conforms to PREVIEW_CHANNEL_THRESHOLD
+
+        const totalPixels = w * h;
+        for (let i = 0; i < totalPixels * 4; i += 4) {
+          const dr = Math.abs(dataA[i]! - dataB[i]!);
+          const dg = Math.abs(dataA[i + 1]! - dataB[i + 1]!);
+          const db = Math.abs(dataA[i + 2]! - dataB[i + 2]!);
+          const maxDelta = Math.max(dr, dg, db);
+
+          if (maxDelta >= threshold) {
+            // Authentic highlight of differing pixels: vibrant warm heat color
+            diffData[i] = 239;     // R (Tailwind red-500)
+            diffData[i + 1] = 68;  // G
+            diffData[i + 2] = 68;  // B
+            // Alpha scales smoothly with delta intensity (0.35 to 0.85)
+            diffData[i + 3] = Math.min(220, Math.max(90, Math.round(maxDelta * 1.5)));
+          } else {
+            // Unchanged pixels are completely transparent
+            diffData[i + 3] = 0;
+          }
+        }
+
+        ctx.putImageData(diffImageData, 0, 0);
+
+        // Clean up temporary canvas backing store
+        offCanvas.width = 0;
+        offCanvas.height = 0;
+      })
+      .catch((err) => {
+        console.warn('Could not compute visual difference heatmap:', err);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setHeatmapComputing(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showHeatmap, previewUrlA, previewUrlB]);
 
   const updatePosition = (clientX: number) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -252,11 +363,16 @@ function VisualDiffSlider({
           </div>
           <button
             type="button"
+            id="toggle-heatmap"
             className="button-secondary button-small"
             onClick={() => setShowHeatmap((prev) => !prev)}
             data-testid="toggle-diff-heatmap"
           >
-            {showHeatmap ? 'Hide Difference Heatmap' : 'Toggle Difference Heatmap'}
+            {showHeatmap
+              ? 'Hide Difference Heatmap'
+              : heatmapComputing
+              ? 'Computing Heatmap...'
+              : 'Toggle Difference Heatmap'}
           </button>
         </div>
       </div>
@@ -308,16 +424,21 @@ function VisualDiffSlider({
           }}
         />
 
-        {/* Heatmap difference overlay if toggled on */}
+        {/* Genuine authentic pixel difference heatmap overlay if toggled on */}
         {showHeatmap && (
-          <div
+          <canvas
+            ref={canvasRef}
+            className="diff-heatmap-canvas"
+            data-testid="diff-heatmap-canvas"
+            role="img"
+            aria-label="Authentic pixel difference heatmap overlay highlighting changed pixels"
             style={{
               position: 'absolute',
               inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
               pointerEvents: 'none',
-              background:
-                'radial-gradient(circle at 60% 50%, rgba(239, 68, 68, 0.45) 0%, rgba(245, 158, 11, 0.25) 30%, transparent 60%)',
-              mixBlendMode: 'screen',
               zIndex: 3,
             }}
           />
