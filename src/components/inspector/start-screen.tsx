@@ -83,19 +83,6 @@ export function StartScreen({
     return () => window.removeEventListener('paste', handlePaste);
   }, [disabled, mode, onFile, first, second]);
 
-  // Reset sequential focus caret when active element is explicitly blurred to document body
-  useEffect(() => {
-    const handleFocusOut = (e: FocusEvent) => {
-      if (e.relatedTarget === null) {
-        document.body.tabIndex = -1;
-        document.body.focus();
-      }
-    };
-
-    window.addEventListener('focusout', handleFocusOut);
-    return () => window.removeEventListener('focusout', handleFocusOut);
-  }, []);
-
   const handleLoadPreset = async (presetId: string) => {
     if (disabled || loadingSample !== null) return;
     setLoadingSample(presetId);

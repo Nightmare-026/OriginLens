@@ -383,7 +383,9 @@ function VisualDiffSlider({
         style={{
           position: 'relative',
           width: '100%',
-          height: '400px',
+          minHeight: '320px',
+          maxHeight: '520px',
+          aspectRatio: '16/10',
           borderRadius: '12px',
           overflow: 'hidden',
           userSelect: 'none',

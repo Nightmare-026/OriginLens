@@ -115,15 +115,15 @@ export function LandingHero() {
 
         {/* Main Headline */}
         <h1 id="hero-title" className="landing-hero-title">
-          Truth Through Verification: <br className="hero-title-break" />
-          <span className="brand-lens-gradient">Cryptographic Evidence</span> for Modern Media
+          What Content Credentials Prove — <br className="hero-title-break" />
+          <span className="brand-lens-gradient">And What They Don&apos;t</span>
         </h1>
 
-        {/* Subtitle */}
+        {/* Subtitle with Differentiation Callout */}
         <p className="landing-hero-subtitle">
-          Move beyond fragile, statistical AI detectors that guess. Inspect embedded Content
-          Credentials, fingerprint the exact bytes, and compare two files without guessing origin or
-          intent.
+          Move beyond fragile, statistical AI detectors that guess. Inspect embedded C2PA Content
+          Credentials, fingerprint original bytes, and compare two independent files to construct
+          an objective Provenance Delta without presuming which image is original.
         </p>
 
         {/* Primary Action Buttons */}

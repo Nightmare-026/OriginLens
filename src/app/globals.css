@@ -2019,6 +2019,26 @@ button:disabled {
   max-width: 24rem;
 }
 
+.dropzone-file-field input[type="file"]::file-selector-button {
+  background: var(--surface-canvas);
+  color: var(--secondary-text);
+  border: 1px solid rgba(215, 225, 238, 0.85);
+  border-radius: var(--rounded-default);
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--neu-flat-sm);
+  transition: all 0.15s ease;
+  margin-right: 0.75rem;
+}
+
+.dropzone-file-field input[type="file"]::file-selector-button:hover {
+  background: rgba(14, 165, 233, 0.08);
+  color: #0284c7;
+  border-color: rgba(14, 165, 233, 0.4);
+}
+
 .dropzone-subtext {
   font-size: 0.8125rem;
   color: var(--muted);
@@ -3839,6 +3859,10 @@ button:disabled {
 }
 
 @media (max-width: 480px) {
+  #main-content {
+    padding-bottom: 5.5rem;
+  }
+
   .guide-launcher {
     right: 0.75rem;
     bottom: 0.75rem;
@@ -3856,6 +3880,18 @@ button:disabled {
     border-bottom: none;
     border-left: none;
   }
+}
+
+/* Programmatic focus outline suppression (leaves keyboard tab :focus-visible active) */
+h1[tabindex="-1"]:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Footer External Link SVG Spacing */
+.footer-ext-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

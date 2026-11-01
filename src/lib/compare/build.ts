@@ -74,6 +74,7 @@ export type ComparisonInput = Readonly<{
   preview: ComparisonPreviewOutcome;
   createId: (prefix: IdPrefix) => string;
   now: () => Date;
+  startedAt?: Date;
 }>;
 
 export type ComparisonOutput =
@@ -427,7 +428,7 @@ export function buildComparison(input: ComparisonInput): ComparisonOutput {
     warnings.push(INCOMPLETE_INPUT_WARNING);
   }
 
-  const startedAtUtc = input.now().toISOString();
+  const startedAtUtc = (input.startedAt ?? input.now()).toISOString();
   const finishedAtUtc = input.now().toISOString();
   const limitations = [
     ...COMPARISON_LIMITATIONS,

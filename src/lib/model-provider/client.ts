@@ -49,7 +49,7 @@ export async function requestModelText(
     apiKey: config.apiKey,
     baseURL: config.baseURL,
     timeout: config.timeoutMs,
-    maxRetries: 0,
+    maxRetries: 1,
   });
 
   const startedAt = Date.now();
@@ -82,6 +82,14 @@ export async function requestModelText(
  * details, internal URLs, or credential fragments into a client response.
  */
 export function toModelCallError(error: unknown): ModelCallError {
+  if (error instanceof OpenAI.APIConnectionTimeoutError) {
+    return new ModelCallError('timeout', 'Model provider request timed out.');
+  }
+
+  if (error instanceof OpenAI.APIConnectionError) {
+    return new ModelCallError('provider', 'Model provider could not be reached.');
+  }
+
   if (error instanceof OpenAI.APIError) {
     if (error.status === 401 || error.status === 403) {
       return new ModelCallError('auth', 'Model provider rejected the configured credentials.', error.status);
@@ -96,14 +104,6 @@ export function toModelCallError(error: unknown): ModelCallError {
     }
 
     return new ModelCallError('provider', 'Model provider rejected the request.', error.status);
-  }
-
-  if (error instanceof OpenAI.APIConnectionTimeoutError) {
-    return new ModelCallError('timeout', 'Model provider request timed out.');
-  }
-
-  if (error instanceof OpenAI.APIConnectionError) {
-    return new ModelCallError('provider', 'Model provider could not be reached.');
   }
 
   return new ModelCallError('unknown', 'Model provider call failed.');

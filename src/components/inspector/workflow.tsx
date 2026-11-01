@@ -474,6 +474,8 @@ export function InspectorWorkflow({ mode = 'all' }: InspectorWorkflowProps = {})
         return;
       }
 
+      const comparisonStartedAt = new Date();
+
       setState((previous) =>
         previous.kind === 'running'
           ? {
@@ -529,6 +531,7 @@ export function InspectorWorkflow({ mode = 'all' }: InspectorWorkflowProps = {})
         preview,
         createId,
         now: () => new Date(),
+        startedAt: comparisonStartedAt,
       });
 
       if (runTokenRef.current !== token) {

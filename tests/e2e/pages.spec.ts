@@ -134,7 +134,7 @@ test('landing page renders storytelling hero, pipeline, and passes accessibility
   // Single h1 rule
   const headings = page.locator('h1');
   await expect(headings).toHaveCount(1);
-  await expect(headings).toContainText('Truth Through Verification');
+  await expect(headings).toContainText('What Content Credentials Prove');
 
   // Hero CTAs
   await expect(page.getByTestId('cta-hero-inspect')).toBeVisible();

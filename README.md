@@ -1,7 +1,7 @@
 # OriginLens
 
 > **Evidence-First Media Provenance Explorer & Meta Muse Spark Open Explainer**  
-> Inspect supported image provenance evidence and compare two independent files without guessing origin, chronology, authorship, or scene truth. Powered by client-side WebAssembly C2PA and Meta Muse Spark Open reasoning via official hackathon partner Baseten.
+> Inspect supported image provenance evidence and compare two independent files without guessing origin, chronology, authorship, or scene truth. Powered by client-side WebAssembly C2PA and Meta Muse Spark Open reasoning via Baseten inference.
 
 [![Meta Muse Spark Open](https://img.shields.io/badge/Meta_Model-Muse_Spark_Open-purple.svg?logo=meta)](https://inference.baseten.co)
 [![C2PA Standard](https://img.shields.io/badge/C2PA_Standard-0.15.4-green.svg)](https://contentauthenticity.org)
@@ -88,6 +88,7 @@ flowchart TD
 * **Hedging-Aware Claims Filter (ADR-017):** Prohibits affirmative verdicts (authenticity, tampering, 100% guarantees) while permitting defensive educational negations in `whatRemainsUnknown`.
 * **Bounded Data Minimisation:** Only bounded check status codes, a SHA-256 fingerprint, dimensions, and evidence IDs are sent. Image bytes, previews, filenames, precise GPS coordinates, raw metadata values, and manifest text are excluded. The SHA-256 fingerprint is still a strong link back to that exact file version, so consent is required before any request.
 * **Deterministic Fallback:** Seamlessly serves a deterministic rule-based template if the API is offline or unconfigured, ensuring zero broken screens.
+* **Serverless Rate Limiting & Bounds:** In-process sliding-window rate limiters guard API endpoints against automated flooding; maximum request body sizes are strictly enforced at route boundaries.
 
 ### 4. 📄 Multi-Format Export Hub
 * **Executive PDF Report:** Dedicated `@media print` layout unrolling all tabs, complete with watermark headers and legal disclaimers.
