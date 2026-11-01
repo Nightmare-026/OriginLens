@@ -28,6 +28,9 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 
+# Isolated development worktrees
+.worktrees/
+
 # Agent engineering (internal, not part of submission)
 .agents/
 AGENTS.md
