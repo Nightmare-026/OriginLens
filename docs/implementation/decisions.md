@@ -397,9 +397,11 @@ Replace the parser behind `inspectMetadata` without changing its output contract
 
 ## ADR-001 — P1-001 Meta-model explanation: server-side Meta Model API, Standard tier, evidence-only payload
 
-**Date:** 2026-10-27
-**Status:** PROPOSED / **BLOCKED** by Phase 1 compliance gate (`compliance-checklist.md`)
-**Deciders:** project owner (participant) + implementation agent
+**Date:** 2026-10-27  
+**Status:** SUPERSEDED IN PART by [ADR-016](#adr-016--live-meta-ai-integration-via-baseten-partner-meta-muse-spark-open)  
+**Deciders:** project owner (participant) + implementation agent  
+
+> **Implementation Note (2026-10-30):** The initial proposal anticipated direct Meta Model API (`api.meta.ai/v1`). For the hackathon, live inference was officially adopted in **ADR-016** using Meta's open-weights reasoning model **Meta Muse Spark Open** (`meta-models/muse-spark-open-1026`) hosted on Meta's official inference partner **Baseten** (`https://inference.baseten.co/v1`). The zero-byte privacy bounds, evidence-ID citation whitelist, server-side secret handling, and deterministic fallback defined herein remain strictly active.
 
 ### Context
 

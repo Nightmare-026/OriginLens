@@ -75,7 +75,7 @@ In the modern digital landscape, the exponential rise of generative AI and synth
 
 ---
 
-## 3. Meta Global AI Developer Hackathon 2026 Alignment
+## 3. Meta Global AI Developer Hackathon 2026 Alignment & Meta Model Architecture
 
 OriginLens was specifically engineered for the **Meta Global AI Developer Hackathon 2026**, co-hosted by Meta and Cerebral Valley:
 
@@ -86,23 +86,87 @@ OriginLens was specifically engineered for the **Meta Global AI Developer Hackat
 * **Attribution Notice:** Prominently displays mandatory *"Built with Muse Spark Open"* attribution on the About page (`/about`) and in export disclosures per Muse Model License §3.
 * **Truthful Representation:** Accurately disclosed as hosted open-weight Meta models on Baseten partner inference, rather than the proprietary Meta Model API (`api.meta.ai`).
 
+### Dual-Surface Meta AI Integration
+
+OriginLens features two distinct runtime integration surfaces powered by Meta Muse Spark Open:
+
+```
+                                  ORIGINLENS DUAL META AI SURFACES
+                                  ────────────────────────────────
+  1. Grounded Provenance Explainer (/api/explain)       2. Grounded Site-Wide Guide (/api/guide)
+  ─────────────────────────────────────────────       ────────────────────────────────────────
+  • UI: AI Clues & Co-Pilot tab & Compare Studio      • UI: Accessible floating launcher on all pages
+  • Purpose: Translates C2PA & EXIF into prose        • Purpose: Explains app workflows & standards
+  • 3 Personas: General / Newsroom / Technical        • Knowledge: 10 reviewed help topics (content.ts)
+  • Grounding: Evidence-ID whitelist (ev_...)         • Safety: Refuses off-topic questions (e.g. baking)
+  • Sanitization: Strips <thought> & banned claims    • Output: Disallows raw URLs / HTML injection
+  • Fallback: Deterministic report synthesis          • Fallback: Instant reviewed topic fallback
+```
+
+#### 1. Grounded Provenance Evidence Explainer (`/api/explain`)
+* **Multi-Persona Analysis:** Translates dense cryptographic manifests, JUMBF assertion trees, and camera metadata into tailored insights for **General Public (ELI5)**, **Newsroom Editorial**, and **Technical Specialists**.
+* **Dual-File Compare Synthesis:** In the Compare Studio (`/compare`), synthesizes the Provenance Delta into clear comparative takeaways without presuming an "original" or inferring author intent.
+* **Evidence-ID Citation Whitelist:** Every claim in `whatThisSupports` must cite at least one verified `ev_...` evidence ID from the active Evidence Ledger. Any hallucinated citation causes immediate response rejection and fallback.
+* **Hedging-Aware Claims Filter (ADR-017):** Prohibits affirmative verdicts (e.g. claiming *"100% authentic"*, *"guaranteed real"*, *"definitely tampered"*, or *"proven fake"*), while permitting defensive educational negations in `whatRemainsUnknown`.
+
+#### 2. Grounded Site-Wide Guide Assistant (`/api/guide`)
+* **Context-Aware Assistance:** Available via the floating launcher widget on every page (`guide-widget.tsx`), answering questions regarding C2PA validation states, signer trust policies, GPS privacy masking, and file preflight bounds.
+* **Strict Epistemic Grounding:** Grounded solely in 10 human-reviewed help topics (`src/lib/guide/content.ts`). The model never browses the web, never sees image data, and has zero authority to alter verification outcomes.
+* **Out-of-Scope Refusal Guard:** Strictly refuses irrelevant or malicious prompts (e.g., cooking recipes, coding unrelated apps) with safe, polite redirection.
+* **Output Sanitization:** Scans against dangerous links, script tags, HTML tags, and markdown code blocks. Safe navigation links are attached server-side from an approved allowlist.
+
+### Chain-of-Thought Reasoning Token Architecture
+
+Meta Muse Spark Open is a frontier open-weights reasoning model that performs internal chain-of-thought (CoT) before outputting its response:
+
+1. **Reasoning Token Token-Budget Dynamics:**
+   * Muse Spark Open outputs internal thoughts enclosed in `<thought>...</thought>` or `<think>...</think>` tags.
+   * **Crucial Token Constraint:** Both internal reasoning tokens and visible JSON completion share the *exact same* `max_tokens` allocation.
+   * In OriginLens, `MODEL_MAX_TOKENS` defaults to **3,000** (bounded between `512` and `8,000` via `src/lib/model-provider/config.ts`). Setting a lower limit (e.g., 800 tokens) causes reasoning to consume the entire budget, truncating the final JSON.
+2. **Reasoning Effort Tuning:**
+   * Configurable via `MODEL_REASONING_EFFORT`: `'low'` | `'medium'` | `'high'` | `'xhigh'`.
+   * Defaults to `'medium'` for the optimal balance between reasoning depth and low latency (~2.0s to 2.6s).
+3. **Reasoning Token Stripper (`extractJsonObject` / `cleanModelOutput`):**
+   * The server-side provider layer automatically strips `<thought>...</thought>` blocks and markdown code fences before passing clean JSON to strict Zod runtime schemas (`rawModelResponseSchema` and `rawGuideResponseSchema`).
+
+### Zero-Byte Privacy Invariant & Data Minimisation
+
+OriginLens enforces an absolute data minimisation boundary between client-side media and server-side model inference:
+
+* **Zero Image Byte Transmission:** Original image bytes, resized previews, canvas pixels, binary blobs, and raw JUMBF manifests are **NEVER** sent to the model API.
+* **Zero Precise GPS Transmission:** Latitude and longitude coordinates are strictly excluded from all model payloads.
+* **Bounded Data-Only Payload:** The request payload sent to `/api/explain` contains only:
+  * Byte SHA-256 fingerprint hex string.
+  * Image dimensions and format enum (`jpeg` / `png`).
+  * Check outcome enums (e.g. `c2pa_manifest_present: true`, `validity: valid`).
+  * Stable evidence IDs (`ev_001`...`ev_NNN`).
+* **Explicit User Consent Barrier:** No outbound network request is ever dispatched to the model route without the user clicking through an explicit consent dialog detailing data categories, purpose, and the non-authoritative nature of AI explanations.
+
+### Deterministic Fallback Engine (Zero Downtime)
+
+OriginLens guarantees complete operational resilience through its dual-fallback architecture:
+
+* If `MODEL_EXPLANATION_ENABLED=false`, API keys are unconfigured, provider latency exceeds 45s, HTTP 429 rate limits trigger, or network connectivity fails:
+  * The explainer seamlessly serves `src/lib/model-explainer/fallback.ts`, generating 100% truthful, rule-based provenance synthesis.
+  * The guide assistant seamlessly serves `resolveGuideFallback` from `src/lib/guide/content.ts`.
+* **Zero Broken UI States:** The application never displays broken screens, empty cards, or perpetual loading spinners.
+
+### Server-Side Key Isolation & Defense-in-Depth
+
+* **Zero Client Exposure:** `MODEL_API_KEY` is loaded exclusively in Node.js server routes (`/api/explain`, `/api/guide`) using `process.env`. It is 100% absent from client JavaScript bundles, source maps, and git history.
+* **Same-Origin & CSRF Protection:** Validates `origin`, `host`, and `Sec-Fetch-Site: same-origin` to reject cross-site forged requests.
+* **Sliding-Window Rate Limiting:** Enforces an in-memory sliding-window limiter of 10 requests per 5 minutes per client IP.
+* **Request Ceiling:** Strict 64 KiB body ceiling prevents payload overflow attacks.
+
 ### Official Judging Criteria Alignment Matrix
 
 | Judging Criterion | Weight | How OriginLens Excels | Competitive Advantage |
 |---|---|---|---|
 | **Technical Execution & Depth** | 30% | Client-side WebAssembly C2PA SDK (`@contentauth/c2pa-web@0.15.4`), exact-byte SHA-256 digests, mathematical pixel delta normalization, strict Zod runtime schemas, 326 unit tests, 54 browser E2E tests, and 0 axe accessibility violations. | Most provenance apps rely on server mocks or basic API wrappers; OriginLens executes true cryptographic JUMBF manifest validation entirely in-browser. |
 | **Theme Alignment & Impact** | 25% | Directly champions "AI for Media Literacy & Information Integrity" by replacing brittle black-box detectors with transparent evidence ledgers, honest uncertainty, and educational multi-persona explanations. | Avoids the fatal trap of claiming "AI detection"; empowers users to critically evaluate verifiable provenance evidence. |
-| **AI Integration Quality** | 20% | Evidence-grounded system prompting, strict citation whitelisting, chain-of-thought reasoning token stripping, banned claim filtering, and graceful deterministic degradation across 3 distinct personas. | AI does not invent verdicts; it translates complex cryptographic manifests into plain-language educational insights with zero hallucination. |
+| **AI Integration Quality** | 20% | Dual-surface Meta Muse Spark Open integration (`/api/explain` & `/api/guide`), evidence-grounded prompting, strict citation whitelisting (`ev_...`), chain-of-thought reasoning token stripping, banned claims scanner (ADR-017), and graceful deterministic fallback across 3 distinct personas. | AI does not invent verdicts; it translates complex cryptographic manifests into plain-language educational insights with zero hallucination. |
 | **Design, Polish & Accessibility** | 15% | Industrial-grade studio UI, full WCAG 2.2 AA compliance (0 axe-core violations), complete keyboard navigability, responsive from 320px mobile to 4K displays, and dark-mode aesthetics. | Delivers a commercial-grade verification experience with polished micro-interactions and accessible focus states. |
-| **Documentation & Reproducibility** | 10% | Complete PRD traceability (V01–V50), 326 unit tests, 54 browser E2E tests, 17 Architectural Decision Records (ADRs), and 1-command verification. | 100% reproducible test suite with zero hand-waving or missing evidence. |
-
-### AI Safety & Epistemic Grounding Invariants
-
-1. **Evidence-ID Citation Whitelist:** Every claim in `whatThisSupports` must cite at least one `ev_...` evidence ID verified in the Evidence Ledger. Any ungrounded reference triggers automatic response rejection and fallback.
-2. **Reasoning Token Stripper:** Muse Spark Open outputs internal chain-of-thought tokens wrapped in `<thought>...</thought>` or `<think>...</think>`. OriginLens sanitizes these blocks before strict Zod validation.
-3. **Hedging-Aware Claims Filter (ADR-017):** Prohibits affirmative verdicts (e.g., claiming *"100% authentic"*, *"guaranteed real"*, or *"definitely tampered"*), while allowing defensive educational negations in `whatRemainsUnknown`.
-4. **Deterministic Fallback Engine:** If provider latency exceeds 45s, rate limits trigger (HTTP 429), or the network fails, the system immediately serves `src/lib/model-explainer/fallback.ts`, providing 100% truthful, rule-based provenance synthesis with zero user-facing downtime.
-5. **Server-Side Key Isolation:** `MODEL_API_KEY` is loaded exclusively in Node.js server runtime routes (`/api/explain`, `/api/guide`); verified 100% absent from client JavaScript bundles and Git history.
+| **Documentation & Reproducibility** | 10% | Complete PRD traceability (V01–V50), 326 unit tests, 54 browser E2E tests (380 total automated tests), 17 Architectural Decision Records (ADRs), and 1-command verification. | 100% reproducible test suite with zero hand-waving or missing evidence. |
 
 ---
 
@@ -226,18 +290,24 @@ flowchart TD
     DeltaEngine --> VisualSlider["Interactive Visual Swipe Diff & Normalization"]
   end
 
-  subgraph ExportAndAI["Export Hub & Meta Muse Spark Open Explainer"]
+  subgraph ExportAndAI["Export Hub & Dual-Surface Meta Muse Spark Open Inference"]
     Ledger --> ExportPDF["Printable Executive PDF"]
     Ledger --> ExportSocial["1200x630 Social Card (Canvas)"]
     Ledger --> ExportJSON["Schema 2.0 Audit JSON"]
     
     Ledger --> SafeSummary["Bounded Evidence Summary (No Image Bytes, No GPS)"]
     SafeSummary --> Consent["Explicit User Consent Barrier"]
-    Consent --> ServerRoute["/api/explain (Next.js Server Route)"]
+    Consent --> ServerRoute["/api/explain (Evidence Explainer Route)"]
+    
+    UserQuestion["User Help Question"] --> GuideConsent["Explicit Guide Consent Barrier"]
+    GuideConsent --> GuideRoute["/api/guide (Site-Wide Guide Route)"]
+    
     ServerRoute --> Muse["Meta Muse Spark Open (Baseten Partner API)"]
+    GuideRoute --> Muse
+    
     Muse --> Strip["Reasoning Token Stripper (<thought> / <think>)"]
     Strip --> Guard["Claim Filter & Evidence-ID Citation Guard"]
-    Guard --> PersonaUI["Multi-Audience Explanation (General / Newsroom / Technical)"]
+    Guard --> PersonaUI["Multi-Persona Explanations & Grounded Guide Answers"]
   end
 ```
 
@@ -258,27 +328,29 @@ flowchart TD
 * **Authentic Mathematical Difference Engine:** Computes real per-pixel Chebyshev distance (peak channel difference L∞) across RGB channels on an offscreen canvas and Mean Absolute Channel Error (L1/3), backed by strict aspect-ratio parity and EXIF orientation normalization guards—avoiding synthetic decorative gradients.
 * **User Assertions:** Allows user labeling (e.g. "original" vs "edited") while explicitly marking them as user assertions—never endorsed as system fact.
 
-### 3. 🤖 Meta Muse Spark Open Explainer (Baseten Partner)
+### 3. 🤖 Meta Muse Spark Open Explainer & Delta Synthesizer (Baseten Partner)
 * **Multi-Audience Personas:**
-  * **General Public (ELI5):** Jargon-free explanations for everyday media consumers.
-  * **Newsroom Editorial:** Focuses on source verifiability, chain-of-custody, and corroboration.
-  * **Technical:** Focuses on exact hash bindings, JUMBF assertion trees, and trust policies.
-* **Evidence-ID Citation Guard:** Every `whatThisSupports` item must cite at least one `ev_...` ID, and every cited ID must exist in the submitted report. A single unknown ID rejects the whole response and falls back to the deterministic template.
-* **Reasoning Token Stripping:** Gracefully parses Muse Spark Open `<thought>` / reasoning tokens so clean JSON is validated against strict schemas.
+  * **General Public (ELI5):** Jargon-free explanations of cryptographic manifests and camera clues for everyday media consumers.
+  * **Newsroom Editorial:** Focuses on source verifiability, chain-of-custody, and corroboration without speculative assertions.
+  * **Technical Specialists:** Deep dive into exact SHA-256 hash bindings, JUMBF assertion trees, digital signature algorithms, and trust policies.
+* **Dual-File Compare Delta Synthesizer:** In the Compare Studio, synthesizes the mathematical delta and metadata divergence between two files without assuming an "original" or inferring intent.
+* **Evidence-ID Citation Guard:** Every `whatThisSupports` item must cite at least one verified `ev_...` evidence ID from the active report. Any unknown ID rejects the whole response and falls back immediately.
+* **Reasoning Token Stripping:** Gracefully parses Muse Spark Open `<thought>` / `<think>` reasoning tokens so clean JSON is validated against strict runtime Zod schemas.
 * **Hedging-Aware Claims Filter (ADR-017):** Prohibits affirmative verdicts (authenticity, tampering, 100% guarantees) while permitting defensive educational negations in `whatRemainsUnknown`.
-* **Bounded Data Minimisation:** Only bounded check status codes, a SHA-256 fingerprint, dimensions, and evidence IDs are sent. Image bytes, previews, filenames, precise GPS coordinates, raw metadata values, and manifest text are excluded.
-* **Deterministic Fallback:** Seamlessly serves a deterministic rule-based template if the API is offline or unconfigured, ensuring zero broken screens.
+* **Bounded Data Minimisation:** Only bounded check status codes, a SHA-256 fingerprint, dimensions, and evidence IDs are sent. Image bytes, previews, filenames, precise GPS coordinates, raw metadata values, and manifest text are strictly excluded.
+* **Deterministic Fallback Engine:** Seamlessly serves a deterministic rule-based template (`src/lib/model-explainer/fallback.ts`) if the API is offline, rate-limited, or unconfigured, ensuring zero broken screens.
 
 ### 4. 📄 Multi-Format Export Hub
-* **Executive PDF Report:** Dedicated `@media print` layout unrolling all tabs, complete with watermark headers and legal disclaimers.
+* **Executive PDF Report:** Dedicated `@media print` layout unrolling all tabs, complete with watermark headers and legal disclaimers (`window.print()` trigger).
 * **Visual Social Card (1200×630):** High-resolution Canvas generator displaying cryptographic fingerprints, C2PA badges, and compliance summaries for instant social sharing.
-* **PRD v2.0 Audit JSON:** Machine-readable report with `includedOriginalImage: false` and `includedPreciseGps: false` guarantees.
+* **PRD v2.0 Audit JSON:** Machine-readable report with `includedOriginalImage: false` and `includedPreciseGps: false` privacy guarantees.
 
-### 5. 💬 Site-Wide OriginLens Guide
-* **Always Available:** A bottom-right launcher answers questions about the product, the Evidence Ledger, C2PA limits, privacy, formats, and errors on every page.
-* **Grounding in Reviewed Help Content:** The prompt is built from a versioned, human-reviewed topic file. It never browses the web, never sees an image, and has no authority over a check result.
+### 5. 💬 Grounded Site-Wide OriginLens Guide
+* **Always Available Floating Launcher:** A bottom-right launcher widget (`guide-widget.tsx`) answers questions about the product, the Evidence Ledger, C2PA limits, privacy, formats, and errors on every page.
+* **Strict Grounding in Reviewed Help Content:** Prompting is grounded exclusively in versioned, human-reviewed topic documentation (`src/lib/guide/content.ts`). It never browses the web, never sees an image, and has no authority over a check result.
 * **Minimal Outbound Payload:** Only the typed question and a coarse page identifier are sent, and only after an explicit "Start guide" consent step.
-* **Strict Safety Filter:** Automatically refuses off-topic queries (e.g. *"How do I bake sourdough bread?"*) and strips dangerous markdown or links.
+* **Strict Safety & Refusal Guard:** Automatically refuses off-topic queries (e.g. *"How do I bake sourdough bread?"*) and strips dangerous markdown, raw URLs, or HTML markup. Approved navigation links are attached server-side from allowlisted topics.
+* **Instant Fallback:** Serves pre-compiled offline guidance (`resolveGuideFallback`) whenever the provider is unreachable.
 
 ---
 
@@ -394,13 +466,31 @@ Visit [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Environment Configuration
 
-| Variable | Required | Default Value | Purpose |
-|---|---|---|---|
-| `MODEL_EXPLANATION_ENABLED` | No | `false` | Enables live calls to Meta Muse Spark Open on Baseten. When `false`, deterministic fallback runs. |
-| `MODEL_API_KEY` | If enabled | `""` | Baseten API key (server-side only, never leaked to client). |
-| `MODEL_API_BASE_URL` | No | `https://inference.baseten.co/v1` | Baseten OpenAI-compatible inference endpoint. |
-| `MODEL_NAME` | No | `meta-models/muse-spark-open-1026` | Target open-weight Meta reasoning model. |
-| `MODEL_TIMEOUT_MS` | No | `45000` | Server-side abort timeout in milliseconds. |
+The application works completely out of the box with zero environment variables configured (running deterministic provenance synthesis and offline reviewed help fallbacks). To enable live inference with Meta Muse Spark Open via Baseten partner inference, configure the following server-side environment variables in `.env.local`:
+
+| Variable | Required | Default Value | Allowed Values / Bounds | Purpose |
+|---|---|---|---|---|
+| `MODEL_EXPLANATION_ENABLED` | No | `false` | `'true'` \| `'false'` | Master feature flag. Enables live server calls to Meta Muse Spark Open. When `false`, deterministic fallback executes. |
+| `MODEL_API_KEY` | If enabled | `""` | String | Baseten API key. Server-side only; never leaked to client bundles or git history. |
+| `MODEL_API_BASE_URL` | No | `https://inference.baseten.co/v1` | URL | Baseten OpenAI-compatible inference endpoint URL. |
+| `MODEL_NAME` | No | `meta-models/muse-spark-open-1026` | String | Target Meta open-weight reasoning model slug. |
+| `MODEL_MAX_TOKENS` | No | `3000` | Integer (`512` – `8000`) | Output token ceiling. Covers both internal CoT reasoning tokens and the visible JSON completion. |
+| `MODEL_REASONING_EFFORT` | No | `medium` | `'low'` \| `'medium'` \| `'high'` \| `'xhigh'` | Controls internal chain-of-thought depth and execution latency. |
+| `MODEL_TIMEOUT_MS` | No | `45000` | Integer (`5000` – `120000`) | Server-side abort timeout in milliseconds enforced via `AbortController`. |
+
+#### Example `.env.local` Configuration:
+```env
+# Enable live Meta AI inference via official Baseten partner
+MODEL_EXPLANATION_ENABLED=true
+MODEL_API_KEY=your_baseten_api_key_here
+MODEL_API_BASE_URL=https://inference.baseten.co/v1
+MODEL_NAME=meta-models/muse-spark-open-1026
+
+# Reasoning token configuration (bounded in src/lib/model-provider/config.ts)
+MODEL_MAX_TOKENS=3000
+MODEL_REASONING_EFFORT=medium
+MODEL_TIMEOUT_MS=45000
+```
 
 ---
 

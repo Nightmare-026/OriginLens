@@ -26,7 +26,7 @@
 - **P0 (mandatory):** FR-001…FR-015 — image-only, browser-first intake, SHA-256, metadata allowlist, pinned C2PA inspection, Evidence Ledger, Provenance Delta, typed execution states, versioned JSON report, privacy defaults, clear session, recoverable errors, accessible responsive UI, test-backed demo.
 - **P1-001 (implemented; live route verified; compliance gate open):** optional model explanation adapter, consent gate, server-side secret handling, request projection that omits image bytes and evidence values, claims scanner, and deterministic fallback. A live Baseten-hosted Muse Spark Open call was verified on 2026-10-31; event-rule authorization is still outstanding and the exposed credential must be rotated.
 - **Removed 2026-10-29 (unsupported):** PKI trust-anchor evaluation, remote manifest recovery, web provenance lookup, DCT spectral/watermark analysis, edit-history tree, and comparative chronology. They fabricated or over-interpreted evidence and are not part of the product.
-- **P1-002…P1-004 (conditional):** print report, WebP, extra fixtures — see traceability.
+- **P1-002…P1-004 (conditional):** print report (P1-002) is implemented and verified (@media print executive layout); WebP (P1-003) is deferred under the PRD §4 JPEG/PNG allowlist invariant; extra fixtures (P1-004) are verified and documented in `tests/fixtures/manifest.json`.
 - **P2 (deferred):** watermark provider, remote URLs, video/HEIC/RAW/TIFF/PDF, accounts/history/DB/analytics, custom AI detector, asset signing, forensic certification.
 
 ## Current status and next actions

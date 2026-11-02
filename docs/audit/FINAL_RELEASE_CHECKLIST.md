@@ -52,7 +52,8 @@
 - [x] FR-015: Comprehensive test fixtures with recorded cryptographic provenance.
 
 ### 2.2 P1 Capabilities & Compliance Gates
-- [x] P1-001: Meta Muse Spark Open evidence explainer with deterministic fallback.
+- [x] P1-001: Dual-surface Meta Muse Spark Open integration (`/api/explain` & `/api/guide`) with deterministic fallback.
+- [x] P1-002: Print-friendly executive PDF report with watermark headers and sensitive field exclusion.
 - [x] Attribution: Mandatory "Built with Muse Spark Open" notice visible on About page.
 - [x] Consent: User consent modal dialog displayed before external model inference.
 - [x] Key Protection: Server-side API key isolation verified; zero leaks in bundles.
