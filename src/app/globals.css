@@ -2657,7 +2657,7 @@ button:disabled {
   letter-spacing: 0.06em;
   padding: 0;
   background: transparent;
-  color: #0369a1;
+  color: #075985;
   border: none;
   box-shadow: none;
 }
@@ -3115,7 +3115,16 @@ button:disabled {
   position: relative;
 }
 
+.landing-pipeline-timeline > .reveal-on-scroll,
+.landing-pipeline-timeline > * {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .pipeline-card {
+  height: 100%;
+  flex: 1 1 auto;
   padding: 2rem 1.75rem;
   border-radius: var(--rounded-lg);
   background: #ffffff;
@@ -3143,7 +3152,7 @@ button:disabled {
 .pipeline-tag {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #0369a1;
+  color: #075985;
   background: transparent !important;
   border: 1px solid rgba(215, 225, 238, 0.8);
   padding: 0.2rem 0.55rem;
@@ -3174,6 +3183,7 @@ button:disabled {
   color: var(--muted);
   line-height: 1.55;
   margin: 0 0 1.25rem;
+  flex-grow: 1;
 }
 
 .pipeline-metric-footer {
