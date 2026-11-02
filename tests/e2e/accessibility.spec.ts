@@ -254,17 +254,18 @@ test('every start-screen control is reachable by Tab and has an accessible name'
   await page.getByTestId('compare-file-a').setInputFiles(fixturePath('plain-3x2.png'));
   await page.getByTestId('compare-file-b').setInputFiles(fixturePath('plain-3x2-filtered.png'));
 
-  // Reset focus to the document so the second pass starts from the top.
+  // Wait for React state to enable compare-start after file inputs are set
+  await expect(page.getByTestId('compare-start')).toBeEnabled();
+
+  // Reset focus to the document so the second pass starts cleanly from the top.
   await page.evaluate(() => {
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
+    window.scrollTo(0, 0);
   });
+  await page.locator('body').click({ position: { x: 0, y: 0 } });
 
   const withFiles = await tabStops(15);
 
   expect(withFiles.map((stop) => stop.id)).toContain('compare-start');
-  await expect(page.getByTestId('compare-start')).toBeEnabled();
 
   // Also verify /inspect tab stops
   await page.goto('/inspect');

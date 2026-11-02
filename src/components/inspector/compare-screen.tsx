@@ -12,6 +12,8 @@ import {
   LayersIcon,
   LayoutGridIcon,
   SparklesIcon,
+  ChevronDownIcon,
+  CheckIcon,
 } from '@/components/ui/icons';
 import {
   CHECK_LABELS,
@@ -72,6 +74,12 @@ function equalityLabel(value: boolean | null): string {
   return value ? 'Equal' : 'Different';
 }
 
+const LABEL_OPTIONS: readonly { value: 'original' | 'edited' | ''; label: string; badge?: string }[] = [
+  { value: '', label: 'No label' },
+  { value: 'original', label: 'I am supplying this as the original', badge: 'Original' },
+  { value: 'edited', label: 'I am supplying this as an edited version', badge: 'Edited' },
+];
+
 function LabelSelect({
   side,
   analysis,
@@ -83,29 +91,284 @@ function LabelSelect({
 }>) {
   const id = `label-select-${side}`;
   const value = analysis.file.userLabel ?? '';
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+
+  const selectedOption = LABEL_OPTIONS.find((opt) => opt.value === value) ?? LABEL_OPTIONS[0]!;
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [isOpen]);
+
+  const handleSelect = (val: 'original' | 'edited' | '') => {
+    onChange(val === 'original' || val === 'edited' ? val : null);
+    setIsOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+        setFocusedIndex(LABEL_OPTIONS.findIndex((opt) => opt.value === value));
+      } else {
+        setFocusedIndex((prev) => (prev + 1) % LABEL_OPTIONS.length);
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+        setFocusedIndex(LABEL_OPTIONS.findIndex((opt) => opt.value === value));
+      } else {
+        setFocusedIndex((prev) => (prev <= 0 ? LABEL_OPTIONS.length - 1 : prev - 1));
+      }
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      if (isOpen && focusedIndex >= 0 && focusedIndex < LABEL_OPTIONS.length) {
+        e.preventDefault();
+        handleSelect(LABEL_OPTIONS[focusedIndex]!.value);
+      }
+    } else if (e.key === 'Escape') {
+      if (isOpen) {
+        e.preventDefault();
+        setIsOpen(false);
+        triggerRef.current?.focus();
+      }
+    } else if (e.key === 'Tab') {
+      if (isOpen) {
+        setIsOpen(false);
+      }
+    }
+  };
 
   return (
-    <p className="field">
-      <label htmlFor={id}>Your label for File {side.toUpperCase()} (optional, user-supplied)</label>
+    <div className="field" style={{ position: 'relative' }}>
+      <label
+        id={`${id}-label`}
+        htmlFor={`${id}-trigger`}
+        style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-headline)' }}
+      >
+        Your label for File {side.toUpperCase()} (optional, user-supplied)
+      </label>
+
+      {/* Synchronized native select for automated tests & assistive fallback */}
       <select
         id={id}
         data-testid={id}
         value={value}
         onChange={(event) => {
           const next = event.currentTarget.value;
-
           onChange(next === 'original' || next === 'edited' ? next : null);
+        }}
+        tabIndex={-1}
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: -1,
         }}
       >
         <option value="">No label</option>
         <option value="original">I am supplying this as the original</option>
         <option value="edited">I am supplying this as an edited version</option>
       </select>
-      <span className="note">
+
+      {/* Neumorphic Custom Dropdown */}
+      <div
+        ref={containerRef}
+        style={{ position: 'relative', width: '100%', marginTop: '0.375rem' }}
+        onKeyDown={handleKeyDown}
+      >
+        <button
+          ref={triggerRef}
+          id={`${id}-trigger`}
+          data-testid={`${id}-trigger`}
+          type="button"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-controls={`${id}-menu`}
+          aria-haspopup="listbox"
+          aria-labelledby={`${id}-label`}
+          onClick={() => {
+            setIsOpen((prev) => !prev);
+            setFocusedIndex(LABEL_OPTIONS.findIndex((opt) => opt.value === value));
+          }}
+          className="neumorphic-select-trigger"
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.625rem 0.875rem',
+            background: 'var(--surface-inset)',
+            boxShadow: isOpen ? 'var(--neu-inset-focus)' : 'var(--neu-inset)',
+            border: isOpen ? '1px solid var(--focus, #10b981)' : '1px solid rgba(200, 212, 228, 0.6)',
+            borderRadius: 'var(--rounded-default, 8px)',
+            color: 'var(--text-headline)',
+            font: 'inherit',
+            fontSize: '0.875rem',
+            cursor: 'pointer',
+            textAlign: 'left',
+            transition: 'all 0.2s ease',
+            outline: 'none',
+          }}
+        >
+          <span
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {selectedOption.badge && (
+              <span
+                style={{
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                  padding: '0.125rem 0.45rem',
+                  borderRadius: '9999px',
+                  background: selectedOption.value === 'original' ? '#ecfdf5' : '#f0f9ff',
+                  color: selectedOption.value === 'original' ? '#047857' : '#0284c7',
+                  border: selectedOption.value === 'original' ? '1px solid #a7f3d0' : '1px solid #bae6fd',
+                }}
+              >
+                {selectedOption.badge}
+              </span>
+            )}
+            <span style={{ color: selectedOption.value ? 'var(--text-headline)' : 'var(--muted)' }}>
+              {selectedOption.label}
+            </span>
+          </span>
+          <ChevronDownIcon
+            size={16}
+            style={{
+              color: 'var(--muted)',
+              transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+              flexShrink: 0,
+              marginLeft: '0.5rem',
+            }}
+          />
+        </button>
+
+        {isOpen && (
+          <ul
+            id={`${id}-menu`}
+            role="listbox"
+            aria-labelledby={`${id}-label`}
+            className="neumorphic-select-menu"
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 6px)',
+              left: 0,
+              right: 0,
+              zIndex: 100,
+              background: 'var(--surface-canvas, #edf1f7)',
+              border: '1px solid rgba(255, 255, 255, 0.95)',
+              borderRadius: 'var(--rounded-md, 12px)',
+              boxShadow:
+                '10px 10px 24px rgba(166, 180, 200, 0.48), -8px -8px 20px #ffffff, 0 4px 14px rgba(0, 0, 0, 0.06)',
+              padding: '0.375rem',
+              margin: 0,
+              listStyle: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+            }}
+          >
+            {LABEL_OPTIONS.map((opt, idx) => {
+              const isSelected = opt.value === value;
+              const isFocused = idx === focusedIndex;
+
+              return (
+                <li key={opt.value} role="none" style={{ margin: 0, padding: 0 }}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    data-testid={`${id}-option-${opt.value || 'none'}`}
+                    onClick={() => handleSelect(opt.value)}
+                    onMouseEnter={() => setFocusedIndex(idx)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.55rem 0.75rem',
+                      borderRadius: 'var(--rounded-default, 8px)',
+                      border: isSelected
+                        ? '1px solid #a7f3d0'
+                        : isFocused
+                          ? '1px solid rgba(16, 185, 129, 0.25)'
+                          : '1px solid transparent',
+                      background: isSelected
+                        ? '#ecfdf5'
+                        : isFocused
+                          ? 'rgba(16, 185, 129, 0.08)'
+                          : 'transparent',
+                      color: isSelected ? '#065f46' : isFocused ? '#047857' : 'var(--text)',
+                      fontWeight: isSelected ? 600 : 400,
+                      boxShadow: isSelected || isFocused ? 'var(--neu-flat-sm)' : 'none',
+                      font: 'inherit',
+                      fontSize: '0.84375rem',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s ease',
+                      outline: 'none',
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {opt.badge && (
+                        <span
+                          style={{
+                            fontSize: '0.625rem',
+                            fontWeight: 700,
+                            padding: '0.1rem 0.35rem',
+                            borderRadius: '9999px',
+                            background: opt.value === 'original' ? '#d1fae5' : '#e0f2fe',
+                            color: opt.value === 'original' ? '#047857' : '#0284c7',
+                          }}
+                        >
+                          {opt.badge}
+                        </span>
+                      )}
+                      <span>{opt.label}</span>
+                    </span>
+                    {isSelected && (
+                      <CheckIcon size={14} style={{ color: '#059669', flexShrink: 0, marginLeft: '0.5rem' }} />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <span className="note" style={{ display: 'block', marginTop: '0.375rem' }}>
         This label is your own assertion, recorded verbatim. The app does not measure, verify, or
         infer which file came first.
       </span>
-    </p>
+    </div>
   );
 }
 
@@ -383,7 +646,8 @@ function VisualDiffSlider({
         style={{
           position: 'relative',
           width: '100%',
-          minHeight: '320px',
+          maxWidth: '100%',
+          minHeight: '0',
           maxHeight: '520px',
           aspectRatio: '16/10',
           borderRadius: '12px',

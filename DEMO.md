@@ -135,8 +135,8 @@ guide's consent gate, reviewed fallback, Escape/focus-return, and 360 px layout:
 npx playwright test tests/e2e/demo-rehearsal.spec.ts
 npx playwright test tests/e2e/guide.spec.ts
 
-# or the whole suite (53 specs, ~3.3 min on this machine)
+# or the whole suite (54 specs, ~3.3 min on this machine)
 npx playwright test
 ```
 
-All quality gates and test suites are tracked in [`docs/implementation/verification-log.md`](docs/implementation/verification-log.md).
+All quality gates and test suites are tracked in [`docs/implementation/verification-log.md`](docs/implementation/verification-log.md). For comprehensive multi-disciplinary audit evidence, see [`docs/audit/FINAL_AUDIT_REPORT.md`](docs/audit/FINAL_AUDIT_REPORT.md) and [`docs/audit/FINAL_TEST_EVIDENCE.md`](docs/audit/FINAL_TEST_EVIDENCE.md). For full project architecture and features, see [`README.md`](README.md).

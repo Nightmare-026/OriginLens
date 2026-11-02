@@ -250,6 +250,43 @@ test('V49: original/edited labels are recorded as the user assertion', async ({ 
   expect(files[1]?.['userLabel']).toBe('edited');
 });
 
+test('neumorphic custom label dropdown opens, supports mouse & keyboard selection, and dismisses on Escape', async ({
+  page,
+}) => {
+  await page.goto('/compare');
+  await compareFixtures(page, 'plain-3x2.png', 'plain-3x2-filtered.png');
+
+  const triggerA = page.getByTestId('label-select-a-trigger');
+  await expect(triggerA).toBeVisible();
+  await expect(triggerA).toContainText('No label');
+
+  // Click trigger to open menu
+  await triggerA.click();
+  const menuA = page.locator('#label-select-a-menu');
+  await expect(menuA).toBeVisible();
+
+  // Verify option list has neumorphic options
+  const optionOriginal = page.getByTestId('label-select-a-option-original');
+  await expect(optionOriginal).toBeVisible();
+  await optionOriginal.click();
+
+  // Menu closes and trigger shows selected option
+  await expect(menuA).toHaveCount(0);
+  await expect(triggerA).toContainText('I am supplying this as the original');
+  await expect(page.getByTestId('a-user-label')).toHaveText('Original');
+
+  // Test keyboard navigation on trigger B
+  const triggerB = page.getByTestId('label-select-b-trigger');
+  await triggerB.focus();
+  await page.keyboard.press('ArrowDown');
+  const menuB = page.locator('#label-select-b-menu');
+  await expect(menuB).toBeVisible();
+
+  // Escape closes menu
+  await page.keyboard.press('Escape');
+  await expect(menuB).toHaveCount(0);
+});
+
 test('downloads a validated two-file report with the comparison block', async ({ page }) => {
   await page.goto('/compare');
 

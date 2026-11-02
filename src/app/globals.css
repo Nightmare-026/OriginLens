@@ -386,6 +386,48 @@ input[type='file']:hover {
   border-color: var(--secondary);
 }
 
+input[type='file']::file-selector-button {
+  background: var(--surface-canvas);
+  color: var(--secondary-text);
+  border: 1px solid rgba(215, 225, 238, 0.85);
+  border-radius: var(--rounded-default);
+  padding: 0.4rem 0.85rem;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--neu-flat-sm);
+  transition: all 0.15s ease;
+  margin-right: 0.75rem;
+}
+
+input[type='file']::file-selector-button:hover {
+  background: rgba(14, 165, 233, 0.08);
+  color: #0284c7;
+  border-color: rgba(14, 165, 233, 0.4);
+}
+
+input[type='file']::-webkit-file-upload-button {
+  background: var(--surface-canvas);
+  color: var(--secondary-text);
+  border: 1px solid rgba(215, 225, 238, 0.85);
+  border-radius: var(--rounded-default);
+  padding: 0.4rem 0.85rem;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--neu-flat-sm);
+  transition: all 0.15s ease;
+  margin-right: 0.75rem;
+}
+
+input[type='file']::-webkit-file-upload-button:hover {
+  background: rgba(14, 165, 233, 0.08);
+  color: #0284c7;
+  border-color: rgba(14, 165, 233, 0.4);
+}
+
 select {
   display: block;
   max-width: 100%;
@@ -816,6 +858,8 @@ button:disabled {
 
 .evidence-value {
   color: var(--text);
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 /* Key-Value Property List */
@@ -1744,55 +1788,104 @@ button:disabled {
    Lineage Graph Forensics Workbench
    ========================================================================== */
 
+/* ==========================================================================
+   C2PA Action and Ingredient Lineage Graph — Neumorphic Tactile Wrap Flow
+   ========================================================================== */
+
 .action-lineage-graph,
 .c2pa-lineage-graph {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin: 1rem 0 1.25rem 0;
-  padding: 1rem 1.25rem;
-  background: var(--surface-sunken);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--rounded-lg);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: block;
+  margin: 1.25rem 0 1.5rem 0;
+  padding: 1.25rem 1rem;
+  background: var(--surface-canvas, #edf1f7);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: var(--rounded-xl, 1.25rem);
+  box-shadow: var(--neu-inset);
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
+.lineage-track {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 1rem 0;
+  width: 100%;
+}
+
+.lineage-step {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 180px;
+  min-width: 170px;
+  max-width: 260px;
+}
+
+.lineage-step-terminal {
+  flex: 1 1 180px;
+  min-width: 170px;
+  max-width: 260px;
+}
+
+/* Base Card — Pure Neumorphic Tactile Embossed Card */
 .lineage-node {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.65rem 0.85rem;
-  border-radius: var(--rounded-default);
-  background: var(--surface-canvas);
-  border: 1px solid var(--border-subtle);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  min-width: 130px;
-  max-width: 240px;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  flex: 1;
+  min-height: 172px;
+  height: 100%;
+  padding: 0.9rem 0.75rem;
+  box-sizing: border-box;
+  border-radius: var(--rounded-lg, 1rem);
+  background: linear-gradient(145deg, #ffffff 0%, #f4f7fb 100%);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: var(--neu-flat-sm);
+  position: relative;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.lineage-node:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--neu-flat-hover);
+}
+
+/* Action Node Variant */
 .lineage-node-action {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: linear-gradient(145deg, #ffffff 0%, #f0f4fa 100%);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: var(--neu-flat-sm);
 }
 
+/* Ingredient Node Variant */
 .lineage-node-ingredient {
-  background: #f0fdf4;
-  border: 1px dashed #86efac;
+  background: linear-gradient(145deg, #f0fdf4 0%, #e6f9ee 100%);
+  border: 1px solid rgba(167, 243, 208, 0.9);
+  box-shadow: 4px 4px 12px rgba(166, 180, 200, 0.35), -4px -4px 12px #ffffff;
 }
 
+/* Terminal Node Variant — Inspected target */
 .lineage-node-terminal {
-  background: #ecfdf5;
+  background: linear-gradient(145deg, #ffffff 0%, #ecfdf5 100%);
   border: 1.5px solid #10b981;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.12);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.12), var(--neu-flat-sm);
 }
 
+.lineage-node-terminal:hover {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.2), var(--neu-flat-hover);
+}
+
+/* 3-Zone Card Layout: Header */
 .lineage-node-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  font-size: 0.75rem;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  min-height: 24px;
 }
 
 .lineage-step-badge {
@@ -1800,55 +1893,213 @@ button:disabled {
   align-items: center;
   gap: 0.25rem;
   font-weight: 700;
-  color: var(--secondary-text);
-  font-size: 0.7rem;
+  color: var(--primary, #047857);
+  font-size: 0.6875rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.lineage-node-ingredient .lineage-step-badge {
+  color: #065f46;
+}
+
+.lineage-node-terminal .lineage-step-badge {
+  color: #047857;
 }
 
 .lineage-tool-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
-  background: #f1f5f9;
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+  background: #e8eef6;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: inset 1px 1px 2px rgba(166, 180, 200, 0.35), inset -1px -1px 2px #ffffff;
   color: #475569;
-  font-size: 0.6875rem;
+  font-size: 0.65rem;
   font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.lineage-node-ingredient .lineage-tool-badge,
+.lineage-node-terminal .lineage-tool-badge {
+  background: #d1fae5;
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow: inset 1px 1px 2px rgba(5, 150, 105, 0.2), inset -1px -1px 2px #ffffff;
+  color: #047857;
+}
+
+/* 3-Zone Card Layout: Body */
+.lineage-node-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+  flex: 1;
+  margin: 0.65rem 0;
 }
 
 .lineage-action-code {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #1e3a8a;
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78125rem;
+  font-weight: 700;
+  color: #0f172a;
+  background: #e9eff7;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(200, 212, 228, 0.7);
+  box-shadow: inset 1.5px 1.5px 3px rgba(166, 180, 200, 0.3), inset -1.5px -1.5px 3px #ffffff;
   word-break: break-all;
-  background: transparent;
-  padding: 0;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.lineage-title-box {
+  display: block;
+  font-size: 0.78125rem;
+  font-weight: 700;
+  color: #065f46;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(167, 243, 208, 0.8);
+  box-shadow: inset 1.5px 1.5px 3px rgba(166, 180, 200, 0.2), inset -1.5px -1.5px 3px #ffffff;
+  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.lineage-node-terminal .lineage-title-box {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: inset 1.5px 1.5px 3px rgba(16, 185, 129, 0.12), inset -1.5px -1.5px 3px #ffffff;
+  color: #047857;
 }
 
 .lineage-marker-text {
+  display: block;
   font-size: 0.725rem;
-  color: var(--secondary-text);
-  font-weight: 500;
+  color: #64748b;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.lineage-node-ingredient .lineage-marker-text {
+  color: #059669;
+}
+
+.lineage-node-terminal .lineage-marker-text {
+  color: #475569;
+  font-size: 0.7rem;
+}
+
+/* 3-Zone Card Layout: Footer */
+.lineage-node-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.45rem;
+  border-top: 1px dashed rgba(200, 212, 228, 0.7);
+  flex-shrink: 0;
+  min-height: 20px;
+}
+
+.lineage-node-ingredient .lineage-node-footer {
+  border-top-color: rgba(167, 243, 208, 0.8);
+}
+
+.lineage-node-terminal .lineage-node-footer {
+  border-top-color: rgba(16, 185, 129, 0.3);
 }
 
 .lineage-evidence-ref {
-  font-size: 0.6875rem;
-  color: var(--text-tertiary);
+  font-size: 0.65rem;
+  color: #94a3b8;
   font-family: ui-monospace, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-width: 100%;
 }
 
+.lineage-node-ingredient .lineage-evidence-ref {
+  color: #059669;
+}
+
+.lineage-terminal-status {
+  color: #047857;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+/* Neumorphic Arrow Connector */
 .lineage-connector {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  width: 24px;
   flex-shrink: 0;
 }
 
-.lineage-connector svg {
-  display: block;
+.lineage-connector-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface-canvas, #edf1f7);
+  box-shadow: 2px 2px 5px rgba(166, 180, 200, 0.4), -2px -2px 5px #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  color: var(--primary, #047857);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lineage-step:hover .lineage-connector-arrow {
+  transform: scale(1.1);
+}
+
+/* Responsive Stacking for Mobile (< 540px) */
+@media (max-width: 540px) {
+  .lineage-track {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .lineage-step {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .lineage-node {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    min-height: 154px;
+  }
+
+  .lineage-connector {
+    width: 100%;
+    height: 34px;
+    padding: 0.25rem 0;
+  }
+
+  .lineage-connector-arrow {
+    transform: rotate(90deg);
+  }
+
+  .lineage-step:hover .lineage-connector-arrow {
+    transform: rotate(90deg) scale(1.1);
+  }
 }
 
 /* ==========================================================================

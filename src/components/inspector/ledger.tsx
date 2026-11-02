@@ -180,76 +180,101 @@ export function ActionLineageGraph({ actions, ingredients = [] }: ActionLineageG
     <div
       className="action-lineage-graph c2pa-lineage-graph"
       role="region"
+      tabIndex={0}
       aria-label="C2PA Action and Ingredient Lineage Graph"
     >
-      {/* Ingredient inputs if recorded */}
-      {ingredients.map((ing) => (
-        <div key={ing.sourceEvidenceId} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div className="lineage-node lineage-node-ingredient">
-            <div className="lineage-node-header">
-              <span className="lineage-step-badge" style={{ color: '#475569' }}>
-                <LayersIcon size={12} />
-                <span>Ingredient</span>
-              </span>
-              <span className="lineage-tool-badge" style={{ background: '#f1f5f9', color: '#334155' }}>
-                {ing.relationship ?? 'Input'}
-              </span>
+      <div className="lineage-track">
+        {/* Ingredient inputs if recorded */}
+        {ingredients.map((ing) => (
+          <div key={ing.sourceEvidenceId} className="lineage-step">
+            <div className="lineage-node lineage-node-ingredient">
+              <div className="lineage-node-header">
+                <span className="lineage-step-badge">
+                  <LayersIcon size={13} />
+                  <span>Ingredient</span>
+                </span>
+                <span className="lineage-tool-badge">
+                  {ing.relationship ?? 'Input'}
+                </span>
+              </div>
+              <div className="lineage-node-body">
+                <strong className="lineage-title-box">
+                  {ing.title ?? 'Source Asset'}
+                </strong>
+                <span className="lineage-marker-text">Source Asset / Precursor</span>
+              </div>
+              <div className="lineage-node-footer">
+                <span className="lineage-evidence-ref">evidence {ing.sourceEvidenceId}</span>
+              </div>
             </div>
-            <strong style={{ fontSize: '0.8125rem', color: '#334155', wordBreak: 'break-word' }}>
-              {ing.title ?? 'Source Asset'}
-            </strong>
-            <span className="lineage-evidence-ref">evidence {ing.sourceEvidenceId}</span>
+            <div className="lineage-connector" aria-hidden="true">
+              <div className="lineage-connector-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </div>
+            </div>
           </div>
-          <div className="lineage-connector" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </div>
-        </div>
-      ))}
+        ))}
 
-      {/* Sequential Action Nodes */}
-      {actions.map((action, idx) => (
-        <div key={action.sourceEvidenceId} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div className="lineage-node lineage-node-action">
+        {/* Sequential Action Nodes */}
+        {actions.map((action, idx) => (
+          <div key={action.sourceEvidenceId} className="lineage-step">
+            <div className="lineage-node lineage-node-action">
+              <div className="lineage-node-header">
+                <span className="lineage-step-badge">
+                  {getActionIcon(action.actionCode)}
+                  <span>Recorded {idx + 1}</span>
+                </span>
+                <span className="lineage-tool-badge">Order {idx + 1}</span>
+              </div>
+              <div className="lineage-node-body">
+                <code className="lineage-action-code">{action.actionCode}</code>
+                <span className="lineage-marker-text">{getActionCategory(action.actionCode)}</span>
+              </div>
+              <div className="lineage-node-footer">
+                <span className="lineage-evidence-ref">evidence {action.sourceEvidenceId}</span>
+              </div>
+            </div>
+            <div className="lineage-connector" aria-hidden="true">
+              <div className="lineage-connector-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Terminal node: the file version inspected in this session */}
+        <div className="lineage-step lineage-step-terminal">
+          <div className="lineage-node lineage-node-terminal">
             <div className="lineage-node-header">
               <span className="lineage-step-badge">
-                {getActionIcon(action.actionCode)}
-                <span>Recorded {idx + 1}</span>
+                <ShieldCheckIcon size={14} />
+                <span>Inspected</span>
               </span>
-              <span className="lineage-tool-badge">Order {idx + 1}</span>
+              <span className="lineage-tool-badge">
+                This session
+              </span>
             </div>
-            <code className="lineage-action-code">{action.actionCode}</code>
-            <span className="lineage-marker-text">{getActionCategory(action.actionCode)}</span>
-            <span className="lineage-evidence-ref">evidence {action.sourceEvidenceId}</span>
-          </div>
-          <div className="lineage-connector" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
+            <div className="lineage-node-body">
+              <strong className="lineage-title-box">
+                Current file version
+              </strong>
+              <span className="lineage-marker-text">
+                The exact bytes supplied to this check
+              </span>
+            </div>
+            <div className="lineage-node-footer">
+              <span className="lineage-evidence-ref lineage-terminal-status">
+                Target of inspection
+              </span>
+            </div>
           </div>
         </div>
-      ))}
-
-      {/* Terminal node: the file version inspected in this session */}
-      <div className="lineage-node lineage-node-terminal">
-        <div className="lineage-node-header">
-          <span className="lineage-step-badge" style={{ color: '#475569' }}>
-            <ShieldCheckIcon size={13} />
-            <span>Inspected</span>
-          </span>
-          <span className="lineage-tool-badge" style={{ background: '#f1f5f9', color: '#334155' }}>
-            This session
-          </span>
-        </div>
-        <strong style={{ fontSize: '0.8125rem', color: '#334155' }}>
-          Current file version
-        </strong>
-        <span className="lineage-marker-text" style={{ color: '#475569' }}>
-          The exact bytes supplied to this check
-        </span>
       </div>
     </div>
   );
@@ -791,10 +816,12 @@ function MediaPreviewCard({
         className="preview-img-container"
         style={{
           position: 'relative',
+          width: '100%',
+          maxWidth: '100%',
           borderRadius: '12px',
           overflow: 'hidden',
           background: 'var(--surface-sunken, #e2e8f0)',
-          minHeight: '280px',
+          minHeight: '0',
           maxHeight: '500px',
           aspectRatio: '16/10',
           display: 'flex',

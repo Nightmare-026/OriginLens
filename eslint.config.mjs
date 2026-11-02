@@ -10,6 +10,7 @@ const config = [
       'node_modules/**',
       'coverage/**',
       '.agents/**',
+      '.worktrees/**',
       'next-env.d.ts',
     ],
   },
