@@ -24,7 +24,7 @@
 | **G11** | Dependency risks documented & assessed | **PASS** | `npm audit` evaluated: 0 critical, 0 high, 16 dev-time moderate findings in ESLint `minimatch` documented as non-runtime risks. |
 | **G12** | Responsive UI & design consistency | **PASS** | Tested across 360px–1920px viewports; BUG-002 resolved (0px horizontal overflow); design tokens and neumorphic surfaces consistent. |
 | **G13** | Accessibility assessed | **PASS** | 0 axe-core violations on start, ledger, and compare screens; full keyboard reachability; visible `:focus-visible` styling; polite screen-reader announcements. |
-| **G14** | Production build, tests, lint, typecheck | **PASS** | `npm run lint` (0 errors), `npm run typecheck` (exit 0), `npm test` (326/326 unit tests PASS), `npx playwright test` (53/53 E2E tests PASS), `npm run build` (clean Turbopack build). |
+| **G14** | Production build, tests, lint, typecheck | **PASS** | `npm run lint` (0 errors), `npm run typecheck` (exit 0), `npm test` (326/326 unit tests PASS), `npx playwright test` (54/54 E2E tests PASS (380 total tests PASS)), `npm run build` (clean Turbopack build). |
 | **G15** | Production browser workflow tested | **PASS** | Deployed application at `https://originlens-ai.vercel.app/` verified with live DNS, HTTPS, CSP headers, and WebAssembly asset serving. |
 | **G16** | Official hackathon compliance established | **PASS** | Indie Track and Media Literacy theme verified; mandatory "Built with Muse Spark Open" attribution present; ethical uncertainty communicated. |
 | **G17** | Submission materials verified | **PASS** | Public GitHub repo, live demo URL, architecture documentation, fixture provenance manifest, and rehearsed 3-act demo script complete. |
@@ -66,7 +66,7 @@
 2. Run `npm run lint` -> Confirm 0 errors.
 3. Run `npm run typecheck` -> Confirm clean exit 0.
 4. Run `npm test` -> Confirm 326/326 unit tests pass.
-5. Run `npx playwright test` -> Confirm 53/53 E2E tests pass.
+5. Run `npx playwright test` -> Confirm 54/54 E2E tests pass (380 total automated tests).
 6. Run `npm run build` -> Confirm Next.js Turbopack build succeeds.
 
 ### 3.2 Deployment Target

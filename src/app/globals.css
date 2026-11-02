@@ -1801,30 +1801,32 @@ button:disabled {
   border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: var(--rounded-xl, 1.25rem);
   box-shadow: var(--neu-inset);
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: visible;
+  scrollbar-width: thin;
 }
 
 .lineage-track {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: stretch;
-  gap: 1rem 0;
+  gap: 0;
   width: 100%;
+  min-width: min-content;
 }
 
 .lineage-step {
   display: flex;
   align-items: stretch;
-  flex: 1 1 180px;
-  min-width: 170px;
-  max-width: 260px;
+  flex: 1 1 0%;
+  min-width: 140px;
+  height: 100%;
 }
 
 .lineage-step-terminal {
-  flex: 1 1 180px;
-  min-width: 170px;
-  max-width: 260px;
+  flex: 1 1 0%;
+  min-width: 140px;
+  height: 100%;
 }
 
 /* Base Card — Pure Neumorphic Tactile Embossed Card */
@@ -1835,8 +1837,8 @@ button:disabled {
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  flex: 1;
-  min-height: 172px;
+  flex: 1 1 auto;
+  min-height: 184px;
   height: 100%;
   padding: 0.9rem 0.75rem;
   box-sizing: border-box;
@@ -1878,14 +1880,14 @@ button:disabled {
   box-shadow: 0 6px 20px rgba(16, 185, 129, 0.2), var(--neu-flat-hover);
 }
 
-/* 3-Zone Card Layout: Header */
+/* 3-Zone Card Layout: Header (Uniform 24px) */
 .lineage-node-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.35rem;
   flex-shrink: 0;
-  min-height: 24px;
+  height: 24px;
 }
 
 .lineage-step-badge {
@@ -1932,18 +1934,19 @@ button:disabled {
   color: #047857;
 }
 
-/* 3-Zone Card Layout: Body */
+/* 3-Zone Card Layout: Body (Uniform Heights) */
 .lineage-node-body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.35rem;
-  flex: 1;
+  gap: 0.4rem;
+  flex: 1 1 auto;
   margin: 0.65rem 0;
 }
 
 .lineage-action-code {
-  display: block;
+  display: flex;
+  align-items: center;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.78125rem;
   font-weight: 700;
@@ -1956,10 +1959,13 @@ button:disabled {
   word-break: break-all;
   margin: 0;
   line-height: 1.35;
+  min-height: 36px;
+  box-sizing: border-box;
 }
 
 .lineage-title-box {
-  display: block;
+  display: flex;
+  align-items: center;
   font-size: 0.78125rem;
   font-weight: 700;
   color: #065f46;
@@ -1973,6 +1979,8 @@ button:disabled {
   text-overflow: ellipsis;
   margin: 0;
   line-height: 1.35;
+  min-height: 36px;
+  box-sizing: border-box;
 }
 
 .lineage-node-terminal .lineage-title-box {
@@ -1983,11 +1991,13 @@ button:disabled {
 }
 
 .lineage-marker-text {
-  display: block;
+  display: flex;
+  align-items: center;
   font-size: 0.725rem;
   color: #64748b;
   font-weight: 600;
   line-height: 1.35;
+  min-height: 32px;
 }
 
 .lineage-node-ingredient .lineage-marker-text {
@@ -1999,7 +2009,7 @@ button:disabled {
   font-size: 0.7rem;
 }
 
-/* 3-Zone Card Layout: Footer */
+/* 3-Zone Card Layout: Footer (Uniform 22px) */
 .lineage-node-footer {
   display: flex;
   align-items: center;
@@ -2007,7 +2017,7 @@ button:disabled {
   padding-top: 0.45rem;
   border-top: 1px dashed rgba(200, 212, 228, 0.7);
   flex-shrink: 0;
-  min-height: 20px;
+  height: 22px;
 }
 
 .lineage-node-ingredient .lineage-node-footer {
@@ -2046,6 +2056,7 @@ button:disabled {
   justify-content: center;
   width: 24px;
   flex-shrink: 0;
+  align-self: center;
 }
 
 .lineage-connector-arrow {
@@ -2066,18 +2077,27 @@ button:disabled {
   transform: scale(1.1);
 }
 
-/* Responsive Stacking for Mobile (< 540px) */
-@media (max-width: 540px) {
+/* Responsive Stacking for Mobile (< 600px) */
+@media (max-width: 600px) {
   .lineage-track {
     flex-direction: column;
     align-items: stretch;
     gap: 0;
+    min-width: 100%;
   }
 
   .lineage-step {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
+    min-width: 100%;
+    flex: 1 1 auto;
+  }
+
+  .lineage-step-terminal {
+    width: 100%;
+    min-width: 100%;
+    flex: 1 1 auto;
   }
 
   .lineage-node {

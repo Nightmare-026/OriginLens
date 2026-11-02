@@ -250,11 +250,12 @@ flowchart TD
 * **Camera & Metadata Clues:** Extracts camera make, model, software, capture timestamp, and orientation while treating them honestly as unverified textual clues.
 * **Anti-Doxxing Geolocation Guard:** Detects GPS metadata without leaking coordinates. Supports on-demand client-side unmasking with precision toggling (Precise vs. Coarse ~10 km region) and safe outbound links to OpenStreetMap and Google Maps.
 * **Categorized Tabbed Dashboard:** 6 full-width responsive tabs (`Executive Overview`, `C2PA Credentials`, `Camera & EXIF`, `AI Clues & Co-Pilot`, `Technical Audit`, `Complete View`).
+* **Tactile C2PA Lineage Graph:** An interactive, neumorphic action and precursor timeline that visualizes the sequential custody and editing history (`c2pa.opened`, `c2pa.edited`, `c2pa.converted`, precursor ingredients) in a locked, inline layout with uniform card heights, directly mapping each step to its verified `ev_...` evidence record.
 
 ### 2. ⚖️ Provenance Delta (Comparison Engine)
 * **Dual-File Independent Analysis:** Analyzes File A and File B in isolated pipelines without assuming chronology or authorship.
 * **Interactive Visual Swipe Slider:** Real-time split-screen comparison allowing judges and users to swipe between two files.
-* **Normalized Pixel Difference Metric:** Computes peak channel variance and differing pixel percentages with documented aspect ratio and orientation guards.
+* **Authentic Mathematical Difference Engine:** Computes real per-pixel Chebyshev distance (peak channel difference L∞) across RGB channels on an offscreen canvas and Mean Absolute Channel Error (L1/3), backed by strict aspect-ratio parity and EXIF orientation normalization guards—avoiding synthetic decorative gradients.
 * **User Assertions:** Allows user labeling (e.g. "original" vs "edited") while explicitly marking them as user assertions—never endorsed as system fact.
 
 ### 3. 🤖 Meta Muse Spark Open Explainer (Baseten Partner)
@@ -339,7 +340,7 @@ OriginLens has been rigorously audited across **380 total automated tests** with
 | `npm run lint` | ESLint Flat Config (`eslint.config.mjs`) | 8.0s | `0` | 0 errors, 0 warnings across all files | **PASS** |
 | `npm run typecheck` | TypeScript Strict (`tsc --noEmit`) | 4.0s | `0` | Zero type errors, strict compilation | **PASS** |
 | `npm test` | Vitest Unit & Integration Suite | 2.32s | `0` | 21 test files, 326 of 326 unit tests passed | **PASS** |
-| `npm run test:e2e` | Playwright E2E Suite (Chromium Headless) | 2m 06s | `0` | 54 of 54 browser tests passed | **PASS** |
+| `npm run test:e2e` | Playwright E2E Suite (Chromium Headless) | 1m 36s | `0` | 54 of 54 browser tests passed | **PASS** |
 | `npm run build` | Next.js Turbopack Production Build | 9.5s | `0` | 13 App Router routes generated cleanly | **PASS** |
 | `npm run audit` | npm dependency security audit | 6.0s | `0` | 0 critical, 0 high, 16 dev-only moderate | **PASS (Audited)** |
 
@@ -449,6 +450,7 @@ OriginLens/
 │   │   ├── compare/page.tsx            # Dual-file Provenance Delta comparison studio
 │   │   ├── inspect/page.tsx            # Single-file Evidence Ledger workspace
 │   │   ├── about/page.tsx              # Provenance & Muse Spark Open attribution page
+│   │   ├── how-to-use/page.tsx         # Interactive visual onboarding & user guide
 │   │   ├── privacy/page.tsx            # Zero-byte privacy policy & invariant disclosure
 │   │   └── page.tsx                    # Studio landing and quickstart hub
 │   ├── components/                     # Reusable React UI components

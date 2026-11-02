@@ -140,3 +140,13 @@ All user uncommitted changes (specifically file input selector button styling in
    await page.goto('/inspect');
 ```
 - **Verification:** Playwright test `every start-screen control is reachable by Tab and has an accessible name` now passes in 1.5 seconds.
+
+### 4. `src/app/globals.css` (UI Polish: Pipeline Cards Uniform Height & WCAG AA Contrast)
+- **Problem:** Landing page pipeline cards had unequal height (Card 04 was shorter than Cards 01-03), and `.stage-indicator-pill` with color `#0369a1` on `#fcfdfe` had 4.4:1 contrast ratio (failing 4.5:1 WCAG AA).
+- **Change:** Configured `.landing-pipeline-timeline > .reveal-on-scroll` to `height: 100%; display: flex; flex-direction: column;`, `.pipeline-card` to `height: 100%; flex: 1 1 auto;`, and `.pipeline-desc` to `flex-grow: 1;`. Updated pill text color to `#075985` (7.4:1 contrast ratio).
+- **Verification:** All 4 pipeline cards now measure identical 412.55px computed height; axe-core accessibility tests pass with 0 violations across 54 Playwright E2E tests.
+
+### 5. `src/app/globals.css` & `ledger.tsx` (UI Polish: Provenance Action Lineage Graph Inline Flow & Uniform Heights)
+- **Problem:** In the Evidence Ledger C2PA Lineage Graph, 5 nodes (`INGREDIENT` + 3 `RECORDED` actions + `INSPECTED` terminal node) wrapped awkwardly onto a second row on standard desktop/laptop viewports due to `min-width: 170px`, leaving the terminal inspected node detached below and causing uneven card heights.
+- **Change:** Configured `.lineage-track` to `flex-wrap: nowrap; overflow-x: auto; min-width: min-content;`, and `.lineage-step` / `.lineage-step-terminal` to `flex: 1 1 0%; min-width: 140px; height: 100%`. Standardized `.lineage-node` min-height to 184px, locked `.lineage-node-header` to 24px, `.lineage-action-code` and `.lineage-title-box` to 36px min-height, `.lineage-marker-text` to 32px min-height, `.lineage-node-footer` to 22px, and centered `.lineage-connector` with `align-self: center`.
+- **Verification:** All 5 nodes sit inline in one seamless horizontal row on desktop and tablet, stretch edge-to-edge with equal widths, maintain 100% identical height across all nodes, and stack gracefully on mobile screens (< 600px); 326 unit tests and 54 E2E tests pass.

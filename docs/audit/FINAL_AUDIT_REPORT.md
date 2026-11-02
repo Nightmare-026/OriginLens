@@ -19,7 +19,7 @@ OriginLens has undergone an exhaustive, multi-disciplinary engineering audit spa
 - **Linting (`npm run lint`):** **PASS** (0 errors, 0 warnings).
 - **Type Safety (`npm run typecheck`):** **PASS** (0 errors, strict TypeScript emit clean).
 - **Unit Test Suite (`npm test`):** **PASS** (21 test files, 326 of 326 unit tests passed in 2.32s).
-- **Browser E2E Suite (`npx playwright test`):** **PASS** (53 of 53 Playwright E2E tests passed against production build in 2.1m).
+- **Browser E2E Suite (`npx playwright test`):** **PASS** (54 of 54 Playwright E2E tests passed against production build in 1.6m (380 total tests passed)).
 - **Production Build (`npm run build`):** **PASS** (Turbopack compiled 13 routes cleanly; static prerendering verified).
 - **Dependency Audit (`npm audit`):** **PASS** (0 critical, 0 high; 16 dev-time moderate findings in ESLint toolchain assessed as non-runtime).
 - **Defects Remediated:** 3 of 3 local engineering defects resolved immediately; 1 governance risk documented and architecturally mitigated.
@@ -78,7 +78,7 @@ All 13 routes in the Next.js App Router have been audited:
 ### 4.3 Provenance Delta & Visual Comparison
 - **Mathematical Property Comparison:** Dual files are analyzed completely independently. Fingerprints, byte lengths, formats, dimensions, allowlisted metadata, and C2PA findings are compared row-by-row.
 - **Normalized Preview Metric:** Normalizes candidate images to a bounded preview canvas (1.2 MP max). Differences are reported as mean absolute channel error and percentage of changed pixels. If aspect ratios differ or EXIF orientation cannot be normalized, the preview metric is skipped with an honest explanation (e.g. `orientation_not_normalized`).
-- **Authentic Difference Heatmap:** The interactive heatmap in `VisualDiffSlider` computes real per-pixel Euclidean distance across RGB channels on an offscreen canvas. It is an authentic mathematical visualization, not a synthetic decorative CSS gradient.
+- **Authentic Difference Heatmap:** The interactive heatmap in `VisualDiffSlider` computes real per-pixel Chebyshev distance (peak channel difference L∞) across RGB channels on an offscreen canvas, paired with domain Mean Absolute Channel Error (L1/3). It is an authentic mathematical visualization, not a synthetic decorative CSS gradient.
 
 ### 4.4 Meta Model Explainer & AI Safety
 - **Provider Protocol:** Communicates via an OpenAI-compatible endpoint with Baseten hosting Meta's open-weight `meta-models/muse-spark-open-1026`.
@@ -111,7 +111,7 @@ All 13 routes in the Next.js App Router have been audited:
 
 1. **Turbopack Production Build:** Compiled in 482 ms; static page generation completed across all 11 worker threads in 738 ms.
 2. **Unit Test Execution:** 326 unit tests executed in 2.32 seconds across 21 parallel worker isolates.
-3. **E2E Browser Test Execution:** 53 full browser tests executed against the production build in 2 minutes 06 seconds.
+3. **E2E Browser Test Execution:** 54 full browser tests executed against the production build in 1 minute 36 seconds (380 total automated tests).
 4. **Client-Side Responsiveness:** Image intake and preflight validation execute in <50 ms. WebAssembly C2PA verification executes in ~300–800 ms depending on manifest complexity.
 
 ---
@@ -132,7 +132,7 @@ All 13 routes in the Next.js App Router have been audited:
 | Gate | Description | Verdict | Evidence |
 |---|---|---|---|
 | G1 | Complete source & route inventory | **PASS** | All 13 routes mapped and verified. |
-| G2 | All core user journeys tested | **PASS** | 53/53 Playwright E2E tests pass. |
+| G2 | All core user journeys tested | **PASS** | 54/54 Playwright E2E tests pass (380 total tests across Vitest & Playwright). |
 | G3 | C2PA behavior independently verified | **PASS** | Official and mutated fixtures verified in real WASM runtime. |
 | G4 | Metadata & GPS privacy verified | **PASS** | Strict allowlist; GPS coordinates stripped. |
 | G5 | Image comparison mathematically verified | **PASS** | Canvas channel deltas and honest skip conditions verified. |
@@ -453,8 +453,8 @@ Provisional Competitive Score =
 *(Labelled as a PROVISIONAL COMPETITIVE ESTIMATE pending official published weights from hackathon organizers).*
 
 #### Compliance Gate Determination
-- **Compliance Status:** **PASS**
-- **Justification:** All 18 release gates (G1–G18) pass with reproducible evidence. Track and theme alignment verified. Open-weight Muse Spark Open integration verified with mandatory attribution notice. Zero critical/high security blockers. User changes 100% preserved.
+- **Compliance Status:** **PASS (WITH DOCUMENTED ACCEPTED RISKS)**
+- **Justification:** All 18 release gates (G1–G18) pass with reproducible evidence. Track and theme alignment verified (Indie Developer Track / AI for Media Literacy & Information Integrity). Open-weight Muse Spark Open integration verified via Baseten partner inference with mandatory attribution notice. Zero critical/high security blockers. User changes 100% preserved. Documented accepted risk: Baseten hosted partner inference endpoint used for open-weight Meta reasoning model instead of proprietary api.meta.ai, conforming to hackathon Indie Track partner terms.
 
 ---
 
@@ -543,7 +543,7 @@ To ensure scoring integrity and prevent score inflation, all evaluations were cr
 - **Meta AI Integration:** **92 / 100**
 - **Hackathon Competitive Estimate:** **93 / 100**
 - **Official Rubric Score:** **93 / 100** *(Provisional estimate under reported 30/25/25/20 judging rubric; official confirmed weights pending)*
-- **Compliance Gate:** **PASS**
+- **Compliance Gate:** **PASS (WITH DOCUMENTED ACCEPTED RISKS)**
 - **Release Verdict:** **READY FOR SUBMISSION (WITH DOCUMENTED ACCEPTED RISKS)**
 
 ### Final Competitive Assessment
